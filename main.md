@@ -971,11 +971,11 @@ std::cout << x;     // Prints 0
 
 ---
 
-## Homework Assignments 📚
+## Homework Exercises 📚
 
 Try these on your own! They'll help reinforce what you learned today.
 
-### Assignment 1: Personal Profile
+### Exercise 1: Personal Profile
 Write a program that:
 1. Declares variables for: name, age, height (in meters), GPA, and whether you're a student
 2. Prints all information nicely formatted
@@ -984,7 +984,7 @@ Write a program that:
 
 ---
 
-### Assignment 2: Shopping Calculator
+### Exercise 2: Shopping Calculator
 Create a program that:
 1. Asks the user for the price of an item and quantity
 2. Calculates the total cost (price × quantity)
@@ -995,7 +995,7 @@ Create a program that:
 
 ---
 
-### Assignment 3: Temperature Converter
+### Exercise 3: Temperature Converter
 Write a program that:
 1. Asks the user for a temperature in Celsius
 2. Converts it to Fahrenheit using: F = (C × 9/5) + 32
@@ -1009,7 +1009,7 @@ Enter temperature in Celsius: 25
 
 ---
 
-### Assignment 4: Circle Properties
+### Exercise 4: Circle Properties
 Create a program that:
 1. Asks for the radius of a circle
 2. Calculates and prints:
