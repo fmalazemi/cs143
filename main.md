@@ -1,32 +1,54 @@
+```{=html}
+<!-- ====================================== -->
+```
+```{=html}
+<!--  C++ for Python Programmers (Intro)    -->
+```
+```{=html}
+<!-- ====================================== -->
+```
 # 🚀 C++ for Python Programmers
 
-## Introduction + Variables
+## Introduction + Variables Guide
+
+> 📌 Designed for students who **completed Python first**\
+> Goal: learn **syntax differences only**, not programming from scratch
 
 ------------------------------------------------------------------------
 
-# 🎯 Why learn C++ after Python?
+# 🎯 Why Learn C++ After Python?
 
-You already know how to: - think algorithmically - use variables - write
-loops - use conditions
+You already know how to:
 
-So now we focus only on:
+✅ Think algorithmically\
+✅ Use variables\
+✅ Write loops\
+✅ Use conditions
 
-👉 syntax + performance + system-level control
+So now we only learn:
 
-C++ is: - compiled (very fast) - widely used in systems, games,
-cybersecurity, robotics, and HPC - closer to hardware
+👉 **How to write the SAME ideas in C++**
+
+### Why C++?
+
+-   ⚡ Much faster
+-   🧠 More control over memory
+-   🎮 Used in games, systems, robotics, cybersecurity, HPC
+-   🏆 Industry + research favorite
 
 ------------------------------------------------------------------------
 
-# 🆚 Python vs C++ (Quick Comparison)
+# 🆚 Python vs C++ (Big Picture)
 
-  Feature     Python        C++
-  ----------- ------------- -------------------------
-  Execution   interpreted   compiled
-  Speed       slower        very fast
-  Types       dynamic       static
-  Memory      automatic     manual control possible
-  Syntax      simple        stricter
+  Concept       Python        C++
+  ------------- ------------- -----------
+  Execution     interpreted   compiled
+  Speed         slower        very fast
+  Types         dynamic       static
+  Syntax        simple        stricter
+  Performance   medium        high
+
+💡 **Same logic --- different syntax**
 
 ------------------------------------------------------------------------
 
@@ -44,7 +66,13 @@ x = 5
 int x = 5;
 ```
 
-⚠️ C++ requires: - type - semicolon ; - braces {}
+### New rules in C++
+
+-   Must write the **type**
+-   Must end with **;**
+-   Uses **{ }** blocks
+
+More rules → more control → more speed
 
 ------------------------------------------------------------------------
 
@@ -60,44 +88,63 @@ int main() {
 }
 ```
 
+### What each part means
+
+  Part       Purpose
+  ---------- ---------------------
+  #include   import library
+  main()     program starts here
+  cout       print
+  ;          end of statement
+
 ------------------------------------------------------------------------
 
-# 📦 Variables in C++
+# 📦 Variables
 
-## Declaring Variables
+## What is a variable?
+
+A **named container** that stores data.
+
+👉 Same concept as Python
+
+------------------------------------------------------------------------
+
+# 🔹 Variable Syntax
+
+## Template
 
 ``` cpp
 type name = value;
 ```
 
-Example:
+## Example
 
 ``` cpp
-int x = 10;
+int age = 20;
 ```
 
 ------------------------------------------------------------------------
 
 # 🔹 Common Data Types
 
-  Type     Meaning      Example
-  -------- ------------ ---------
-  int      integer      5
-  double   decimal      3.14
-  float    decimal      2.5
-  char     character    'A'
-  bool     true/false   true
-  string   text         "Hello"
+  Type     Stores               Example
+  -------- -------------------- ---------
+  int      integers             10
+  double   decimals             3.14
+  float    decimals (smaller)   2.5
+  char     single character     'A'
+  bool     true/false           true
+  string   text                 "Hello"
 
 ------------------------------------------------------------------------
 
-# 🔹 Python → C++ Comparison
+# 🔹 Python → C++ Examples
 
 ## Python
 
 ``` python
 age = 20
-pi = 3.14
+height = 175.5
 name = "Ali"
 ```
 
@@ -105,8 +152,22 @@ name = "Ali"
 
 ``` cpp
 int age = 20;
-double pi = 3.14;
+double height = 175.5;
 string name = "Ali";
+```
+
+👉 Notice: **type must be written first**
+
+------------------------------------------------------------------------
+
+# 🔹 Declare Now, Assign Later
+
+``` cpp
+int x;
+double y;
+
+x = 5;
+y = 3.2;
 ```
 
 ------------------------------------------------------------------------
@@ -125,6 +186,12 @@ print(x)
 cout << x;
 ```
 
+Multiple values:
+
+``` cpp
+cout << x << " " << y;
+```
+
 ------------------------------------------------------------------------
 
 # 🔹 Reading Input
@@ -141,9 +208,18 @@ x = input()
 cin >> x;
 ```
 
+Example:
+
+``` cpp
+int age;
+cin >> age;
+```
+
 ------------------------------------------------------------------------
 
 # 🔹 Arithmetic Operators
+
+Same as Python:
 
   Operator   Example
   ---------- -----------
@@ -153,28 +229,89 @@ cin >> x;
   /          a / b
   \%         remainder
 
-------------------------------------------------------------------------
-
-# ⚠️ Important Rules
-
--   Must declare type
--   Every line ends with ;
--   Case sensitive
+``` cpp
+int r = 10 % 3; // 1
+```
 
 ------------------------------------------------------------------------
 
-# ✅ Mini Practice
+# ⚠️ Common Beginner Mistakes
+
+## ❌ Missing type
+
+``` cpp
+x = 5;
+```
+
+## ✅ Correct
+
+``` cpp
+int x = 5;
+```
+
+------------------------------------------------------------------------
+
+## ❌ Missing semicolon
+
+``` cpp
+int x = 5
+```
+
+## ✅ Correct
+
+``` cpp
+int x = 5;
+```
+
+------------------------------------------------------------------------
+
+## ❌ Case sensitive
+
+``` cpp
+Age ≠ age
+```
+
+------------------------------------------------------------------------
+
+# 🧪 Quick Practice
 
 ## Exercise 1
 
-Create variables: - age - height - name Print them.
-
-## Exercise 2
-
-Input two numbers and print their sum.
+Create: - age - height - name\
+Print them.
 
 ------------------------------------------------------------------------
 
-# 🎯 Next Lecture
+## Exercise 2
 
-👉 if statements
+Input two numbers → print their sum.
+
+------------------------------------------------------------------------
+
+## Exercise 3
+
+Convert this Python code:
+
+``` python
+a = 5
+b = 7
+print(a + b)
+```
+
+------------------------------------------------------------------------
+
+# ✅ Lesson Summary
+
+After this lesson you can:
+
+✔ Write a C++ program\
+✔ Declare variables\
+✔ Use data types\
+✔ Print and read input\
+✔ Understand differences from Python
+
+------------------------------------------------------------------------
+
+# ➡️ Next Lecture
+
+# 👉 if statements (decision making)
