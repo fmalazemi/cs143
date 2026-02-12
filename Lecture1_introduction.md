@@ -2,9 +2,9 @@
 
 ## Welcome to C++!
 
-Hey there! You've already learned programming with Python. Now we're going to learn C++, which is like Python's high-performance cousin.
+You've already learned programming with Python from CS101. Now we're going to learn C++, which is like Python's high-performance cousin.
 
-**Why learn C++?**
+**Where C++ is used?** 
 - 🎮 Video games (Unreal Engine, Unity)
 - 🚗 Self-driving cars
 - 🚀 Rocket software (SpaceX)
@@ -154,8 +154,7 @@ int main() {
 using namespace std;
 
 int main() {
-    int age = 25;
-    cout << "My age is " << age << endl;
+    cout << "My age is " << 25 << endl;
     return 0;
 }
 ```
