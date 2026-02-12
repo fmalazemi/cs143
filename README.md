@@ -7,9 +7,10 @@
 ![Course](https://img.shields.io/badge/Course-CS143-red.svg)
 
 ---
-## 🌟 Welcome!
+## 🌟 Welcome to CS 143!
 
-Welcome to CS 143! You're about to learn one of the most powerful and important programming language in the world. C++ is used in:
+You're about to learn one of the most powerful and important programming language in the world. 
+C++ is used in:
 
 - 🎮 Video game engines (Unreal Engine, Unity core)
 - 🚗 Automotive software (Tesla, autonomous vehicles)
@@ -18,9 +19,6 @@ Welcome to CS 143! You're about to learn one of the most powerful and important 
 - 🖥️ Operating systems (Windows, macOS, Linux)
 - 🤖 Robotics and embedded systems
 
-Your Python foundation from CS 101 will serve you well. 
-
-**Let's get started! 🚀**
 
 ---
 
