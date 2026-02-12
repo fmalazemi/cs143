@@ -1,23 +1,17 @@
-# Lecture 1: Introduction
+# Table of Contents
 
-## Table of Contents
 1. [Introduction](#introduction)
-2. [Background](#background)
-3. [Goals](#goals)
-4. [Summary](#summary)
+2. [Section 1](#section-1)
+3. [Section 2](#section-2)
 
-## 1. Introduction
+# 1. Introduction
 
-Content of introduction section...
+Content of the introduction section.
 
-## 2. Background
+# 2. Section 1
 
-Content of background section...
+Content of section 1.
 
-## 3. Goals
+# 3. Section 2
 
-Content of goals section...
-
-## 4. Summary
-
-Content of summary section...
+Content of section 2.
