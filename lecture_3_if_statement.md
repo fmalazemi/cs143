@@ -510,7 +510,7 @@ Combine multiple conditions using logical operators.
 
 **Truth Table:**
 
-| Condition 1 | Condition 2 | Result |
+| Condition 1 | Condition 2 | Condition 1 && Condition 2 |
 |-------------|-------------|--------|
 | true | true | **true** |
 | true | false | false |
@@ -569,7 +569,7 @@ int main() {
 
 **Truth Table:**
 
-| Condition 1 | Condition 2 | Result |
+| Condition 1 | Condition 2 | Condition 1 \|\| condition 2 |
 |-------------|-------------|--------|
 | true | true | **true** |
 | true | false | **true** |
@@ -628,7 +628,7 @@ int main() {
 
 **Truth Table:**
 
-| Condition | Result |
+| Condition | ! Condition |
 |-----------|--------|
 | true | **false** |
 | false | **true** |
