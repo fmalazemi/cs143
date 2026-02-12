@@ -1,4 +1,5 @@
-# CS 143: Fundamentals of Computer Programming in C++
+# CS 143: Fundamentals of Computer Programming 
+
 **Kuwait University - Computer Science Department**
 
 ![C++ Programming](https://img.shields.io/badge/C++-Programming-blue.svg)
