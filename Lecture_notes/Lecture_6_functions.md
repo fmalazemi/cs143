@@ -8,23 +8,24 @@ In previous lectures, you learned about loops and control flow. Now you will lea
 - Organize code into logical blocks
 - Avoid repeating the same code
 - Make programs easier to read and maintain
-- Allow code reuse across different parts of your program
+- Break complex problems into smaller pieces
 
 ---
 
 ## Table of Contents
 
 1. [What Are Functions?](#what-are-functions)
-2. [Function Syntax](#function-syntax)
+2. [Function Basics](#function-basics)
+   - [Function Syntax](#function-syntax)
+   - [Calling Functions](#calling-functions)
+   - [Function Prototypes](#function-prototypes)
 3. [Function Parameters](#function-parameters)
 4. [Return Values](#return-values)
 5. [Function Examples](#function-examples)
-6. [Pass by Value vs Pass by Reference](#pass-by-value-vs-pass-by-reference)
-7. [Function Overloading](#function-overloading)
-8. [Default Parameters](#default-parameters)
-9. [Common Mistakes](#common-mistakes)
-10. [Practice Exercises](#practice-exercises)
-11. [Summary](#summary)
+6. [Scope and Lifetime](#scope-and-lifetime)
+7. [Common Mistakes](#common-mistakes)
+8. [Practice Exercises](#practice-exercises)
+9. [Summary](#summary)
 
 ---
 
@@ -33,49 +34,68 @@ In previous lectures, you learned about loops and control flow. Now you will lea
 A function is a block of code that performs a specific task. You can call (use) the function whenever you need that task performed.
 
 **Real-world analogy:**
-Think of a function like a recipe. Instead of writing out the recipe steps every time you cook, you just refer to the recipe by name.
+Think of a function like a machine in a factory. You give it input materials, it processes them, and gives you a finished product.
 
 ### Functions You Already Know
 
-You have been using functions already:
+You have been using functions throughout this course:
 
 ```cpp
-cout << "Hello";     // cout is a function
-cin >> number;       // cin is a function
-sqrt(25);           // sqrt is a function
+cout << "Hello";     // Output function
+cin >> number;       // Input function
 ```
+
+The `main()` function is also a function - it is where your program starts executing.
 
 ### Why Use Functions?
 
+**Problem:** You need to calculate the area of rectangles many times in your program.
+
 **Without functions:**
 ```cpp
-// Calculate area of rectangle 1
-int area1 = length1 * width1;
-
-// Calculate area of rectangle 2
-int area2 = length2 * width2;
-
-// Calculate area of rectangle 3
-int area3 = length3 * width3;
+int main() {
+    // Calculate area of rectangle 1
+    int length1 = 5, width1 = 3;
+    int area1 = length1 * width1;
+    
+    // Calculate area of rectangle 2
+    int length2 = 8, width2 = 4;
+    int area2 = length2 * width2;
+    
+    // Calculate area of rectangle 3
+    int length3 = 10, width3 = 6;
+    int area3 = length3 * width3;
+    
+    // If formula changes, you must change it in 3 places!
+}
 ```
 
 **With functions:**
 ```cpp
-int area1 = calculateArea(length1, width1);
-int area2 = calculateArea(length2, width2);
-int area3 = calculateArea(length3, width3);
+int calculateArea(int length, int width) {
+    return length * width;
+}
+
+int main() {
+    int area1 = calculateArea(5, 3);
+    int area2 = calculateArea(8, 4);
+    int area3 = calculateArea(10, 6);
+    
+    // If formula changes, you only change it once!
+}
 ```
 
 **Benefits:**
 - Code is clearer and easier to read
 - If you need to change the calculation, you only change it in one place
 - Less chance of making mistakes
+- Can reuse the function in other programs
 
 ---
 
-## Function Syntax
+## Function Basics
 
-### Basic Structure
+### Function Syntax
 
 ```cpp
 returnType functionName(parameterList) {
@@ -86,30 +106,24 @@ returnType functionName(parameterList) {
 ```
 
 **Parts of a function:**
+
 1. **Return Type** - What type of value the function returns (int, double, void, etc.)
-2. **Function Name** - Descriptive name for what the function does
+2. **Function Name** - Descriptive name following variable naming rules
 3. **Parameter List** - Input values the function needs (can be empty)
-4. **Function Body** - The code that executes when function is called
+4. **Function Body** - The code enclosed in curly braces { }
 5. **Return Statement** - Sends a value back to the caller (not needed for void)
 
 ### Simple Example
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 int add(int a, int b) {
     int sum = a + b;
     return sum;
 }
-```
 
-**Breaking it down:**
-- `int` - Function returns an integer
-- `add` - Function name
-- `(int a, int b)` - Takes two integer parameters
-- `return sum;` - Returns the result
-
-### Calling a Function
-
-```cpp
 int main() {
     int result = add(5, 3);
     cout << "Result: " << result << endl;  // Output: Result: 8
@@ -117,59 +131,238 @@ int main() {
 }
 ```
 
+**Breaking it down:**
+- `int` - Function returns an integer
+- `add` - Function name (describes what it does)
+- `(int a, int b)` - Takes two integer parameters
+- `return sum;` - Returns the calculated sum
+
+### Calling Functions
+
+To use a function, you call it by name and provide the required values:
+
+```cpp
+functionName(value1, value2);
+```
+
+**Example:**
+```cpp
+int result = add(10, 20);  // Calls add function
+cout << result;             // Output: 30
+```
+
+### Function Prototypes
+
+A **function prototype** (also called a function declaration) tells the compiler that a function exists before you define it.
+
+**Why do we need prototypes?**
+
+The compiler reads your code from top to bottom. If you call a function before defining it, the compiler does not know it exists.
+
+**Problem without prototype:**
+```cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    int result = add(5, 3);  // Error: add not declared
+    cout << result << endl;
+    return 0;
+}
+
+int add(int a, int b) {  // Definition comes after use
+    return a + b;
+}
+```
+
+**Solution 1: Define function before main**
+```cpp
+#include <iostream>
+using namespace std;
+
+int add(int a, int b) {  // Definition before use
+    return a + b;
+}
+
+int main() {
+    int result = add(5, 3);  // Works!
+    cout << result << endl;
+    return 0;
+}
+```
+
+**Solution 2: Use function prototype**
+```cpp
+#include <iostream>
+using namespace std;
+
+// Function prototype (declaration)
+int add(int a, int b);
+
+int main() {
+    int result = add(5, 3);  // Works!
+    cout << result << endl;
+    return 0;
+}
+
+// Function definition
+int add(int a, int b) {
+    return a + b;
+}
+```
+
+**Function prototype syntax:**
+```cpp
+returnType functionName(parameterTypes);
+```
+
+**Note:** You can omit parameter names in prototypes:
+```cpp
+int add(int, int);  // Valid prototype
+```
+
+But including names makes it clearer:
+```cpp
+int add(int a, int b);  // Better - shows purpose
+```
+
+### Multiple Function Prototypes
+
+```cpp
+#include <iostream>
+using namespace std;
+
+// Function prototypes
+int add(int a, int b);
+int subtract(int a, int b);
+int multiply(int a, int b);
+double divide(int a, int b);
+
+int main() {
+    cout << add(10, 5) << endl;      // 15
+    cout << subtract(10, 5) << endl; // 5
+    cout << multiply(10, 5) << endl; // 50
+    cout << divide(10, 5) << endl;   // 2
+    return 0;
+}
+
+// Function definitions
+int add(int a, int b) {
+    return a + b;
+}
+
+int subtract(int a, int b) {
+    return a - b;
+}
+
+int multiply(int a, int b) {
+    return a * b;
+}
+
+double divide(int a, int b) {
+    return a / (double)b;
+}
+```
+
 ---
 
 ## Function Parameters
 
-Parameters are variables that hold the values passed to the function.
+Parameters are variables that receive values when the function is called.
 
 ### No Parameters
 
+A function can have no parameters if it does not need input:
+
 ```cpp
+#include <iostream>
+using namespace std;
+
 void greet() {
     cout << "Hello, World!" << endl;
 }
 
-// Calling the function
-greet();  // Output: Hello, World!
+int main() {
+    greet();  // Call with empty parentheses
+    greet();  // Can call multiple times
+    return 0;
+}
+```
+
+**Output:**
+```
+Hello, World!
+Hello, World!
 ```
 
 ### One Parameter
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 void greetPerson(string name) {
     cout << "Hello, " << name << "!" << endl;
 }
 
-// Calling the function
-greetPerson("Alice");  // Output: Hello, Alice!
+int main() {
+    greetPerson("Alice");
+    greetPerson("Bob");
+    return 0;
+}
+```
+
+**Output:**
+```
+Hello, Alice!
+Hello, Bob!
 ```
 
 ### Multiple Parameters
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 int multiply(int x, int y) {
     return x * y;
 }
 
-// Calling the function
-int result = multiply(4, 5);
-cout << result;  // Output: 20
+int main() {
+    int result = multiply(4, 5);
+    cout << "Result: " << result << endl;
+    return 0;
+}
 ```
 
-### Parameter Names
+**Output:**
+```
+Result: 20
+```
 
-The names you use for parameters inside the function do not need to match the variable names outside:
+### Parameter Passing
+
+When you call a function, the values are copied to the parameters:
 
 ```cpp
-int add(int a, int b) {
-    return a + b;
+int main() {
+    int a = 10;
+    int b = 20;
+    int sum = add(a, b);  // Values of a and b are copied to function
+}
+```
+
+The parameter names inside the function do not need to match the variable names outside:
+
+```cpp
+int add(int x, int y) {  // Parameters named x and y
+    return x + y;
 }
 
 int main() {
-    int x = 10;
-    int y = 20;
-    int sum = add(x, y);  // x goes to a, y goes to b
+    int a = 5;
+    int b = 3;
+    int sum = add(a, b);  // a goes to x, b goes to y
 }
 ```
 
@@ -179,42 +372,79 @@ int main() {
 
 ### Functions That Return Values
 
+A function can calculate a value and return it to the caller:
+
 ```cpp
+#include <iostream>
+using namespace std;
+
 int square(int number) {
     return number * number;
 }
 
 int main() {
     int result = square(5);
-    cout << result;  // Output: 25
+    cout << "Square: " << result << endl;  // Output: Square: 25
+    return 0;
 }
 ```
 
+**How it works:**
+1. Function calculates `5 * 5 = 25`
+2. `return 25;` sends the value back
+3. Value is assigned to `result`
+
 ### void Functions (No Return)
 
-When a function does not return a value, use `void`:
+When a function does not return a value, use `void` as the return type:
 
 ```cpp
+#include <iostream>
+using namespace std;
+
 void printMessage() {
     cout << "This function does not return anything" << endl;
+    // No return statement needed
 }
 
 int main() {
     printMessage();  // Just call it, no assignment
+    return 0;
 }
 ```
 
-### Returning Different Types
+**Important:** You cannot assign a void function to a variable:
+```cpp
+int x = printMessage();  // Error! void function has no value
+```
 
+### Different Return Types
+
+Functions can return any data type:
+
+**Returning int:**
+```cpp
+int getAge() {
+    return 25;
+}
+```
+
+**Returning double:**
 ```cpp
 double calculateAverage(int a, int b) {
     return (a + b) / 2.0;
 }
+```
 
+**Returning bool:**
+```cpp
 bool isEven(int number) {
     return (number % 2 == 0);
 }
+```
 
+**Returning string:**
+```cpp
 string getGrade(int score) {
     if (score >= 90) return "A";
     if (score >= 80) return "B";
@@ -231,9 +461,22 @@ You can return from a function at any point:
 ```cpp
 int findMax(int a, int b) {
     if (a > b) {
-        return a;
+        return a;  // Return immediately if a is larger
     }
-    return b;
+    return b;  // Otherwise return b
+}
+```
+
+**Multiple return statements:**
+```cpp
+string checkNumber(int num) {
+    if (num > 0) {
+        return "Positive";
+    } else if (num < 0) {
+        return "Negative";
+    } else {
+        return "Zero";
+    }
 }
 ```
 
@@ -279,11 +522,11 @@ bool isPrime(int number) {
     
     for (int i = 2; i < number; i++) {
         if (number % i == 0) {
-            return false;
+            return false;  // Found a divisor, not prime
         }
     }
     
-    return true;
+    return true;  // No divisors found, is prime
 }
 
 int main() {
@@ -341,26 +584,28 @@ int main() {
 #include <iostream>
 using namespace std;
 
+// Function prototypes
+double celsiusToFahrenheit(double celsius);
+double fahrenheitToCelsius(double fahrenheit);
+
+int main() {
+    double tempC = 25.0;
+    double tempF = celsiusToFahrenheit(tempC);
+    cout << tempC << "C = " << tempF << "F" << endl;
+    
+    double temp2F = 77.0;
+    double temp2C = fahrenheitToCelsius(temp2F);
+    cout << temp2F << "F = " << temp2C << "C" << endl;
+    
+    return 0;
+}
+
 double celsiusToFahrenheit(double celsius) {
     return (celsius * 9.0 / 5.0) + 32.0;
 }
 
 double fahrenheitToCelsius(double fahrenheit) {
     return (fahrenheit - 32.0) * 5.0 / 9.0;
-}
-
-int main() {
-    double tempC = 25.0;
-    double tempF = celsiusToFahrenheit(tempC);
-    
-    cout << tempC << "C = " << tempF << "F" << endl;
-    
-    double temp2F = 77.0;
-    double temp2C = fahrenheitToCelsius(temp2F);
-    
-    cout << temp2F << "F = " << temp2C << "C" << endl;
-    
-    return 0;
 }
 ```
 
@@ -504,276 +749,84 @@ int main() {
 
 ---
 
-## Pass by Value vs Pass by Reference
+## Scope and Lifetime
 
-### Pass by Value (Default)
+### Local Variables
 
-When you pass a variable by value, the function gets a copy. Changes inside the function do not affect the original variable.
+Variables declared inside a function are **local** to that function. They only exist while the function is executing.
 
 ```cpp
 #include <iostream>
 using namespace std;
 
-void changeValue(int x) {
-    x = 100;  // Changes only the copy
+void testFunction() {
+    int x = 10;  // Local variable
     cout << "Inside function: " << x << endl;
 }
 
 int main() {
-    int num = 10;
-    changeValue(num);
-    cout << "Outside function: " << num << endl;  // Still 10
-    
+    testFunction();
+    // cout << x;  // Error! x does not exist here
+    return 0;
+}
+```
+
+### Variable Scope
+
+Each function has its own scope. Variables in one function do not affect variables in another:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+void functionA() {
+    int x = 5;
+    cout << "Function A: " << x << endl;
+}
+
+void functionB() {
+    int x = 10;  // Different x, different scope
+    cout << "Function B: " << x << endl;
+}
+
+int main() {
+    functionA();  // Output: Function A: 5
+    functionB();  // Output: Function B: 10
+    return 0;
+}
+```
+
+### Global Variables
+
+Variables declared outside all functions are **global** and can be accessed from anywhere:
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int globalVar = 100;  // Global variable
+
+void showGlobal() {
+    cout << "Global: " << globalVar << endl;
+}
+
+int main() {
+    cout << "Main: " << globalVar << endl;
+    showGlobal();
+    globalVar = 200;
+    showGlobal();
     return 0;
 }
 ```
 
 **Output:**
 ```
-Inside function: 100
-Outside function: 10
+Main: 100
+Global: 100
+Global: 200
 ```
 
-### Pass by Reference
-
-When you pass by reference (using `&`), the function gets the actual variable. Changes inside the function affect the original.
-
-```cpp
-#include <iostream>
-using namespace std;
-
-void changeValue(int &x) {  // Note the &
-    x = 100;  // Changes the original
-    cout << "Inside function: " << x << endl;
-}
-
-int main() {
-    int num = 10;
-    changeValue(num);
-    cout << "Outside function: " << num << endl;  // Now 100
-    
-    return 0;
-}
-```
-
-**Output:**
-```
-Inside function: 100
-Outside function: 100
-```
-
-### When to Use Each
-
-**Use pass by value when:**
-- You do not want to modify the original variable
-- You are working with small data types (int, double, char)
-
-**Use pass by reference when:**
-- You want to modify the original variable
-- You want to return multiple values
-- You are working with large data structures (to avoid copying)
-
-### Swapping Two Numbers
-
-```cpp
-#include <iostream>
-using namespace std;
-
-void swap(int &a, int &b) {  // Must use references
-    int temp = a;
-    a = b;
-    b = temp;
-}
-
-int main() {
-    int x = 5, y = 10;
-    
-    cout << "Before: x=" << x << " y=" << y << endl;
-    swap(x, y);
-    cout << "After: x=" << x << " y=" << y << endl;
-    
-    return 0;
-}
-```
-
-**Output:**
-```
-Before: x=5 y=10
-After: x=10 y=5
-```
-
----
-
-## Function Overloading
-
-Function overloading allows you to have multiple functions with the same name but different parameters.
-
-### Same Name, Different Parameters
-
-```cpp
-#include <iostream>
-using namespace std;
-
-int add(int a, int b) {
-    return a + b;
-}
-
-double add(double a, double b) {
-    return a + b;
-}
-
-int add(int a, int b, int c) {
-    return a + b + c;
-}
-
-int main() {
-    cout << add(5, 3) << endl;           // Calls first version
-    cout << add(5.5, 3.2) << endl;       // Calls second version
-    cout << add(1, 2, 3) << endl;        // Calls third version
-    
-    return 0;
-}
-```
-
-**Output:**
-```
-8
-8.7
-6
-```
-
-### How It Works
-
-The compiler chooses the correct function based on:
-- Number of parameters
-- Types of parameters
-
-### Volume Calculator Example
-
-```cpp
-#include <iostream>
-using namespace std;
-
-// Volume of cube
-double volume(double side) {
-    return side * side * side;
-}
-
-// Volume of rectangular box
-double volume(double length, double width, double height) {
-    return length * width * height;
-}
-
-// Volume of cylinder
-double volume(double radius, double height, bool isCylinder) {
-    const double PI = 3.14159;
-    return PI * radius * radius * height;
-}
-
-int main() {
-    cout << "Cube volume: " << volume(3.0) << endl;
-    cout << "Box volume: " << volume(2.0, 3.0, 4.0) << endl;
-    cout << "Cylinder volume: " << volume(2.0, 5.0, true) << endl;
-    
-    return 0;
-}
-```
-
-**Output:**
-```
-Cube volume: 27
-Box volume: 24
-Cylinder volume: 62.8318
-```
-
----
-
-## Default Parameters
-
-You can give parameters default values that are used if no value is provided.
-
-### Basic Default Parameters
-
-```cpp
-#include <iostream>
-using namespace std;
-
-void greet(string name = "Guest") {
-    cout << "Hello, " << name << "!" << endl;
-}
-
-int main() {
-    greet("Alice");  // Output: Hello, Alice!
-    greet();         // Output: Hello, Guest!
-    
-    return 0;
-}
-```
-
-### Multiple Default Parameters
-
-```cpp
-#include <iostream>
-using namespace std;
-
-int power(int base, int exponent = 2) {
-    int result = 1;
-    for (int i = 0; i < exponent; i++) {
-        result *= base;
-    }
-    return result;
-}
-
-int main() {
-    cout << power(5) << endl;      // 5^2 = 25
-    cout << power(5, 3) << endl;   // 5^3 = 125
-    
-    return 0;
-}
-```
-
-**Output:**
-```
-25
-125
-```
-
-### Rules for Default Parameters
-
-1. Default parameters must come at the end of the parameter list
-2. Once you use a default parameter, all following parameters must also have defaults
-
-```cpp
-// Correct
-void func1(int a, int b = 5, int c = 10);
-
-// Wrong - non-default after default
-void func2(int a = 5, int b);  // Error!
-```
-
-### Rectangle Area with Defaults
-
-```cpp
-#include <iostream>
-using namespace std;
-
-double rectangleArea(double length, double width = 1.0) {
-    return length * width;
-}
-
-int main() {
-    cout << "Area (5x3): " << rectangleArea(5, 3) << endl;
-    cout << "Area (5x1): " << rectangleArea(5) << endl;  // Uses default width
-    
-    return 0;
-}
-```
-
-**Output:**
-```
-Area (5x3): 15
-Area (5x1): 5
-```
+**Warning:** Avoid using global variables when possible. They make code harder to understand and debug. Use function parameters instead.
 
 ---
 
@@ -785,7 +838,7 @@ Area (5x1): 5
 ```cpp
 int add(int a, int b) {
     int sum = a + b;
-    // Forgot return statement
+    // Forgot return statement - undefined behavior
 }
 ```
 
@@ -827,24 +880,12 @@ int add(int a, int b) {
 }
 ```
 
-**Correct (Solution 1 - Define before use):**
-```cpp
-int add(int a, int b) {
-    return a + b;
-}
-
-int main() {
-    int result = add(5, 3);  // Works
-    return 0;
-}
-```
-
-**Correct (Solution 2 - Use function prototype):**
+**Correct - Use prototype:**
 ```cpp
 int add(int a, int b);  // Function prototype
 
 int main() {
-    int result = add(5, 3);  // Works
+    int result = add(5, 3);  // Works!
     return 0;
 }
 
@@ -862,7 +903,7 @@ int square(int x) {
 }
 
 int main() {
-    double result = square(5.5);  // Loses precision
+    double result = square(5.5);  // Loses precision, 5.5 becomes 5
 }
 ```
 
@@ -873,36 +914,20 @@ double square(double x) {
 }
 
 int main() {
-    double result = square(5.5);  // Correct
+    double result = square(5.5);  // Correct, preserves precision
 }
 ```
 
-### Mistake 5: Modifying Parameters Without Reference
+### Mistake 5: Missing Semicolon in Prototype
 
 **Wrong:**
 ```cpp
-void increment(int x) {
-    x++;  // Only changes the copy
-}
-
-int main() {
-    int num = 5;
-    increment(num);
-    // num is still 5
-}
+int add(int a, int b)  // Missing semicolon
 ```
 
 **Correct:**
 ```cpp
-void increment(int &x) {  // Use reference
-    x++;
-}
-
-int main() {
-    int num = 5;
-    increment(num);
-    // num is now 6
-}
+int add(int a, int b);  // Semicolon required
 ```
 
 ---
@@ -922,20 +947,21 @@ Write a function that takes total minutes and prints hours and minutes.
 #include <iostream>
 using namespace std;
 
+void convertMinutes(int totalMinutes);
+
+int main() {
+    convertMinutes(150);
+    convertMinutes(90);
+    convertMinutes(45);
+    return 0;
+}
+
 void convertMinutes(int totalMinutes) {
     int hours = totalMinutes / 60;
     int minutes = totalMinutes % 60;
     
     cout << totalMinutes << " minutes = " << hours << " hours and " 
          << minutes << " minutes" << endl;
-}
-
-int main() {
-    convertMinutes(150);
-    convertMinutes(90);
-    convertMinutes(45);
-    
-    return 0;
 }
 ```
 </details>
@@ -957,18 +983,7 @@ A year is a leap year if:
 #include <iostream>
 using namespace std;
 
-bool isLeapYear(int year) {
-    if (year % 400 == 0) {
-        return true;
-    }
-    if (year % 100 == 0) {
-        return false;
-    }
-    if (year % 4 == 0) {
-        return true;
-    }
-    return false;
-}
+bool isLeapYear(int year);
 
 int main() {
     int year = 2024;
@@ -980,6 +995,19 @@ int main() {
     }
     
     return 0;
+}
+
+bool isLeapYear(int year) {
+    if (year % 400 == 0) {
+        return true;
+    }
+    if (year % 100 == 0) {
+        return false;
+    }
+    if (year % 4 == 0) {
+        return true;
+    }
+    return false;
 }
 ```
 </details>
@@ -997,6 +1025,14 @@ Write a function that calculates the GCD of two numbers using the Euclidean algo
 #include <iostream>
 using namespace std;
 
+int gcd(int a, int b);
+
+int main() {
+    cout << "GCD(48, 18) = " << gcd(48, 18) << endl;
+    cout << "GCD(100, 35) = " << gcd(100, 35) << endl;
+    return 0;
+}
+
 int gcd(int a, int b) {
     while (b != 0) {
         int temp = b;
@@ -1004,13 +1040,6 @@ int gcd(int a, int b) {
         a = temp;
     }
     return a;
-}
-
-int main() {
-    cout << "GCD(48, 18) = " << gcd(48, 18) << endl;
-    cout << "GCD(100, 35) = " << gcd(100, 35) << endl;
-    
-    return 0;
 }
 ```
 </details>
@@ -1030,6 +1059,14 @@ Write a function that reverses the digits of a number.
 #include <iostream>
 using namespace std;
 
+int reverseNumber(int num);
+
+int main() {
+    cout << "Reverse of 1234: " << reverseNumber(1234) << endl;
+    cout << "Reverse of 9876: " << reverseNumber(9876) << endl;
+    return 0;
+}
+
 int reverseNumber(int num) {
     int reversed = 0;
     
@@ -1041,54 +1078,12 @@ int reverseNumber(int num) {
     
     return reversed;
 }
-
-int main() {
-    cout << "Reverse of 1234: " << reverseNumber(1234) << endl;
-    cout << "Reverse of 9876: " << reverseNumber(9876) << endl;
-    
-    return 0;
-}
 ```
 </details>
 
 ---
 
-### Exercise 5: Calculate Mean of Array
-
-Write a function that calculates the mean (average) of an array of numbers.
-
-<details>
-<summary>Click to see solution</summary>
-
-```cpp
-#include <iostream>
-using namespace std;
-
-double calculateMean(int arr[], int size) {
-    int sum = 0;
-    
-    for (int i = 0; i < size; i++) {
-        sum += arr[i];
-    }
-    
-    return sum / (double)size;
-}
-
-int main() {
-    int numbers[] = {10, 20, 30, 40, 50};
-    int size = 5;
-    
-    double mean = calculateMean(numbers, size);
-    cout << "Mean: " << mean << endl;
-    
-    return 0;
-}
-```
-</details>
-
----
-
-### Exercise 6: Print Fibonacci Sequence
+### Exercise 5: Print Fibonacci Sequence
 
 Write a function that prints the first n Fibonacci numbers.
 
@@ -1098,6 +1093,14 @@ Write a function that prints the first n Fibonacci numbers.
 ```cpp
 #include <iostream>
 using namespace std;
+
+void printFibonacci(int n);
+
+int main() {
+    cout << "First 10 Fibonacci numbers: ";
+    printFibonacci(10);
+    return 0;
+}
 
 void printFibonacci(int n) {
     int first = 0, second = 1;
@@ -1111,19 +1114,12 @@ void printFibonacci(int n) {
     }
     cout << endl;
 }
-
-int main() {
-    cout << "First 10 Fibonacci numbers: ";
-    printFibonacci(10);
-    
-    return 0;
-}
 ```
 </details>
 
 ---
 
-### Exercise 7: Count Vowels
+### Exercise 6: Count Vowels
 
 Write a function that counts the number of vowels in a string.
 
@@ -1134,6 +1130,14 @@ Write a function that counts the number of vowels in a string.
 #include <iostream>
 #include <string>
 using namespace std;
+
+int countVowels(string text);
+
+int main() {
+    string text = "Hello World";
+    cout << "Vowels in '" << text << "': " << countVowels(text) << endl;
+    return 0;
+}
 
 int countVowels(string text) {
     int count = 0;
@@ -1148,19 +1152,12 @@ int countVowels(string text) {
     
     return count;
 }
-
-int main() {
-    string text = "Hello World";
-    cout << "Vowels in '" << text << "': " << countVowels(text) << endl;
-    
-    return 0;
-}
 ```
 </details>
 
 ---
 
-### Exercise 8: Check Palindrome Number
+### Exercise 7: Check Palindrome Number
 
 Write a function that checks if a number is a palindrome.
 
@@ -1170,6 +1167,14 @@ Write a function that checks if a number is a palindrome.
 ```cpp
 #include <iostream>
 using namespace std;
+
+bool isPalindrome(int num);
+
+int main() {
+    cout << "12321 is palindrome: " << isPalindrome(12321) << endl;
+    cout << "12345 is palindrome: " << isPalindrome(12345) << endl;
+    return 0;
+}
 
 bool isPalindrome(int num) {
     int original = num;
@@ -1182,21 +1187,16 @@ bool isPalindrome(int num) {
     
     return original == reversed;
 }
-
-int main() {
-    cout << "12321 is palindrome: " << isPalindrome(12321) << endl;
-    cout << "12345 is palindrome: " << isPalindrome(12345) << endl;
-    
-    return 0;
-}
 ```
 </details>
 
 ---
 
-### Exercise 9: Find Minimum in Array
+### Exercise 8: Calculate Sum of Digits
 
-Write a function that finds the minimum value in an array.
+Write a function that calculates the sum of all digits in a number.
+
+**Example:** 1234 → 1+2+3+4 = 10
 
 <details>
 <summary>Click to see solution</summary>
@@ -1205,64 +1205,89 @@ Write a function that finds the minimum value in an array.
 #include <iostream>
 using namespace std;
 
-int findMin(int arr[], int size) {
-    int min = arr[0];
+int sumOfDigits(int num);
+
+int main() {
+    cout << "Sum of digits of 1234: " << sumOfDigits(1234) << endl;
+    cout << "Sum of digits of 9876: " << sumOfDigits(9876) << endl;
+    return 0;
+}
+
+int sumOfDigits(int num) {
+    int sum = 0;
     
-    for (int i = 1; i < size; i++) {
-        if (arr[i] < min) {
-            min = arr[i];
-        }
+    while (num > 0) {
+        sum += num % 10;
+        num /= 10;
+    }
+    
+    return sum;
+}
+```
+</details>
+
+---
+
+### Exercise 9: Find Minimum of Three Numbers
+
+Write a function that returns the minimum of three numbers.
+
+<details>
+<summary>Click to see solution</summary>
+
+```cpp
+#include <iostream>
+using namespace std;
+
+int findMin(int a, int b, int c);
+
+int main() {
+    cout << "Minimum of 15, 23, 18: " << findMin(15, 23, 18) << endl;
+    return 0;
+}
+
+int findMin(int a, int b, int c) {
+    int min = a;
+    
+    if (b < min) {
+        min = b;
+    }
+    
+    if (c < min) {
+        min = c;
     }
     
     return min;
 }
-
-int main() {
-    int numbers[] = {45, 12, 67, 23, 8, 91};
-    int size = 6;
-    
-    cout << "Minimum: " << findMin(numbers, size) << endl;
-    
-    return 0;
-}
 ```
 </details>
 
 ---
 
-### Exercise 10: Calculate Compound Interest
+### Exercise 10: Print Multiplication Table
 
-Write a function that calculates compound interest.
-
-Formula: A = P(1 + r/n)^(nt)
-- P = principal
-- r = annual rate
-- n = compounds per year
-- t = years
+Write a function that prints the multiplication table for a given number.
 
 <details>
 <summary>Click to see solution</summary>
 
 ```cpp
 #include <iostream>
-#include <cmath>
 using namespace std;
 
-double compoundInterest(double principal, double rate, int compounds, int years) {
-    double amount = principal * pow(1 + rate/compounds, compounds * years);
-    return amount - principal;  // Return interest only
-}
+void printMultiplicationTable(int number);
 
 int main() {
-    double p = 1000;
-    double r = 0.05;  // 5%
-    int n = 4;        // Quarterly
-    int t = 10;       // 10 years
-    
-    double interest = compoundInterest(p, r, n, t);
-    cout << "Compound interest: $" << interest << endl;
-    
+    printMultiplicationTable(7);
     return 0;
+}
+
+void printMultiplicationTable(int number) {
+    cout << "Multiplication table for " << number << endl;
+    
+    for (int i = 1; i <= 10; i++) {
+        cout << number << " x " << i << " = " << (number * i) << endl;
+    }
 }
 ```
 </details>
@@ -1273,14 +1298,12 @@ int main() {
 
 ### What We Learned Today
 
-- **Functions** - Reusable blocks of code
+- **Functions** - Reusable blocks of code that perform specific tasks
 - **Function syntax** - Return type, name, parameters, body
+- **Function prototypes** - Declaring functions before use
 - **Parameters** - Passing values to functions
 - **Return values** - Getting results from functions
-- **Pass by value** - Function gets a copy
-- **Pass by reference** - Function gets the original (use &)
-- **Function overloading** - Same name, different parameters
-- **Default parameters** - Optional parameter values
+- **Scope** - Local vs global variables
 
 ---
 
@@ -1289,37 +1312,35 @@ int main() {
 1. **Functions organize code** - Break complex programs into manageable pieces
 2. **DRY principle** - Do not Repeat Yourself (use functions instead)
 3. **Return type matters** - Use void if no return value
-4. **Pass by reference** - Use & when you want to modify the original
-5. **Function prototypes** - Declare functions before use or define before main
-6. **Descriptive names** - Function names should describe what they do
+4. **Function prototypes** - Declare functions at the top if defined after main
+5. **Descriptive names** - Function names should describe what they do
+6. **Local scope** - Variables inside functions are isolated
 
 ---
 
 ## Next Lecture Preview
 
-In the next lecture, we will learn about:
-- Arrays in detail
-- Working with array elements
+In the next lecture, we will learn about **Advanced Functions**:
+- Function overloading (same name, different parameters)
+- Pass by value vs pass by reference
+- Default parameters
 - Passing arrays to functions
-- Multi-dimensional arrays
-- Common array algorithms
 
 ---
 
 ## Homework
 
-**Assignment 1:** Write a program with functions to calculate the area and perimeter of different shapes (circle, rectangle, triangle). Use function overloading where appropriate.
+**Assignment 1:** Write a program with a function that calculates the area of a circle. Create another function for the circumference. Use prototypes correctly.
 
-**Assignment 2:** Create a function that takes a string and returns it reversed. Then create another function that checks if a string is a palindrome using the reverse function.
+**Assignment 2:** Create a function that takes a number and returns true if it is a perfect number. A perfect number equals the sum of its divisors (excluding itself). Example: 6 = 1 + 2 + 3
 
-**Assignment 3:** Write a program with a function that takes an array of integers and uses pass-by-reference to sort the array in ascending order using any sorting algorithm.
+**Assignment 3:** Write a menu-driven calculator program. Create separate functions for add, subtract, multiply, and divide. Use a loop in main to keep the calculator running until the user chooses to exit.
 
 ---
 
 ## Resources
 
 - [cppreference.com - Functions](https://en.cppreference.com/w/cpp/language/functions)
-- [cppreference.com - Function overloading](https://en.cppreference.com/w/cpp/language/overload_resolution)
 - [learncpp.com - Functions](https://www.learncpp.com/cpp-tutorial/introduction-to-functions/)
 
 ---
