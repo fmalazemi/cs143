@@ -10,10 +10,11 @@ This page contains links to all lecture notes and materials.
 
 | Lecture | Topic | Notes |
 |---------|-----------|-----------|
-| 1 | Introduction to C++ | [Open](lecture1_cpp_intro_clean.md) |
-| 2 | Variables & Data Types | [Open](lecture2_variables.md) |
+| 1 | Introduction to C++ | [Open](lecture_1_introduction.md) |
+| 2 | Variables & Data Types | [Open](lecture_2_variables.md) |
 | 3 | If Statements | [Open](lecture_3_if_statement.md) |
-| 4 | Loops | [Open](lecture4_loops.md) |
+| 4 | Loops | [Open](lecture_4_loops.md) |
+| 5 | Advenced Loops | [Open](lecture_5_advanced_loops.md) |
 | 5 | Functions | [Open](lecture5_functions.md) |
 | 6 | Arrays & Strings | [Open](lecture6_arrays_strings.md) |
 
