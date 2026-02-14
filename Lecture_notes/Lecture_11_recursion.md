@@ -966,17 +966,6 @@ int function(int n) {
     return function(n-1) + function(n-2);
 }
 ```
-
----
-
-## Next Steps
-
-In the next lecture, you will learn about:
-- Pointers and memory addresses
-- Dynamic memory allocation
-- Pointers and arrays
-- Pointer arithmetic
-
 ---
 
 **Practice recursion to develop recursive thinking - it's a powerful problem-solving technique!**
