@@ -1,24 +1,4 @@
-# C++ Programming Course Materials
-
-Welcome to the C++ Programming course! This repository contains comprehensive lecture notes and presentation slides for learning C++ from basics to advanced topics.
-
-## Course Overview
-
-This course is designed for beginners with no prior programming experience. It covers fundamental programming concepts using C++ and progresses to more advanced topics including functions, arrays, and strings.
-
-## Prerequisites
-
-- No prior programming experience required
-- A computer with a C++ compiler (g++, Visual Studio, Code::Blocks, etc.)
-- A text editor or IDE (VS Code, CLion, Visual Studio, etc.)
-
-## How to Use This Repository
-
-Each lecture includes:
-- **Markdown Notes (.md)** - Detailed lecture content with code examples, explanations, and exercises
-- **PowerPoint Slides (.pptx)** - Visual presentation materials for classroom or self-study
-
-## Lecture Materials
+# Lecture Materials
 
 | Lecture | Topic | Notes | Slides |
 |---------|-------|-------|--------|
@@ -33,8 +13,3 @@ Each lecture includes:
 | 9 | Multidimensional Arrays | [Lecture_9_multidimensional_array.md](Lecture_9_multidimensional_array.md) | [Lecture_9_multidimensional_arrays.pptx](Lecture_9_multidimensional_arrays.pptx) |
 | 10 | Introduction to Strings | [Lecture_10_strings.md](Lecture_10_strings.md) | - |
 
----
-
-**Happy Coding! 🚀**
-
-*Start with Lecture 1 and work your way through. Each lecture builds on previous concepts, so follow the sequence for best results.*
