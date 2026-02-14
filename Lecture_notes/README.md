@@ -11,5 +11,7 @@
 | 7 | Advanced Functions | [Lecture_7_advanced_functions.md](Lecture_7_advanced_functions.md) | [Lecture_7_advanced_functions.pptx](Lecture_7_advanced_functions.pptx) |
 | 8 | Arrays (1D) | [Lecture_8_arrays.md](Lecture_8_arrays.md) | [Lecture_8_arrays.pptx](Lecture_8_arrays.pptx) |
 | 9 | Multidimensional Arrays | [Lecture_9_multidimensional_array.md](Lecture_9_multidimensional_array.md) | [Lecture_9_multidimensional_arrays.pptx](Lecture_9_multidimensional_arrays.pptx) |
-| 10 | Introduction to Strings | [Lecture_10_strings.md](Lecture_10_strings.md) | - |
+| 10 | Introduction to Strings | [Lecture_10_strings.md](Lecture_10_strings.md) | [Lecture_10_strings.md](Lecture_10_strings.pptx) |
+| 11 | Recursion | [Lecture_11_recursion.md](Lecture_11_recursion.md) |  [Lecture_11_recursion.pptx](Lecture_11_recursion.pptx) |
+
 
