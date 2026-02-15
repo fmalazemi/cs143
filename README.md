@@ -59,7 +59,7 @@ C++ is used in:
 | 🗓️ **Days:** Sunday & Tuesday | 🗓️ **Days:** Monday & Tuesday |
 | ⏰ **Time:** 11:00 AM – 12:15 PM | ⏰ **Time:** 2:00 PM – 3:15 PM |
 
-### 📆 Key Dates
+### Important Dates
 - **Midterm 1:**  
 - **Midterm 2:**  
 - **Final Exam:** Wed 20/05/2026, 12:00PM – 14:00PM  
