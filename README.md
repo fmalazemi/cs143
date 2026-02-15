@@ -7,6 +7,24 @@
 ![Course](https://img.shields.io/badge/Course-CS143-red.svg)
 
 ---
+
+## 📑 Table of Contents
+
+- [Welcome to CS 143](#-welcome-to-cs-143)
+- [Course Information](#-course-information)
+- [Quick Links](#-quick-links)
+- [Class Schedule & Important Dates](#-class-schedule--important-dates)
+- [Required Textbook](#-required-textbook)
+- [Major Topics Covered](#-major-topics-covered)
+- [Grading](#-grading)
+- [Required Software](#required-software)
+- [Tips for Success](#-tips-for-success-and-study-strategies)
+- [Resources](#-resources)
+- [Academic Integrity](#-academic-integrity)
+- [License](#-license)
+
+---
+
 ## 🌟 Welcome to CS 143!
 
 You're about to learn one of the most powerful and important programming language in the world. 
@@ -19,7 +37,6 @@ C++ is used in:
 - 🖥️ Operating systems (Windows, macOS, Linux)
 - 🤖 Robotics and embedded systems
 
-
 ---
 
 ## 📚 Course Information
@@ -30,14 +47,41 @@ C++ is used in:
 **Prerequisite:** CS 101 (Introduction to Computers)  
 **Platform:** [moodle.ku.edu.kw](https://moodle.ku.edu.kw)
 
-**Instructor:** Dr. Fawaz Alazemi 
-  - Office: S02A2-150
-  - Office Hours: Monday and Wednsday 12:30PM - 1:50PM
+**Instructor:** Dr. Fawaz Alazemi  
+- Office: S02A2-150  
+- Office Hours: Monday and Wednesday 12:30PM - 1:50PM  
 
-  
-**Teaching Assistant:** Mr. Assma AlOtaibi
-  - Office: N00B1-221
-  - Office Hours: TBA
+**Teaching Assistant:** Mr. Assma AlOtaibi  
+- Office: N00B1-221  
+- Office Hours: TBA  
+
+---
+
+## 🚀 Quick Links
+
+### 📘 Lecture Notes
+All lecture materials are available here:
+
+👉 [View All Lectures](Lecture/)
+
+Examples:
+- [Lecture 1](Lecture/)
+- [Lecture 2](Lecture/)
+- [Lecture 3](Lecture/)
+
+*(Update links as lectures are added)*
+
+---
+
+### 💻 Exercises & Practice Problems
+
+👉 [View All Exercises](Exercises/)
+
+Includes:
+- Practice problems
+- Lab exercises
+- Programming assignments
+
 ---
 
 ## 📅 Class Schedule & Important Dates
@@ -50,10 +94,10 @@ C++ is used in:
 | 🗓️ **Days:** Sunday & Tuesday | 🗓️ **Days:** Monday & Tuesday |
 | ⏰ **Time:** 11:00 AM – 12:15 PM | ⏰ **Time:** 2:00 PM – 3:15 PM |
 
-### 📆 Key Dates: 
-- **Midterm 1:**
-- **Midterm 2:**
-- **Final Exam:** Wed 20/05/2026,  12:00PM 14:00PM
+### 📆 Key Dates
+- **Midterm 1:**  
+- **Midterm 2:**  
+- **Final Exam:** Wed 20/05/2026, 12:00PM – 14:00PM  
 
 ---
 
@@ -79,78 +123,75 @@ C++ is used in:
 | **Total** | **42** |
 
 ---
+
 ## 📝 Grading
 
 Course evaluation includes:
-- 📊 **Quizzes** - 0-5%
-- 💻 **Lab Assignments** - 15%-20%
-- 📝 **Two Midterm Exams** - 40%
-- 📝 **Final Exam** - 40%
+
+- 📊 **Quizzes** — 0–5%  
+- 💻 **Lab Assignments** — 15%–20%  
+- 📝 **Two Midterm Exams** — 40%  
+- 📝 **Final Exam** — 40%  
 
 ---
 
-### Required Software
+## Required Software
 
-1. **C++17 Compiler**
-   - **Windows:** MinGW or Visual Studio
-   - **macOS:** Xcode Command Line Tools
-   - **Linux:** g++ (usually pre-installed)
+### 1. C++17 Compiler
+- Windows: MinGW or Visual Studio  
+- macOS: Xcode Command Line Tools  
+- Linux: g++  
 
-2. **IDE**
-   - Visual Studio Code (recommended)
-   - Code::Blocks
-   - Online IDE
-     - [onlinegdb](https://www.onlinegdb.com)
-     - [replit](https://replit.com)
+### 2. IDE
+- Visual Studio Code (recommended)  
+- Code::Blocks  
+
+Online IDE:
+- [onlinegdb](https://www.onlinegdb.com)
+- [replit](https://replit.com)
 
 ---
 
 ## 💡 Tips for Success and Study Strategies
 
-1. **Practice daily** - Code every day, even if just 15 minutes
-2. **Type code yourself** - Don't just copy/paste
-3. **Debug errors** - They're learning opportunities
-4. **Attend labs** - Hands-on practice is crucial
-5. **Ask questions** - Use Moodle forums and office hours
-6. **Form study groups** - Learn together
+1. Practice daily — Code every day  
+2. Type code yourself  
+3. Debug errors carefully  
+4. Attend labs regularly  
+5. Ask questions early  
+6. Form study groups  
 
 ---
-
-
 
 ## 🔗 Resources
 
 ### Documentation & References
-- [cppreference.com](https://en.cppreference.com/) - Comprehensive C++ reference
-- [learncpp.com](https://www.learncpp.com/) - Excellent tutorials
+- [cppreference.com](https://en.cppreference.com/)
+- [learncpp.com](https://www.learncpp.com/)
 - [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/)
 
 ### Video Tutorials
-- YouTube: C++ tutorials for beginners
-- Coursera: C++ courses (supplementary)
-- Udemy: C++ programming courses
+- YouTube C++ tutorials  
+- Coursera courses  
+- Udemy courses  
 
 ---
 
 ## 📜 Academic Integrity
 
-Kuwait University expects all students to:
-- Submit your own work
-- Properly cite any resources used
-- Collaborate ethically in study groups
-- Follow exam and assignment guidelines
+Students must:
 
-Plagiarism and cheating have serious consequences. When in doubt, ask!
+- Submit original work  
+- Cite sources properly  
+- Collaborate ethically  
+- Follow KU policies  
 
 ---
-
-
-
 
 ## 📄 License
 
 This course material is for educational purposes at Kuwait University.  
-© 2024-2025 Kuwait University - Computer Science Department
+© Kuwait University - Computer Science Department  
 
 ---
 
