@@ -12,6 +12,7 @@
 ## 🚀 Quick Links
 
 👉 [Lectures](Lecture_notes/)
+
 👉 [Exercises](Exercises/)
 
 ---
