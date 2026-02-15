@@ -17,6 +17,9 @@
 
 👉 [Exercises](Exercises/)
 
+👉 [Moodle](https://moodle.ku.edu.kw)
+
+
 ---
 
 ## 🌟 Welcome to CS 143!
