@@ -1,4 +1,3 @@
-# Lecture Materials
 
 | Lecture | Topic | Notes | Slides |
 |---------|-------|-------|--------|
