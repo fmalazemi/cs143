@@ -18,7 +18,7 @@ In the previous lectures, you learned how to write basic C++ programs and work w
 6. [Nested if Statements](#nested-if-statements)
 7. [Logical Operators](#logical-operators)
    - [AND Operator (&&)](#and-operator-)
-   - [OR Operator (||)](#or-operator-)
+   - [OR Operator (\|\|)](#or-operator-)
    - [NOT Operator (!)](#not-operator-)
 8. [Common Mistakes](#common-mistakes)
 9. [Complete Examples](#complete-examples)
