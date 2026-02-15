@@ -11,6 +11,8 @@
 
 ## 🚀 Quick Links
 
+👉 [Important Dates](#important-dates)
+
 👉 [Lecture_notes](Lecture_notes/)
 
 👉 [Exercises](Exercises/)
