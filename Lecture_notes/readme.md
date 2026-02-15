@@ -13,5 +13,6 @@
 | 9 | Multidimensional Arrays | [Lecture_9_multidimensional_array.md](Lecture_9_multidimensional_array.md) | [Lecture_9_multidimensional_arrays.pptx](Lecture_9_multidimensional_arrays.pptx) |
 | 10 | Introduction to Strings | [Lecture_10_strings.md](Lecture_10_strings.md) | [Lecture_10_strings.md](Lecture_10_strings.pptx) |
 | 11 | Recursion | [Lecture_11_recursion.md](Lecture_11_recursion.md) |  [Lecture_11_recursion.pptx](Lecture_11_recursion.pptx) |
+| 11 | Scope | [Lecture_12_scope.md](Lecture_12_scope.md) |  [Lecture_12_scope.pptx](Lecture_12_scope.pptx) |
 
 
