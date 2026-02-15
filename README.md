@@ -8,20 +8,17 @@
 
 ---
 
-## 📑 Table of Contents
 
-- [Welcome to CS 143](#-welcome-to-cs-143)
-- [Course Information](#-course-information)
-- [Quick Links](#-quick-links)
-- [Class Schedule & Important Dates](#-class-schedule--important-dates)
-- [Required Textbook](#-required-textbook)
-- [Major Topics Covered](#-major-topics-covered)
-- [Grading](#-grading)
-- [Required Software](#required-software)
-- [Tips for Success](#-tips-for-success-and-study-strategies)
-- [Resources](#-resources)
-- [Academic Integrity](#-academic-integrity)
-- [License](#-license)
+## 🚀 Quick Links
+
+### 📘 Lecture Notes
+All lecture materials are available here:
+
+👉 [Lectures](Lecture_notes/)
+
+### 💻 Exercises & Practice Problems
+
+👉 [Exercises](Exercises/)
 
 ---
 
@@ -54,33 +51,6 @@ C++ is used in:
 **Teaching Assistant:** Mr. Assma AlOtaibi  
 - Office: N00B1-221  
 - Office Hours: TBA  
-
----
-
-## 🚀 Quick Links
-
-### 📘 Lecture Notes
-All lecture materials are available here:
-
-👉 [View All Lectures](Lecture/)
-
-Examples:
-- [Lecture 1](Lecture/)
-- [Lecture 2](Lecture/)
-- [Lecture 3](Lecture/)
-
-*(Update links as lectures are added)*
-
----
-
-### 💻 Exercises & Practice Problems
-
-👉 [View All Exercises](Exercises/)
-
-Includes:
-- Practice problems
-- Lab exercises
-- Programming assignments
 
 ---
 
