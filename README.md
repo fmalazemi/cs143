@@ -11,13 +11,7 @@
 
 ## 🚀 Quick Links
 
-### 📘 Lecture Notes
-All lecture materials are available here:
-
 👉 [Lectures](Lecture_notes/)
-
-### 💻 Exercises & Practice Problems
-
 👉 [Exercises](Exercises/)
 
 ---
