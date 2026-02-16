@@ -1,8 +1,8 @@
 
 | Lecture | Topic | Slides | Exercises |
 |---------|-------|--------|-----------|
-| 1 | [Introduction to C++](lecture_1_introduction.md) | [pptx](lecture_1_introduction.pptx) | N/A|
-| 2 | [Variables and Data Types](Lecture_2_variables.md) | [pptx](lecture_2_variables.pptx) | |
+| 1 | [Introduction to C++](lecture_1_introduction.md) | [pptx](lecture_1_introduction.pptx) | [Exercises 1](lecture_1_introduction_exercises.md)|
+| 2 | [Variables and Data Types](Lecture_2_variables.md) | [pptx](lecture_2_variables.pptx) | [Exercises 2](lecture_2_variables.md]|
 | 3 | [If Statements and Conditionals](lecture_3_if_statement.md) | [pptx](lecture_3_if_statement.pptx) | |
 | 4 | [loops (for, while, do-while)](lecture_4_loops.md) | [pptx](lecture_4_loops.pptx) | | 
 | 5 | [Advanced loops](lecture_5_advanced_loops.md) | [pptx](lecture_5_advanced_loops.pptx) || 
