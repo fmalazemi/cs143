@@ -1,8 +1,5 @@
-# CS 143 — Lecture 3 Exercises: Conditional Statements in C++
 
-These exercises support **Lecture 3: Conditional Statements**.
-
-> Tip: If you are publishing on **GitHub Pages**, the solution dropdowns should work correctly with the format below.
+# Lecture 3 Exercises: Conditional Statements in C++
 
 ---
 
@@ -153,9 +150,3 @@ int main() {
 </details>
 
 ---
-
-## Submission Notes (optional)
-
-- Use clear variable names.
-- Test at least **3 different inputs** for each exercise.
-- Always include `return 0;` at the end of `main()`.
