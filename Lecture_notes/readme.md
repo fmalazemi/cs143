@@ -13,5 +13,5 @@
 | 10 | Introduction to Strings | [lecture_10_strings.md](lecture_10_strings.md) | [lecture_10_strings.md](lecture_10_strings.pptx) |
 | 11 | Recursion | [lecture_11_recursion.md](lecture_11_recursion.md) |  [lecture_11_recursion.pptx](lecture_11_recursion.pptx) |
 | 11 | Scope | [lecture_12_scope.md](lecture_12_scope.md) |  [lecture_12_scope.pptx](lecture_12_scope.pptx) |
-
+[lecture_3_if_statement_exercises.md](lecture_3_if_statement_exercises.md)
 
