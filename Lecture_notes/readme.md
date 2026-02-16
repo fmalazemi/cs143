@@ -3,7 +3,7 @@
 |---------|-------|-------|--------|
 | 1 | Introduction to C++ | [lecture_1_introduction.md](lecture_1_introduction.md) | [lecture_1_introduction.pptx](lecture_1_introduction.pptx) |
 | 2 | Variables and Data Types | [lecture_2_variables.md](Lecture_2_variables.md) | [lecture_2_variables.pptx](lecture_2_variables.pptx) |
-| 3 | If Statements and Conditionals | [lecture_3_if_statement.md](lecture_3_if_statement.md) | [lecture_3_If_statements.pptx](lecture_3_If_statements.pptx) |
+| 3 | If Statements and Conditionals | [lecture_3_if_statement.md](lecture_3_if_statement.md) | [lecture_3_if_statements.pptx](lecture_3_If_statements.pptx) |
 | 4 | loops (for, while, do-while) | [lecture_4_loops.md](lecture_4_loops.md) | [lecture_4_loops.pptx](lecture_4_loops.pptx) |
 | 5 | Advanced loops | [lecture_5_advanced_loops.md](lecture_5_advanced_loops.md) | [lecture_5_advanced_loops.pptx](lecture_5_advanced_loops.pptx) |
 | 6 | Functions | [lecture_6_functions.md](lecture_6_functions.md) | [lecture_6_functions.pptx](lecture_6_functions.pptx) |
