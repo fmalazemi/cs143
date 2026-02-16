@@ -14,6 +14,3 @@
 | 11 | [Recursion](lecture_11_recursion.md) |  [pptx](lecture_11_recursion.pptx) |
 | 11 | [Scope](lecture_12_scope.md) |  [pptx](lecture_12_scope.pptx) | |
 
-
-[lecture_3_if_statement_exercises.md](lecture_3_if_statement_exercises.md)
-
