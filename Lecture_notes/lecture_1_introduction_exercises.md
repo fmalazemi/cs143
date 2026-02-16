@@ -1,26 +1,24 @@
-# CS 143 --- Lecture 1 Exercises: Introduction to C++
 
-Practice writing simple C++ programs, compiling, and printing output.
+## Lecture 1 Exercises: Introduction to C++
 
-------------------------------------------------------------------------
+Focus:
+- Writing a simple C++ program
+- Using `cout` for output
+- Using `endl` and `\n`
+- Compiling and running a program
+
+---
 
 ## Exercise 1: Your First Program
 
-Write a C++ program that prints:
+Write a C++ program that prints the following line:
 
 Welcome to C++ Programming!
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+<details markdown="1">
+<summary>Click to see solution</summary>
+
+```cpp
 #include <iostream>
 using namespace std;
 
@@ -29,34 +27,23 @@ int main() {
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
+---
 
 ## Exercise 2: Print Personal Information
 
 Write a program that prints:
+- Your name
+- Your major
+- Your favorite programming language
 
--   Your name\
--   Your major\
--   Your favorite programming language
+Each item must appear on a new line.
 
-Each item should appear on a new line.
+<details markdown="1">
+<summary>Click to see solution</summary>
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+```cpp
 #include <iostream>
 using namespace std;
 
@@ -67,32 +54,22 @@ int main() {
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
+---
 
-## Exercise 3: Multiple Output Lines
+## Exercise 3: Print a Simple Message
 
-Write a program that prints the following pattern:
+Write a program that prints the following on three lines:
 
-Hello\
-World\
+Hello  
+World  
 C++ is fun!
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+<details markdown="1">
+<summary>Click to see solution</summary>
+
+```cpp
 #include <iostream>
 using namespace std;
 
@@ -103,14 +80,11 @@ int main() {
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
+---
 
-## Exercise 4: Printing in One Line
+## Exercise 4: Output on One Line
 
 Write a program that prints:
 
@@ -118,17 +92,10 @@ My age is 20
 
 Use multiple items with the output operator `<<`.
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+<details markdown="1">
+<summary>Click to see solution</summary>
+
+```cpp
 #include <iostream>
 using namespace std;
 
@@ -137,29 +104,18 @@ int main() {
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
+---
 
-## Exercise 5: Using New Line Character
+## Exercise 5: Using the Newline Character
 
-Write a program that prints three sentences using the newline character
-`\n` instead of `endl`.
+Write a program that prints three sentences using the newline character `\n` instead of `endl`.
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+<details markdown="1">
+<summary>Click to see solution</summary>
+
+```cpp
 #include <iostream>
 using namespace std;
 
@@ -170,30 +126,24 @@ int main() {
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
+---
 
-## Exercise 6: Simple Pattern
+## Exercise 6: Print a Pattern
 
 Write a program that prints the following pattern:
 
--   ** *** *\*\*\*
+\* <br>
+\** <br>
+\*** <br>
+\**** <br>
+\***** <br>
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+<details markdown="1">
+<summary>Click to see solution</summary>
+
+```cpp
 #include <iostream>
 using namespace std;
 
@@ -202,90 +152,43 @@ int main() {
     cout << "**" << endl;
     cout << "***" << endl;
     cout << "****" << endl;
+    cout << "*****" << endl;
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
-
-## Exercise 7: Compile and Run
-
-Create a file named:
-
-hello.cpp
-
-Compile it using:
-
-g++ hello.cpp -o hello
-
-Then run:
-
-./hello
-
-Explain what each command does.
-
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-Explanation:
-
--   g++ hello.cpp → compiles the source code
--   -o hello → creates executable named hello
--   ./hello → runs the program
-
-```{=html}
-</details>
-```
-
-------------------------------------------------------------------------
+---
 
 ## Exercise 8: Fix the Errors
 
-The following program contains errors. Fix them.
+The following program contains errors. Fix them so it compiles and prints:
 
-``` cpp
+Hello World
+
+```cpp
 include <iostream>
 
-int main() 
+int main()
 {
 cout << Hello World
 return 0
 }
 ```
 
-```{=html}
-<details>
-```
-```{=html}
-<summary>
-```
-Click to see solution
-```{=html}
-</summary>
-```
-``` cpp
+<details markdown="1">
+<summary>Click to see solution</summary>
+
+```cpp
 #include <iostream>
 using namespace std;
 
 int main() {
-    cout << "Hello World";
+    cout << "Hello World" << endl;
     return 0;
 }
 ```
-
-```{=html}
 </details>
-```
 
-------------------------------------------------------------------------
+---
+
