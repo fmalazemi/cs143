@@ -1,5 +1,5 @@
 
-# Lecture 3 Exercises: Conditional Statements in C++
+## Lecture 3 Exercises: Conditional Statements in C++
 
 ---
 
@@ -37,7 +37,7 @@ int main() {
 
 ## Exercise 2: Voting Eligibility
 
-Create a program that checks if someone can vote based on:
+Create a program that asks the user to enter age and if a citizen or not then checks if someone can vote based on:
 - Age must be **18 or older**
 - Must be a **citizen** (ask the user)
 
@@ -75,7 +75,7 @@ int main() {
 
 ## Exercise 3: Maximum of Three Numbers
 
-Write a program that reads three numbers and prints the **largest** one.
+Write a program that reads three integers and prints the **largest** one.
 
 <details markdown="1">
 <summary>Click to see solution</summary>
@@ -112,6 +112,8 @@ Create a program that:
 2. Reads the temperature value
 3. Validates the choice
 4. Performs the conversion and prints the result
+
+Hint: F = (C x 9/5) + 32 
 
 <details markdown="1">
 <summary>Click to see solution</summary>
