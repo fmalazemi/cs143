@@ -1016,7 +1016,7 @@ function show(idx, dir) {
     next.querySelectorAll('.rv').forEach(el => el.classList.remove('shown'));
   }
   prev.classList.remove('active');
-  prev.classList.add(dir > 0 ? 'exit-left' : '');
+  if (dir > 0) prev.classList.add('exit-left');
   setTimeout(() => prev.classList.remove('exit-left'), 500);
   next.classList.add('active');
   cur = idx;
