@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loops in C++ — Lecture Slides</title>
+<style>
+/* ===================================================================
+   CSS VARIABLES & THEME SYSTEM
+   =================================================================== */
+:root {
+  /* Light theme (default) */
+  --bg: #FAF8F4;
+  --bg-alt: #F0EDE6;
+  --bg-card: #FFFFFF;
+  --bg-code: #1E2028;
+  --text: #2A2A2E;
+  --text-light: #5C5C66;
+  --text-muted: #8E8E99;
+  --text-code: #E8E8ED;
+  --accent: #2563A8;
+  --accent-light: #DBEAFE;
+  --accent-dark: #1B4570;
+  --accent-glow: rgba(37,99,168,.12);
+  --green: #1A7742;
+  --green-light: #D1FAE5;
+  --orange: #B45309;
+  --orange-light: #FEF3C7;
+  --red: #B91C1C;
+  --red-light: #FEE2E2;
+  --purple: #6D28D9;
+  --purple-light: #EDE9FE;
+  --teal: #0F766E;
+  --teal-light: #CCFBF1;
+  --border: #DDD8CE;
+  --shadow: 0 2px 16px rgba(0,0,0,.07);
+  --radius: 10px;
+  --font-head: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+  --font-body: 'Segoe UI', Optima, Candara, 'Noto Sans', sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', 'Monaco', monospace;
+  --slide-pad: 4vmin 6vmin 5.5vmin;
+  --transition-speed: .42s;
+}
+
+[data-theme="dark"] {
+  --bg: #16181D;
+  --bg-alt: #1E2028;
+  --bg-card: #23252D;
+  --bg-code: #0D0F14;
+  --text: #E0DFE4;
+  --text-light: #A8A8B4;
+  --text-muted: #6E6E7A;
+  --text-code: #CDD6F4;
+  --accent: #60A5FA;
+  --accent-light: #1E3A5F;
+  --accent-dark: #93C5FD;
+  --accent-glow: rgba(96,165,250,.15);
+  --green: #4ADE80;
+  --green-light: #14352A;
+  --orange: #FBBF24;
+  --orange-light: #3D2E0A;
+  --red: #F87171;
+  --red-light: #3B1111;
+  --purple: #A78BFA;
+  --purple-light: #2D1F5E;
+  --teal: #2DD4BF;
+  --teal-light: #0D3331;
+  --border: #33353D;
+  --shadow: 0 2px 16px rgba(0,0,0,.3);
+}
+
+/* ===================================================================
+   RESET & BASE
+   =================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text);
+  transition: background var(--transition-speed), color var(--transition-speed);
+}
+
+/* ===================================================================
+   TYPOGRAPHY
+   =================================================================== */
+h1 {
+  font-family: var(--font-head);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700; color: var(--accent-dark);
+  line-height: 1.15; text-align: center;
+}
+h2 {
+  font-family: var(--font-head);
+  font-size: clamp(1.45rem, 3.2vw, 2.2rem);
+  font-weight: 700; color: var(--accent-dark);
+  margin-bottom: .35em; text-align: center;
+  letter-spacing: -.01em;
+}
+h3 {
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  font-weight: 700; color: var(--accent);
+  margin-bottom: .25em;
+}
+.body, p {
+  font-size: clamp(.95rem, 1.55vw, 1.2rem);
+  line-height: 1.6; color: var(--text);
+}
+.subtitle {
+  font-size: clamp(1.05rem, 2vw, 1.45rem);
+  color: var(--text-light); font-style: italic;
+}
+.small { font-size: clamp(.8rem, 1.2vw, .95rem); color: var(--text-muted); }
+.mono { font-family: var(--font-mono); }
+
+/* ===================================================================
+   LAYOUT HELPERS
+   =================================================================== */
+.center { text-align: center; }
+.flex-col { display: flex; flex-direction: column; align-items: center; }
+.flex-row { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; width: 100%; max-width: 1100px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2em; width: 100%; max-width: 1100px; }
+.mt-1{margin-top:.5em}.mt-2{margin-top:1em}.mt-3{margin-top:1.5em}
+.mb-1{margin-bottom:.5em}.mb-2{margin-bottom:1em}
+.gap-1{gap:.5em}.gap-2{gap:1em}
+.full-w{width:100%}
+
+/* Card */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.3em 1.4em;
+  box-shadow: var(--shadow);
+  transition: background var(--transition-speed), border-color var(--transition-speed);
+}
+
+/* Tags */
+.tag {
+  display: inline-block; padding: .18em .7em; border-radius: 20px;
+  font-size: .85em; font-weight: 700; letter-spacing: .02em;
+}
+.tag-blue { background: var(--accent-light); color: var(--accent); }
+.tag-green { background: var(--green-light); color: var(--green); }
+.tag-orange { background: var(--orange-light); color: var(--orange); }
+.tag-purple { background: var(--purple-light); color: var(--purple); }
+.tag-red { background: var(--red-light); color: var(--red); }
+.tag-teal { background: var(--teal-light); color: var(--teal); }
+
+/* ===================================================================
+   CODE BLOCKS
+   =================================================================== */
+pre.code {
+  background: var(--bg-code); color: var(--text-code);
+  font-family: var(--font-mono); font-size: clamp(.82rem, 1.3vw, 1.05rem);
+  line-height: 1.65; padding: 1em 1.4em; border-radius: var(--radius);
+  overflow-x: auto; text-align: left; width: 100%; max-width: 700px;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.25);
+  tab-size: 4;
+}
+pre.code .kw { color: #C678DD; font-weight: 600; }       /* keyword */
+pre.code .tp { color: #E5C07B; }                          /* type */
+pre.code .fn { color: #61AFEF; }                          /* function */
+pre.code .str { color: #98C379; }                         /* string */
+pre.code .num { color: #D19A66; }                         /* number */
+pre.code .cm { color: #5C6370; font-style: italic; }     /* comment */
+pre.code .op { color: #56B6C2; }                          /* operator */
+pre.code .hl { background: rgba(96,165,250,.18); display: inline-block; width: 100%; margin: 0 -.4em; padding: 0 .4em; border-radius: 3px; }
+
+code { font-family: var(--font-mono); background: var(--bg-alt); padding: .1em .45em; border-radius: 5px; font-size: .92em; }
+
+/* ===================================================================
+   SLIDE ENGINE
+   =================================================================== */
+.deck { position: relative; width: 100%; height: 100%; }
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: var(--slide-pad);
+  opacity: 0; visibility: hidden;
+  transform: translateX(50px);
+  transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+.slide.active {
+  opacity: 1; visibility: visible; transform: translateX(0);
+}
+.slide.exit-left {
+  opacity: 0; visibility: hidden; transform: translateX(-50px);
+}
+
+.slide-inner {
+  width: 100%; max-width: 1100px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto; display: flex; flex-direction: column; align-items: center;
+  scrollbar-width: thin;
+}
+.slide-inner::-webkit-scrollbar { width: 5px; }
+.slide-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===================================================================
+   REVEAL ANIMATION
+   =================================================================== */
+.rv {
+  opacity: 0; transform: translateY(16px);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.rv.shown { opacity: 1; transform: translateY(0); }
+
+/* ===================================================================
+   NAV BAR & PROGRESS
+   =================================================================== */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px;
+  background: var(--accent); z-index: 200;
+  transition: width .4s ease;
+}
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .55em 1.2em;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  transition: background var(--transition-speed), border-color var(--transition-speed);
+}
+.nav-bar .snum {
+  font-size: .9rem; color: var(--text-muted); font-weight: 600;
+  min-width: 6ch; text-align: center;
+}
+
+/* ===================================================================
+   BUTTONS
+   =================================================================== */
+.btn {
+  display: inline-flex; align-items: center; gap: .35em;
+  padding: .45em 1.15em; border: 2px solid var(--accent);
+  border-radius: 8px; background: var(--accent); color: #fff;
+  font-family: var(--font-body); font-size: clamp(.82rem, 1.2vw, 1rem);
+  font-weight: 600; cursor: pointer;
+  transition: all .2s ease;
+}
+.btn:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn-out { background: transparent; color: var(--accent); }
+.btn-out:hover { background: var(--accent); color: #fff; }
+.btn-sm { padding: .3em .8em; font-size: .88em; }
+.btn-green { background: var(--green); border-color: var(--green); }
+.btn-green:hover { background: #15633a; border-color: #15633a; }
+
+/* Theme toggle */
+.theme-toggle {
+  position: fixed; top: .7em; right: .8em; z-index: 201;
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--bg-card);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 1.15rem; transition: all .3s;
+}
+.theme-toggle:hover { border-color: var(--accent); background: var(--accent-light); }
+
+/* ===================================================================
+   FLOWCHART (SVG)
+   =================================================================== */
+.flowchart { max-width: 100%; height: auto; }
+.flowchart text { font-family: var(--font-body); }
+
+/* ===================================================================
+   VARIABLE TRACE TABLE
+   =================================================================== */
+table.trace {
+  border-collapse: collapse; font-family: var(--font-mono);
+  font-size: clamp(.82rem, 1.3vw, 1.05rem);
+}
+table.trace th {
+  background: var(--accent-dark); color: #fff;
+  padding: .4em .9em; font-weight: 600;
+}
+table.trace td {
+  padding: .35em .9em; border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+table.trace tr:nth-child(even) td { background: var(--bg-alt); }
+table.trace tr.hl-row td { background: var(--accent-light); font-weight: 700; }
+
+/* ===================================================================
+   INTERACTIVE DEMO
+   =================================================================== */
+.demo-panel {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.3em; box-shadow: var(--shadow);
+  width: 100%;
+}
+input[type="number"], select {
+  font-family: var(--font-mono); font-size: clamp(.92rem, 1.3vw, 1.1rem);
+  padding: .45em .7em; border: 2px solid var(--border);
+  border-radius: 8px; background: var(--bg);
+  color: var(--text); outline: none;
+  transition: border-color .2s, background .2s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+.output-box {
+  background: var(--bg-code); color: var(--text-code);
+  font-family: var(--font-mono); font-size: clamp(.82rem, 1.2vw, 1rem);
+  padding: .8em 1em; border-radius: var(--radius);
+  min-height: 3em; max-height: 14em; overflow-y: auto;
+  white-space: pre-wrap; line-height: 1.5;
+}
+
+/* ===================================================================
+   OBJECTIVE LIST
+   =================================================================== */
+.obj-list { list-style: none; display: flex; flex-direction: column; gap: .6em; width: 100%; max-width: 750px; }
+.obj-list li {
+  display: flex; align-items: flex-start; gap: .7em;
+  font-size: clamp(.95rem, 1.5vw, 1.15rem); line-height: 1.5;
+  padding: .5em .9em; border-radius: 8px; background: var(--bg-card);
+  border-left: 4px solid var(--accent);
+  transition: background var(--transition-speed);
+}
+
+/* Step indicators */
+.step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.7em; height: 1.7em; border-radius: 50%;
+  background: var(--accent); color: #fff; font-weight: 700;
+  font-size: .85em; flex-shrink: 0;
+}
+
+/* Mistake card */
+.mistake-card {
+  background: var(--bg-card); border-left: 4px solid var(--red);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: .9em 1.2em; box-shadow: var(--shadow);
+  transition: background var(--transition-speed);
+}
+.mistake-card h3 { color: var(--red); }
+.fix { color: var(--green); font-weight: 600; }
+
+/* Comparison table */
+table.cmp {
+  border-collapse: collapse; width: 100%; max-width: 900px;
+  font-size: clamp(.85rem, 1.3vw, 1.05rem);
+}
+table.cmp th {
+  background: var(--accent-dark); color: #fff;
+  padding: .55em 1em; font-weight: 600; text-align: left;
+}
+table.cmp td {
+  padding: .5em 1em; border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.cmp tr:nth-child(even) td { background: var(--bg-alt); }
+
+/* Title decoration */
+.title-deco {
+  width: 100px; height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius: 2px; margin: .8em auto;
+}
+
+/* Presenter notes (hidden by default) */
+.presenter-notes {
+  display: none; position: fixed; bottom: 50px; left: 0; right: 0;
+  background: rgba(0,0,0,.92); color: #ddd; padding: .8em 1.4em;
+  font-size: .85rem; z-index: 199; max-height: 150px; overflow-y: auto;
+}
+.presenter-notes.visible { display: block; }
+
+/* ===================================================================
+   PRINT LAYOUT
+   =================================================================== */
+@media print {
+  html, body { overflow: visible !important; height: auto !important; }
+  .nav-bar, .progress-bar, .theme-toggle, .presenter-notes { display: none !important; }
+  .slide {
+    position: relative !important; opacity: 1 !important; visibility: visible !important;
+    transform: none !important; page-break-after: always; page-break-inside: avoid;
+    min-height: 95vh; padding: 2em;
+  }
+  .slide.exit-left { opacity: 1 !important; visibility: visible !important; transform: none !important; }
+  .rv { opacity: 1 !important; transform: none !important; }
+  .slide-inner { max-height: none !important; overflow: visible !important; }
+  .deck { height: auto !important; }
+  pre.code { font-size: .8rem !important; }
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (max-width: 768px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .slide { padding: 2vmin 3vmin 5vmin; }
+  .nav-bar { padding: .4em .6em; }
+  pre.code { font-size: .78rem; padding: .8em 1em; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+<button class="theme-toggle" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">☀️</button>
+
+<div class="deck" id="deck">
+
+<!-- ===============================================================
+     SLIDE 1 — TITLE
+     ================================================================ -->
+<section class="slide" data-notes="Welcome students. This lecture introduces loops — the first major control-flow structure beyond conditionals.">
+  <div class="slide-inner flex-col">
+    <div class="tag tag-blue mb-2">CS 101 — Introduction to Programming in C++</div>
+    <h1>Loops in C++</h1>
+    <div class="title-deco"></div>
+    <p class="subtitle">Repetition, iteration, and the power of doing things more than once</p>
+    <p class="small mt-3" style="max-width:500px;text-align:center">
+      Navigate with <code>← →</code> arrow keys &nbsp;·&nbsp; Press <code>N</code> for presenter notes &nbsp;·&nbsp; Top-right button toggles dark mode
+    </p>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 2 — LEARNING OBJECTIVES
+     ================================================================ -->
+<section class="slide" data-notes="Frame the learning goals. Students should leave able to write all three loop forms and avoid common pitfalls.">
+  <div class="slide-inner flex-col">
+    <h2>Learning Objectives</h2>
+    <p class="small mb-2">After this lecture you will be able to:</p>
+    <ul class="obj-list">
+      <li class="rv"><span class="step-num">1</span> Explain why loops are essential in programming</li>
+      <li class="rv"><span class="step-num">2</span> Write <code>while</code>, <code>for</code>, and <code>do-while</code> loops in C++</li>
+      <li class="rv"><span class="step-num">3</span> Trace through loop execution step by step</li>
+      <li class="rv"><span class="step-num">4</span> Choose the right loop type for a given problem</li>
+      <li class="rv"><span class="step-num">5</span> Use <code>break</code> and <code>continue</code> to control loop flow</li>
+      <li class="rv"><span class="step-num">6</span> Recognise and fix common loop mistakes</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 3 — MOTIVATION
+     ================================================================ -->
+<section class="slide" data-notes="Start with something relatable: nobody wants to copy-paste the same line 1000 times. Contrast the naive approach with a loop.">
+  <div class="slide-inner flex-col">
+    <h2>Why Do We Need Loops?</h2>
+    <div class="grid-2 mt-2">
+      <div class="card rv" style="border-left:4px solid var(--red)">
+        <h3 style="color:var(--red)">❌ Without loops</h3>
+        <pre class="code mt-1"><span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Hello!\n"</span>;
+<span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Hello!\n"</span>;
+<span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Hello!\n"</span>;
+<span class="cm">// ... 997 more times?!</span></pre>
+        <p class="small mt-1">Tedious, error-prone, unmaintainable.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--green)">
+        <h3 style="color:var(--green)">✅ With a loop</h3>
+        <pre class="code mt-1"><span class="kw">for</span> (<span class="tp">int</span> i = <span class="num">0</span>; i < <span class="num">1000</span>; i++) {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Hello!\n"</span>;
+}</pre>
+        <p class="small mt-1">Three lines. Any count. Easy to change.</p>
+      </div>
+    </div>
+    <p class="body center mt-3 rv" style="max-width:650px">
+      Loops let us <strong>express repetition once</strong> and let the computer do the repeating. This is the heart of what makes programming powerful.
+    </p>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 4 — CONCEPT: ITERATION
+     ================================================================ -->
+<section class="slide" data-notes="Use everyday analogies. Students relate to the idea of alarm clocks and recipes. Mention Python's for-in for comparison.">
+  <div class="slide-inner flex-col">
+    <h2>Iteration &amp; Repetition</h2>
+    <div class="card rv mt-2" style="max-width:750px">
+      <h3>Definition</h3>
+      <p class="mt-1"><strong>Iteration</strong> means executing a block of code repeatedly, as long as a condition is true (or for a known number of times).</p>
+    </div>
+    <div class="grid-3 mt-3">
+      <div class="card rv center">
+        <div style="font-size:2em">⏰</div>
+        <p class="mt-1"><strong>Alarm clock:</strong> snooze <em>while</em> you're still tired</p>
+      </div>
+      <div class="card rv center">
+        <div style="font-size:2em">🍳</div>
+        <p class="mt-1"><strong>Recipe:</strong> stir <em>for</em> 5 minutes</p>
+      </div>
+      <div class="card rv center">
+        <div style="font-size:2em">🎮</div>
+        <p class="mt-1"><strong>Game:</strong> play rounds <em>until</em> someone wins</p>
+      </div>
+    </div>
+    <div class="card rv mt-3" style="max-width:750px;border-left:4px solid var(--purple)">
+      <p><strong>Python parallel:</strong> You already know <code>for x in range(n)</code>. C++ loops express the same idea — just with explicit syntax for initialisation, condition, and update.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 5 — LOOP TYPES OVERVIEW
+     ================================================================ -->
+<section class="slide" data-notes="Give a high-level comparison before diving into each one. Students appreciate the 'map' before the territory.">
+  <div class="slide-inner flex-col">
+    <h2>Three Loop Types in C++</h2>
+    <table class="cmp mt-2 rv">
+      <thead>
+        <tr><th>Loop</th><th>Checks condition…</th><th>Best when…</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="tag tag-blue">while</code></td>
+          <td><strong>Before</strong> each iteration</td>
+          <td>You don't know how many times to repeat</td>
+        </tr>
+        <tr>
+          <td><code class="tag tag-green">for</code></td>
+          <td><strong>Before</strong> each iteration</td>
+          <td>You know the count / range in advance</td>
+        </tr>
+        <tr>
+          <td><code class="tag tag-orange">do-while</code></td>
+          <td><strong>After</strong> each iteration</td>
+          <td>You need at least one execution (input validation, menus)</td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- Flowchart diagram -->
+    <div class="rv mt-3" style="max-width:820px;width:100%">
+      <svg class="flowchart" viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Comparison flowcharts for while, for, and do-while loops">
+        <!-- While -->
+        <g transform="translate(0,0)">
+          <text x="125" y="15" text-anchor="middle" fill="var(--accent)" font-weight="700" font-size="13">while</text>
+          <rect x="60" y="22" width="130" height="32" rx="14" fill="var(--accent-light)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="125" y="43" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="600">condition?</text>
+          <line x1="125" y1="54" x2="125" y2="78" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="134" y="70" fill="var(--green)" font-size="10" font-weight="600">true</text>
+          <rect x="75" y="78" width="100" height="28" rx="6" fill="var(--green-light)" stroke="var(--green)" stroke-width="1.5"/>
+          <text x="125" y="96" text-anchor="middle" fill="var(--green)" font-size="11" font-weight="600">body</text>
+          <path d="M175 92 L200 92 L200 38 L190 38" fill="none" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="60" y1="38" x2="30" y2="38" stroke="var(--text-muted)" stroke-width="1.5"/>
+          <text x="42" y="33" fill="var(--red)" font-size="10" font-weight="600">false</text>
+          <line x1="30" y1="38" x2="30" y2="130" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <rect x="10" y="130" width="60" height="24" rx="6" fill="var(--bg-alt)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="40" y="146" text-anchor="middle" fill="var(--text-muted)" font-size="10">done</text>
+        </g>
+        <!-- For -->
+        <g transform="translate(280,0)">
+          <text x="125" y="15" text-anchor="middle" fill="var(--green)" font-weight="700" font-size="13">for</text>
+          <rect x="75" y="22" width="100" height="24" rx="6" fill="var(--teal-light)" stroke="var(--teal)" stroke-width="1.5"/>
+          <text x="125" y="39" text-anchor="middle" fill="var(--teal)" font-size="11" font-weight="600">init</text>
+          <line x1="125" y1="46" x2="125" y2="62" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <rect x="60" y="62" width="130" height="30" rx="14" fill="var(--accent-light)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="125" y="82" text-anchor="middle" fill="var(--accent)" font-size="11" font-weight="600">condition?</text>
+          <line x1="125" y1="92" x2="125" y2="112" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="134" y="106" fill="var(--green)" font-size="10" font-weight="600">true</text>
+          <rect x="75" y="112" width="100" height="24" rx="6" fill="var(--green-light)" stroke="var(--green)" stroke-width="1.5"/>
+          <text x="125" y="128" text-anchor="middle" fill="var(--green)" font-size="11" font-weight="600">body</text>
+          <line x1="125" y1="136" x2="125" y2="152" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <rect x="75" y="152" width="100" height="24" rx="6" fill="var(--orange-light)" stroke="var(--orange)" stroke-width="1.5"/>
+          <text x="125" y="168" text-anchor="middle" fill="var(--orange)" font-size="11" font-weight="600">update</text>
+          <path d="M175 164 L210 164 L210 77 L190 77" fill="none" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="60" y1="77" x2="30" y2="77" stroke="var(--text-muted)" stroke-width="1.5"/>
+          <text x="42" y="72" fill="var(--red)" font-size="10" font-weight="600">false</text>
+          <rect x="5" y="112" width="50" height="22" rx="6" fill="var(--bg-alt)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="30" y="127" text-anchor="middle" fill="var(--text-muted)" font-size="10">done</text>
+          <line x1="30" y1="77" x2="30" y2="112" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        </g>
+        <!-- Do-While -->
+        <g transform="translate(560,0)">
+          <text x="125" y="15" text-anchor="middle" fill="var(--orange)" font-weight="700" font-size="13">do-while</text>
+          <rect x="75" y="28" width="100" height="28" rx="6" fill="var(--green-light)" stroke="var(--green)" stroke-width="1.5"/>
+          <text x="125" y="46" text-anchor="middle" fill="var(--green)" font-size="11" font-weight="600">body</text>
+          <line x1="125" y1="56" x2="125" y2="80" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <rect x="60" y="80" width="130" height="32" rx="14" fill="var(--accent-light)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="125" y="101" text-anchor="middle" fill="var(--accent)" font-size="12" font-weight="600">condition?</text>
+          <path d="M190 96 L220 96 L220 42 L175 42" fill="none" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="224" y="72" fill="var(--green)" font-size="10" font-weight="600">true</text>
+          <line x1="125" y1="112" x2="125" y2="140" stroke="var(--text-muted)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="134" y="130" fill="var(--red)" font-size="10" font-weight="600">false</text>
+          <rect x="95" y="140" width="60" height="24" rx="6" fill="var(--bg-alt)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="125" y="156" text-anchor="middle" fill="var(--text-muted)" font-size="10">done</text>
+        </g>
+        <!-- Arrow marker -->
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)"/></marker></defs>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 6 — THE WHILE LOOP
+     ================================================================ -->
+<section class="slide" data-notes="Syntax slide. Emphasise: the condition is checked BEFORE each iteration. If initially false, the body never runs.">
+  <div class="slide-inner flex-col">
+    <h2>The <code>while</code> Loop</h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div class="flex-col gap-2">
+        <div class="card rv full-w">
+          <h3>Syntax</h3>
+          <pre class="code mt-1"><span class="kw">while</span> (<span class="cm">condition</span>) {
+    <span class="cm">// body — repeats while true</span>
+}</pre>
+        </div>
+        <div class="card rv full-w">
+          <h3>When to use</h3>
+          <p class="mt-1">Use <code>while</code> when you <strong>don't know in advance</strong> how many iterations you need — the number depends on runtime input or a changing state.</p>
+        </div>
+      </div>
+      <div class="card rv">
+        <h3>Execution Flow</h3>
+        <div class="flex-col gap-1 mt-1" id="whileSteps">
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num">1</span> Evaluate <strong>condition</strong></div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num" style="background:var(--red)">✗</span> If <strong>false</strong> → skip to after the loop</div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num" style="background:var(--green)">✓</span> If <strong>true</strong> → run the body</div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num">4</span> Go back to step 1</div>
+        </div>
+        <p class="small mt-2 rv">⚠️ If the condition is <em>never</em> false, you get an <strong>infinite loop</strong>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 7 — WHILE WORKED EXAMPLE
+     ================================================================ -->
+<section class="slide" data-notes="Step through the trace one row at a time. Let the animation build suspense. Ask students to predict each step.">
+  <div class="slide-inner flex-col">
+    <h2><code>while</code> Example: Count 1 to N</h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div>
+        <pre class="code rv" id="whileCode"><span class="tp">int</span> i = <span class="num">1</span>;
+<span class="tp">int</span> N = <span class="num">5</span>;
+
+<span class="kw">while</span> (i <= N) {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i <span class="op">&lt;&lt;</span> <span class="str">" "</span>;
+    i++;
+}
+<span class="cm">// Output: 1 2 3 4 5</span></pre>
+      </div>
+      <div class="rv">
+        <h3 class="center mb-1">Variable Trace</h3>
+        <table class="trace full-w" id="whileTrace">
+          <thead><tr><th>Step</th><th>i</th><th>i &lt;= 5?</th><th>Output</th></tr></thead>
+          <tbody id="whileTraceBody"></tbody>
+        </table>
+        <div class="flex-row gap-1 mt-2">
+          <button class="btn btn-out btn-sm" onclick="whileTracePrev()">← Prev</button>
+          <button class="btn btn-sm" onclick="whileTraceNext()">Next →</button>
+          <button class="btn btn-sm btn-green" onclick="whileTraceReset()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 8 — COMMON WHILE MISTAKES
+     ================================================================ -->
+<section class="slide" data-notes="These are the two bugs students hit most. Show the infinite loop pattern and the off-by-one scenario.">
+  <div class="slide-inner flex-col">
+    <h2>Common <code>while</code> Mistakes</h2>
+    <div style="display:flex;flex-direction:column;gap:1.2em;width:100%;max-width:820px;margin-top:1em">
+      <div class="mistake-card rv">
+        <h3>❌ Infinite Loop — Forgetting to Update</h3>
+        <pre class="code mt-1"><span class="tp">int</span> i = <span class="num">1</span>;
+<span class="kw">while</span> (i <= <span class="num">5</span>) {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i;   <span class="cm">// prints 1 forever!</span>
+    <span class="cm">// BUG: forgot i++;</span>
+}</pre>
+        <p class="fix mt-1">✅ Always make sure the loop variable changes so the condition eventually becomes false.</p>
+      </div>
+      <div class="mistake-card rv">
+        <h3>❌ Off-by-One Error</h3>
+        <pre class="code mt-1"><span class="tp">int</span> i = <span class="num">0</span>;
+<span class="kw">while</span> (i <= <span class="num">5</span>) { <span class="cm">// runs 6 times (0..5), not 5</span>
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i <span class="op">&lt;&lt;</span> <span class="str">" "</span>;
+    i++;
+}</pre>
+        <p class="fix mt-1">✅ Double-check your start value and whether <code>&lt;</code> vs <code>&lt;=</code> gives you the right count.</p>
+      </div>
+      <div class="mistake-card rv">
+        <h3>❌ Wrong Condition Direction</h3>
+        <pre class="code mt-1"><span class="tp">int</span> i = <span class="num">10</span>;
+<span class="kw">while</span> (i > <span class="num">0</span>) {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i;
+    i++;  <span class="cm">// BUG: should be i--</span>
+}</pre>
+        <p class="fix mt-1">✅ The update must move the variable <em>toward</em> the termination condition, not away from it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 9 — THE FOR LOOP
+     ================================================================ -->
+<section class="slide" data-notes="Emphasise the three parts packed into one line. Compare with Python range(). Step through the execution order carefully.">
+  <div class="slide-inner flex-col">
+    <h2>The <code>for</code> Loop</h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div class="flex-col gap-2">
+        <div class="card rv full-w">
+          <h3>Syntax</h3>
+          <pre class="code mt-1"><span class="kw">for</span> (<span class="cm">init</span>; <span class="cm">condition</span>; <span class="cm">update</span>) {
+    <span class="cm">// body</span>
+}</pre>
+          <div class="mt-1" style="font-size:.92em">
+            <span class="tag tag-teal">init</span> runs once before the loop<br>
+            <span class="tag tag-blue">condition</span> checked before each iteration<br>
+            <span class="tag tag-orange">update</span> runs after each iteration
+          </div>
+        </div>
+        <div class="card rv full-w">
+          <h3>When to use</h3>
+          <p class="mt-1">Use <code>for</code> when you <strong>know the range</strong> — counting from A to B, iterating over an array, or repeating N times.</p>
+        </div>
+      </div>
+      <div class="card rv">
+        <h3>Execution Order</h3>
+        <div class="flex-col gap-1 mt-1" id="forSteps">
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num" style="background:var(--teal)">1</span> <strong>init</strong> — execute once</div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num">2</span> Evaluate <strong>condition</strong></div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num" style="background:var(--red)">✗</span> If false → exit loop</div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num" style="background:var(--green)">✓</span> If true → run <strong>body</strong></div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num" style="background:var(--orange)">5</span> Run <strong>update</strong></div>
+          <div class="rv" style="display:flex;align-items:center;gap:.5em"><span class="step-num">6</span> Go back to step 2</div>
+        </div>
+        <div class="card mt-2 rv" style="border-left:4px solid var(--purple);padding:.7em 1em">
+          <p class="small"><strong>Python equivalent:</strong><br><code>for i in range(0, 10):</code> ≈ <code>for(int i=0; i&lt;10; i++)</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 10 — FOR WORKED EXAMPLE
+     ================================================================ -->
+<section class="slide" data-notes="Sum example. Trace the running total. Ask: what is sum at step 3? This is a key building block for accumulation patterns.">
+  <div class="slide-inner flex-col">
+    <h2><code>for</code> Example: Sum of 1 to N</h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div>
+        <pre class="code rv"><span class="tp">int</span> N = <span class="num">5</span>;
+<span class="tp">int</span> sum = <span class="num">0</span>;
+
+<span class="kw">for</span> (<span class="tp">int</span> i = <span class="num">1</span>; i <= N; i++) {
+    sum += i;
+}
+<span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Sum = "</span> <span class="op">&lt;&lt;</span> sum;
+<span class="cm">// Output: Sum = 15</span></pre>
+      </div>
+      <div class="rv">
+        <h3 class="center mb-1">Running Total Trace</h3>
+        <table class="trace full-w" id="forTrace">
+          <thead><tr><th>i</th><th>sum before</th><th>sum += i</th><th>sum after</th></tr></thead>
+          <tbody id="forTraceBody"></tbody>
+        </table>
+        <div class="flex-row gap-1 mt-2">
+          <button class="btn btn-out btn-sm" onclick="forTracePrev()">← Prev</button>
+          <button class="btn btn-sm" onclick="forTraceNext()">Next →</button>
+          <button class="btn btn-sm btn-green" onclick="forTraceReset()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 11 — DO-WHILE LOOP
+     ================================================================ -->
+<section class="slide" data-notes="Key difference: body runs first, then condition. Perfect for menus and input validation where you need at least one pass.">
+  <div class="slide-inner flex-col">
+    <h2>The <code>do-while</code> Loop</h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div class="flex-col gap-2">
+        <div class="card rv full-w">
+          <h3>Key Idea</h3>
+          <p class="mt-1">The body executes <strong>at least once</strong> — the condition is checked <em>after</em> each iteration.</p>
+        </div>
+        <div class="card rv full-w">
+          <h3>Syntax</h3>
+          <pre class="code mt-1"><span class="kw">do</span> {
+    <span class="cm">// body — runs first</span>
+} <span class="kw">while</span> (<span class="cm">condition</span>);  <span class="cm">// note the semicolon!</span></pre>
+        </div>
+      </div>
+      <div class="rv">
+        <h3>Example: Input Validation Menu</h3>
+        <pre class="code mt-1"><span class="tp">int</span> choice;
+<span class="kw">do</span> {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Menu:\n"</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"1. Play\n"</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"2. Settings\n"</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"3. Quit\n"</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"Enter choice: "</span>;
+    <span class="fn">cin</span>  <span class="op">&gt;&gt;</span> choice;
+} <span class="kw">while</span> (choice < <span class="num">1</span> || choice > <span class="num">3</span>);
+
+<span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"You chose: "</span> <span class="op">&lt;&lt;</span> choice;</pre>
+        <p class="small mt-1 rv">The menu is always shown at least once. If the user enters an invalid number, it repeats.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 12 — BREAK & CONTINUE
+     ================================================================ -->
+<section class="slide" data-notes="Keep it simple. break = exit immediately. continue = skip to next iteration. Show one small example of each.">
+  <div class="slide-inner flex-col">
+    <h2><code>break</code> and <code>continue</code></h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div class="card rv" style="border-left:4px solid var(--red)">
+        <h3><code>break</code> — Exit the loop immediately</h3>
+        <pre class="code mt-1"><span class="kw">for</span> (<span class="tp">int</span> i = <span class="num">1</span>; i <= <span class="num">100</span>; i++) {
+    <span class="kw">if</span> (i == <span class="num">5</span>) <span class="kw">break</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i <span class="op">&lt;&lt;</span> <span class="str">" "</span>;
+}
+<span class="cm">// Output: 1 2 3 4</span></pre>
+        <p class="small mt-1">When <code>i</code> reaches 5, the loop stops entirely.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--orange)">
+        <h3><code>continue</code> — Skip to next iteration</h3>
+        <pre class="code mt-1"><span class="kw">for</span> (<span class="tp">int</span> i = <span class="num">1</span>; i <= <span class="num">5</span>; i++) {
+    <span class="kw">if</span> (i == <span class="num">3</span>) <span class="kw">continue</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i <span class="op">&lt;&lt;</span> <span class="str">" "</span>;
+}
+<span class="cm">// Output: 1 2 4 5</span></pre>
+        <p class="small mt-1">When <code>i</code> is 3, the rest of the body is skipped, but the loop keeps going.</p>
+      </div>
+    </div>
+    <div class="card rv mt-3 center" style="max-width:700px;border-left:4px solid var(--purple)">
+      <p>⚠️ Use <code>break</code> and <code>continue</code> sparingly. Over-use makes code harder to follow. Prefer restructuring the condition when possible.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 13 — NESTED LOOPS
+     ================================================================ -->
+<section class="slide" data-notes="Nested loops are the gateway to 2D patterns and matrices. Trace through the grid example slowly.">
+  <div class="slide-inner flex-col">
+    <h2>Nested Loops</h2>
+    <div class="grid-2 mt-2" style="align-items:start">
+      <div>
+        <h3 class="rv">Printing a Grid Pattern</h3>
+        <pre class="code rv mt-1"><span class="kw">for</span> (<span class="tp">int</span> row = <span class="num">1</span>; row <= <span class="num">3</span>; row++) {
+    <span class="kw">for</span> (<span class="tp">int</span> col = <span class="num">1</span>; col <= <span class="num">4</span>; col++) {
+        <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"* "</span>;
+    }
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"\n"</span>;
+}</pre>
+        <pre class="code rv mt-1" style="background:var(--bg-card);color:var(--text);font-size:1.1em;letter-spacing:.15em"><span style="color:var(--accent)">* * * *
+* * * *
+* * * *</span></pre>
+      </div>
+      <div class="rv">
+        <h3>How It Works</h3>
+        <div class="card mt-1">
+          <p>The <strong>outer loop</strong> controls the <span class="tag tag-blue">rows</span>.</p>
+          <p class="mt-1">For <em>each</em> row, the <strong>inner loop</strong> runs completely to print all <span class="tag tag-green">columns</span>.</p>
+          <p class="mt-1">Total iterations = <strong>rows × columns</strong> = 3 × 4 = <strong>12</strong></p>
+        </div>
+        <div class="card mt-2" style="border-left:4px solid var(--orange)">
+          <h3>Right Triangle Variant</h3>
+          <pre class="code mt-1"><span class="kw">for</span> (<span class="tp">int</span> r = <span class="num">1</span>; r <= <span class="num">4</span>; r++) {
+    <span class="kw">for</span> (<span class="tp">int</span> c = <span class="num">1</span>; c <= <span class="cm">r</span>; c++)
+        <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"* "</span>;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"\n"</span>;
+}</pre>
+          <pre class="code mt-1" style="background:var(--bg-card);color:var(--text);font-size:1em;letter-spacing:.1em"><span style="color:var(--accent)">*
+* *
+* * *
+* * * *</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 14 — INTERACTIVE DEMO
+     ================================================================ -->
+<section class="slide" data-notes="Let students experiment. They pick a loop type, enter N, and see the output + trace. Good for live demo or self-study.">
+  <div class="slide-inner flex-col">
+    <h2>Interactive Loop Demo</h2>
+    <p class="small mb-2">Select a loop type, enter N, and see the execution trace.</p>
+    <div class="grid-2 mt-1" style="align-items:start;max-width:1000px">
+      <div class="demo-panel rv">
+        <h3>Controls</h3>
+        <div class="flex-col gap-1 mt-1" style="align-items:stretch">
+          <label class="small"><strong>Loop type:</strong></label>
+          <select id="demoType" style="width:100%">
+            <option value="while">while</option>
+            <option value="for" selected>for</option>
+            <option value="dowhile">do-while</option>
+          </select>
+          <label class="small mt-1"><strong>N (1–20):</strong></label>
+          <input type="number" id="demoN" value="5" min="1" max="20" style="width:100%">
+          <button class="btn mt-1" onclick="runDemo()" style="width:100%">▶ Run</button>
+        </div>
+        <h3 class="mt-2">Generated Code</h3>
+        <pre class="code mt-1" id="demoCode" style="max-width:100%;font-size:.85rem"></pre>
+      </div>
+      <div class="demo-panel rv">
+        <h3>Variable Trace</h3>
+        <div id="demoTraceWrap" class="mt-1" style="max-height:180px;overflow-y:auto">
+          <table class="trace full-w" id="demoTraceTable">
+            <thead id="demoTraceHead"></thead>
+            <tbody id="demoTraceBody"></tbody>
+          </table>
+        </div>
+        <h3 class="mt-2">Console Output</h3>
+        <div class="output-box mt-1" id="demoOutput">—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 15 — PRACTICE PROBLEMS
+     ================================================================ -->
+<section class="slide" data-notes="Do not give solutions yet. These are for students to attempt on their own or in lab. Review answers in tutorial.">
+  <div class="slide-inner flex-col">
+    <h2>Practice Problems</h2>
+    <p class="small mb-2">Try these on your own. No peeking at solutions — that's for the tutorial!</p>
+    <div style="display:flex;flex-direction:column;gap:.9em;width:100%;max-width:780px">
+      <div class="card rv" style="border-left:4px solid var(--green)">
+        <p><span class="tag tag-green">1</span>&ensp;Print all <strong>even numbers</strong> from 2 to 50 using a <code>for</code> loop.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--accent)">
+        <p><span class="tag tag-blue">2</span>&ensp;Use a <code>while</code> loop to read integers until the user enters <strong>-1</strong>. Print the count and average.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--orange)">
+        <p><span class="tag tag-orange">3</span>&ensp;Write a <code>do-while</code> loop that asks for a password. Keep asking until the user types <code>"secret"</code>.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--purple)">
+        <p><span class="tag tag-purple">4</span>&ensp;Use nested <code>for</code> loops to print a <strong>multiplication table</strong> (1×1 through 10×10).</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--teal)">
+        <p><span class="tag tag-teal">5</span>&ensp;Print all numbers from 1 to 100, but skip multiples of 7 using <code>continue</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 16 — SUMMARY
+     ================================================================ -->
+<section class="slide" data-notes="Recap the three loop types, when to use each, and the most critical rule: make sure your loop terminates.">
+  <div class="slide-inner flex-col">
+    <h2>Summary — Key Takeaways</h2>
+    <div style="display:flex;flex-direction:column;gap:.9em;width:100%;max-width:800px;margin-top:.8em">
+      <div class="card rv" style="border-left:4px solid var(--accent)">
+        <p><strong>Loops</strong> let you repeat code without rewriting it. They are one of the most fundamental tools in programming.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--green)">
+        <p><code>for</code> — use when you <strong>know the count</strong>.&ensp;·&ensp;<code>while</code> — use when it <strong>depends on a condition</strong>.&ensp;·&ensp;<code>do-while</code> — use when the body must run <strong>at least once</strong>.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--orange)">
+        <p>Every loop needs a <strong>condition that eventually becomes false</strong>. If it doesn't, you have an infinite loop.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--purple)">
+        <p><code>break</code> exits a loop early. <code>continue</code> skips to the next iteration. Use both with care.</p>
+      </div>
+      <div class="card rv" style="border-left:4px solid var(--teal)">
+        <p><strong>Nested loops</strong> let you work in two (or more) dimensions — grids, tables, pattern generation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===============================================================
+     SLIDE 17 — THANK YOU
+     ================================================================ -->
+<section class="slide" data-notes="Preview the next topic. Remind students to attempt the practice problems before the tutorial.">
+  <div class="slide-inner flex-col">
+    <div class="tag tag-purple mb-2">End of Lecture</div>
+    <h1>Thank You!</h1>
+    <div class="title-deco"></div>
+    <p class="subtitle">Questions?</p>
+    <p class="body center mt-3" style="max-width:550px">
+      Next lecture: <strong>Functions in C++</strong> — breaking programs into reusable pieces.
+    </p>
+    <div class="card mt-3 center rv" style="max-width:450px;border-left:4px solid var(--green)">
+      <p class="small">📝 Attempt the practice problems before the tutorial session. The best way to learn loops is to write them yourself.</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<!-- Presenter Notes Overlay -->
+<div class="presenter-notes" id="presenterNotes"></div>
+
+<!-- NAV BAR -->
+<nav class="nav-bar">
+  <button class="btn btn-out btn-sm" onclick="go(-1)">← Prev</button>
+  <span class="snum" id="slideNum">1 / 17</span>
+  <button class="btn btn-sm" onclick="go(1)">Next →</button>
+</nav>
+
+<!-- ================================================================
+     JAVASCRIPT
+     ================================================================ -->
+<script>
+/* =================================================================
+   SLIDE ENGINE
+   ================================================================= */
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let cur = 0;
+
+function show(idx, dir) {
+  if (idx < 0 || idx >= total) return;
+  const prev = slides[cur];
+  const next = slides[idx];
+  // Reset reveals on the old slide when going backward
+  if (dir < 0) {
+    next.querySelectorAll('.rv').forEach(el => el.classList.remove('shown'));
+  }
+  prev.classList.remove('active');
+  prev.classList.add(dir > 0 ? 'exit-left' : '');
+  setTimeout(() => prev.classList.remove('exit-left'), 500);
+  next.classList.add('active');
+  cur = idx;
+  document.getElementById('slideNum').textContent = (cur + 1) + ' / ' + total;
+  document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+  revealItems();
+  updatePresenterNotes();
+}
+
+function go(dir) { show(cur + dir, dir); }
+
+// Initial slide
+slides[0].classList.add('active');
+document.getElementById('progress').style.width = (1 / total * 100) + '%';
+
+/* Progressive disclosure / reveal */
+function revealItems() {
+  const items = slides[cur].querySelectorAll('.rv');
+  items.forEach((el, i) => {
+    setTimeout(() => el.classList.add('shown'), 100 * (i + 1));
+  });
+}
+revealItems(); // initial slide
+
+/* Keyboard navigation */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  else if (e.key === 'n' || e.key === 'N') toggleNotes();
+});
+
+/* Touch swipe */
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.changedTouches[0].screenX; }, { passive: true });
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].screenX - tx;
+  if (Math.abs(dx) > 50) { dx < 0 ? go(1) : go(-1); }
+}, { passive: true });
+
+/* =================================================================
+   THEME TOGGLE
+   ================================================================= */
+const themeBtn = document.getElementById('themeBtn');
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  themeBtn.textContent = t === 'dark' ? '🌙' : '☀️';
+  try { localStorage.setItem('theme', t); } catch(e) {}
+}
+themeBtn.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+});
+// Load saved theme
+try { const s = localStorage.getItem('theme'); if (s) setTheme(s); } catch(e) {}
+
+/* =================================================================
+   PRESENTER NOTES
+   ================================================================= */
+let notesVisible = false;
+const notesEl = document.getElementById('presenterNotes');
+function updatePresenterNotes() {
+  const note = slides[cur].getAttribute('data-notes') || '(No notes for this slide)';
+  notesEl.textContent = note;
+}
+function toggleNotes() {
+  notesVisible = !notesVisible;
+  notesEl.classList.toggle('visible', notesVisible);
+  if (notesVisible) updatePresenterNotes();
+}
+
+/* =================================================================
+   WHILE TRACE (Slide 7)
+   ================================================================= */
+const whileData = [];
+(function() {
+  let i = 1;
+  const N = 5;
+  let step = 0;
+  while (i <= N) {
+    step++;
+    whileData.push({ step, i, cond: 'true', out: i });
+    i++;
+  }
+  step++;
+  whileData.push({ step, i, cond: 'false', out: '—' });
+})();
+let wIdx = -1;
+
+function whileTraceRender() {
+  const body = document.getElementById('whileTraceBody');
+  let h = '';
+  for (let j = 0; j <= wIdx && j < whileData.length; j++) {
+    const r = whileData[j];
+    const cls = j === wIdx ? 'hl-row' : '';
+    h += `<tr class="${cls}"><td>${r.step}</td><td>${r.i}</td><td>${r.cond}</td><td>${r.out}</td></tr>`;
+  }
+  body.innerHTML = h || '<tr><td colspan="4" style="color:var(--text-muted)">Click Next →</td></tr>';
+}
+function whileTraceNext() { if (wIdx < whileData.length - 1) { wIdx++; whileTraceRender(); } }
+function whileTracePrev() { if (wIdx >= 0) { wIdx--; whileTraceRender(); } }
+function whileTraceReset() { wIdx = -1; whileTraceRender(); }
+whileTraceRender();
+
+/* =================================================================
+   FOR TRACE (Slide 10)
+   ================================================================= */
+const forData = [];
+(function() {
+  let sum = 0;
+  for (let i = 1; i <= 5; i++) {
+    const before = sum;
+    sum += i;
+    forData.push({ i, before, expr: `${before} + ${i}`, after: sum });
+  }
+})();
+let fIdx = -1;
+
+function forTraceRender() {
+  const body = document.getElementById('forTraceBody');
+  let h = '';
+  for (let j = 0; j <= fIdx && j < forData.length; j++) {
+    const r = forData[j];
+    const cls = j === fIdx ? 'hl-row' : '';
+    h += `<tr class="${cls}"><td>${r.i}</td><td>${r.before}</td><td>${r.expr}</td><td>${r.after}</td></tr>`;
+  }
+  body.innerHTML = h || '<tr><td colspan="4" style="color:var(--text-muted)">Click Next →</td></tr>';
+}
+function forTraceNext() { if (fIdx < forData.length - 1) { fIdx++; forTraceRender(); } }
+function forTracePrev() { if (fIdx >= 0) { fIdx--; forTraceRender(); } }
+function forTraceReset() { fIdx = -1; forTraceRender(); }
+forTraceRender();
+
+/* =================================================================
+   INTERACTIVE DEMO (Slide 14)
+   ================================================================= */
+function runDemo() {
+  const type = document.getElementById('demoType').value;
+  let N = parseInt(document.getElementById('demoN').value) || 5;
+  if (N < 1) N = 1;
+  if (N > 20) N = 20;
+
+  const codeEl = document.getElementById('demoCode');
+  const headEl = document.getElementById('demoTraceHead');
+  const bodyEl = document.getElementById('demoTraceBody');
+  const outEl  = document.getElementById('demoOutput');
+
+  let codeStr = '', traceRows = [], output = [];
+
+  if (type === 'while') {
+    codeStr =
+`<span class="tp">int</span> i = <span class="num">1</span>;
+<span class="kw">while</span> (i <= <span class="num">${N}</span>) {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i <span class="op">&lt;&lt;</span> <span class="str">" "</span>;
+    i++;
+}`;
+    headEl.innerHTML = '<tr><th>Step</th><th>i</th><th>i&lt;=' + N + '?</th><th>Output</th></tr>';
+    let i = 1, step = 0;
+    while (i <= N) {
+      step++;
+      traceRows.push(`<tr><td>${step}</td><td>${i}</td><td>true</td><td>${i}</td></tr>`);
+      output.push(i);
+      i++;
+    }
+    step++;
+    traceRows.push(`<tr><td>${step}</td><td>${i}</td><td>false</td><td>—</td></tr>`);
+
+  } else if (type === 'for') {
+    codeStr =
+`<span class="tp">int</span> sum = <span class="num">0</span>;
+<span class="kw">for</span> (<span class="tp">int</span> i = <span class="num">1</span>; i <= <span class="num">${N}</span>; i++) {
+    sum += i;
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> <span class="str">"i="</span> <span class="op">&lt;&lt;</span> i
+         <span class="op">&lt;&lt;</span> <span class="str">" sum="</span> <span class="op">&lt;&lt;</span> sum <span class="op">&lt;&lt;</span> <span class="str">"\\n"</span>;
+}`;
+    headEl.innerHTML = '<tr><th>i</th><th>sum before</th><th>sum after</th></tr>';
+    let sum = 0;
+    for (let i = 1; i <= N; i++) {
+      const before = sum;
+      sum += i;
+      traceRows.push(`<tr><td>${i}</td><td>${before}</td><td>${sum}</td></tr>`);
+      output.push(`i=${i} sum=${sum}`);
+    }
+
+  } else { // dowhile
+    codeStr =
+`<span class="tp">int</span> i = <span class="num">1</span>;
+<span class="kw">do</span> {
+    <span class="fn">cout</span> <span class="op">&lt;&lt;</span> i <span class="op">&lt;&lt;</span> <span class="str">" "</span>;
+    i++;
+} <span class="kw">while</span> (i <= <span class="num">${N}</span>);`;
+    headEl.innerHTML = '<tr><th>Step</th><th>i (start)</th><th>Output</th><th>i (after++)</th><th>i&lt;=' + N + '?</th></tr>';
+    let i = 1, step = 0;
+    do {
+      step++;
+      const cond = (i + 1) <= N;
+      traceRows.push(`<tr><td>${step}</td><td>${i}</td><td>${i}</td><td>${i + 1}</td><td>${cond}</td></tr>`);
+      output.push(i);
+      i++;
+    } while (i <= N);
+  }
+
+  codeEl.innerHTML = codeStr;
+  bodyEl.innerHTML = traceRows.join('');
+  outEl.textContent = output.join(type === 'for' ? '\n' : ' ');
+}
+
+// Run once on load
+runDemo();
+</script>
+</body>
+</html>
