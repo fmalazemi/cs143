@@ -93,7 +93,7 @@ ___
 ## Lecture Material
 
 | Lecture | Topic | Slides | Exercises |
-|---------|-------|--------|-----------|
+|:-------:|:-----:|:------:|:---------:|
 | 1 | [Introduction to C++](lecture_1_introduction.md) | [pptx](lecture_1_introduction.pptx) | [🔗](lecture_1_introduction_exercises.md)|
 | 2 | [Variables and Data Types](lecture_2_variables.md) | [pptx](lecture_2_variables.pptx) | [🔗](lecture_2_variables_exercises.md)|
 | 3 | [If Statements and Conditionals](lecture_3_if_statement.md) | [pptx](lecture_3_if_statement.pptx) | [🔗](lecture_3_if_statements_additional_exercises.md)  |
