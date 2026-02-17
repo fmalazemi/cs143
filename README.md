@@ -69,16 +69,17 @@ ___
 
 ## 📖 Required Textbook
 
-**Title:** C++ How To Program  
+**Title:** [C++ How To Program](https://www.amazon.com/How-Program-10th-Paul-Deitel/dp/0134448235)  
 **Authors:** Paul Deitel and Harvey Deitel  
-**Publisher:** Pearson, Latest Edition  
+**Publisher:** Pearson
+**Edition:** Latest Edition  
 
 ---
 
 ## 📋 Major Topics Covered
 
 | Topic | Hours |
-|-------|-------|
+|:-------:|:-------:|
 | Overview of programming, variables, basic types, conditionals, and loops | 6 |
 | Arrays, vectors, lists, multidimensional arrays, sets | 6 |
 | Library functions, programmer-defined functions, parameter passing, function overloading, auto keyword | 6 |
