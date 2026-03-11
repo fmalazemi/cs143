@@ -102,7 +102,7 @@ ___
 | 5 | [Advanced loops](Lecture_notes/lecture_5_advanced_loops.md) | [pptx](Lecture_notes/lecture_5_advanced_loops.pptx) |🔗| 
 | 6 | [Functions](Lecture_notes/lecture_6_functions.md) | [pptx](Lecture_notes/lecture_6_functions.pptx) |🔗|
 | 7 | [Advanced Functions](Lecture_notes/lecture_7_advanced_functions.md) | [pptx](Lecture_notes/lecture_7_advanced_functions.pptx) | 🔗 |
-| 8 | [Arrays (1D)](Lecture_notes/lecture_8_arrays.md) | [pptx](lecture_8_arrays.pptx) | 🔗 |
+| 8 | [Arrays (1D)](Lecture_notes/lecture_8_arrays.md) | [pptx](Lecture_notes/lecture_8_arrays.pptx) | 🔗 |
 | 9 | [Multidimensional Arrays](Lecture_notes/lecture_9_multidimensional_array.md) | [pptx](Lecture_notes/lecture_9_multidimensional_arrays.pptx) | 🔗 |
 | 10 | [Introduction to Strings](Lecture_notes/lecture_10_strings.md) | [pptx](Lecture_notes/lecture_10_strings.pptx) |🔗  | 
 | 11 | [Recursion](Lecture_notes/lecture_11_recursion.md) |  [pptx](Lecture_notes/lecture_11_recursion.pptx) | 🔗 |
