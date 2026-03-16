@@ -61,8 +61,8 @@ ___
 | ⏰ **Time:** 11:00 AM – 12:15 PM | ⏰ **Time:** 2:00 PM – 3:15 PM |
 
 ### Important Dates
-- **Midterm 1:**  
-- **Midterm 2:**  
+- **Midterm 1:**  25/03/2025, 11:00am - 12:15pm 
+- **Midterm 2:**  22/04/2025, 11:00am - 12:15pm
 - **Final Exam:** Wed 20/05/2026, 12:00PM – 14:00PM  
 
 ---
