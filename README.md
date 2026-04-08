@@ -109,7 +109,7 @@ ___
 | 11 | [Scope](Lecture_notes/lecture_12_scope.md) |  [pptx](Lecture_notes/lecture_12_scope.pptx) | 🔗 |
 | 12 | [I/O Files](Lecture_notes/lecture_cpp_file_io.md) | [pptx](Lecture_notes/Lecture_FileIO.pptx) | 🔗 |
 | 12 | [STL Containers](Lecture_notes/lecture_12_STL.md) | [pptx](Lecture_notes/Lecture_12_STL_Containers.pptx) | 🔗 |
-| 12 | [I/O Files](Lecture_notes/lecture_13_oop.md) | [pptx](Lecture_notes/Lecture_13_OOP_Introduction.pptx) | 🔗 |
+| 12 | [Introduction to Classes](Lecture_notes/lecture_13_oop.md) | [pptx](Lecture_notes/Lecture_13_OOP_Introduction.pptx) | 🔗 |
 ---
 
 
