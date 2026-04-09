@@ -95,26 +95,6 @@ ___
 
 | Lecture | Topic | Slides | Exercises |
 |:-------:|:-----:|:------:|:---------:|
-| 1 | [Introduction to C++](Lecture_notes/lecture_1_introduction.md) | [pptx](Lecture_notes/lecture_1_introduction.pptx) | [🔗](lecture_1_introduction_exercises.md)|
-| 2 | [Variables and Data Types](Lecture_notes/lecture_2_variables.md) | [pptx](Lecture_notes/lecture_2_variables.pptx) | [🔗](Lecture_notes/lecture_2_variables_exercises.md)|
-| 3 | [If Statements and Conditionals](Lecture_notes/lecture_3_if_statement.md) | [pptx](Lecture_notes/lecture_3_if_statement.pptx) | [🔗](Lecture_notes/lecture_3_if_statements_additional_exercises.md)  |
-| 4 | [loops (for, while, do-while)](Lecture_notes/lecture_4_loops.md) | [pptx](Lecture_notes/lecture_4_loops.pptx) | 🔗 | 
-| 5 | [Advanced loops](Lecture_notes/lecture_5_advanced_loops.md) | [pptx](Lecture_notes/lecture_5_advanced_loops.pptx) |🔗| 
-| 6 | [Functions](Lecture_notes/lecture_6_functions.md) | [pptx](Lecture_notes/lecture_6_functions.pptx) |🔗|
-| 7 | [Advanced Functions](Lecture_notes/lecture_7_advanced_functions.md) | [pptx](Lecture_notes/lecture_7_advanced_functions.pptx) | 🔗 |
-| 8 | [Arrays (1D)](Lecture_notes/lecture_8_arrays.md) | [pptx](Lecture_notes/lecture_8_arrays.pptx) | 🔗 |
-| 9 | [Multidimensional Arrays](Lecture_notes/lecture_9_multidimensional_array.md) | [pptx](Lecture_notes/lecture_9_multidimensional_arrays.pptx) | 🔗 |
-| 10 | [Introduction to Strings](Lecture_notes/lecture_10_strings.md) | [pptx](Lecture_notes/lecture_10_strings.pptx) |🔗  | 
-| 11 | [Recursion](Lecture_notes/lecture_11_recursion.md) |  [pptx](Lecture_notes/lecture_11_recursion.pptx) | 🔗 |
-| 12 | [Scope](Lecture_notes/lecture_12_scope.md) |  [pptx](Lecture_notes/lecture_12_scope.pptx) | 🔗 |
-| 13 | [I/O Files](Lecture_notes/lecture_cpp_file_io.md) | [pptx](Lecture_notes/Lecture_FileIO.pptx) | 🔗 |
-| 14 | [STL Containers](Lecture_notes/lecture_12_STL.md) | [pptx](Lecture_notes/Lecture_12_STL_Containers.pptx) | 🔗 |
-| 15 | [Introduction to Classes](Lecture_notes/lecture_13_oop.md) | [pptx](Lecture_notes/Lecture_13_OOP_Introduction.pptx) | 🔗 |
----
-## Lecture Material
-
-| Lecture | Topic | Slides | Exercises |
-|:-------:|:-----:|:------:|:---------:|
 | 1 | [Introduction to C++](Lecture_notes/lecture_1_introduction.md) | [pptx](Lecture_notes/lecture_1_introduction.pptx) | [🔗](Lecture_notes/lecture_1_introduction_exercises.md) |
 | 2 | [Variables and Data Types](Lecture_notes/lecture_2_variables.md) | [pptx](Lecture_notes/lecture_2_variables.pptx) | [🔗](Lecture_notes/lecture_2_variables_exercises.md) |
 | 3 | [If Statements and Conditionals](Lecture_notes/lecture_3_if_statement.md) | [pptx](Lecture_notes/lecture_3_if_statement.pptx) | [🔗](Lecture_notes/lecture_3_if_statements_additional_exercises.md) |
