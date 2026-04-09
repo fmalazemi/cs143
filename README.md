@@ -107,8 +107,6 @@ ___
 | 10 | [Introduction to Strings](Lecture_notes/lecture_10_strings.md) | [pptx](Lecture_notes/lecture_10_strings.pptx) |🔗  | 
 | 11 | [Recursion](Lecture_notes/lecture_11_recursion.md) |  [pptx](Lecture_notes/lecture_11_recursion.pptx) | 🔗 |
 | 12 | [Scope](Lecture_notes/lecture_12_scope.md) |  [pptx](Lecture_notes/lecture_12_scope.pptx) | 🔗 |
-| 13 | [I/O Files](Lecture_notes/lecture_cpp_file_io.md) | [pptx](Lecture_notes/Lecture_FileIO.pptx) | 🔗 |
-| 14 | [STL Containers](Lecture_notes/lecture_12_STL.md) | [pptx](Lecture_notes/Lecture_12_STL_Containers.pptx) | 🔗 |
 ---
 
 
