@@ -110,6 +110,7 @@ ___
 | 13 | [I/O Files](Lecture_notes/lecture_cpp_file_io.md) | [pptx](Lecture_notes/Lecture_FileIO.pptx) | 🔗 |
 | 14 | [STL Containers](Lecture_notes/lecture_12_STL.md) | [pptx](Lecture_notes/Lecture_12_STL_Containers.pptx) | 🔗 |
 | 15 | [Introduction to Classes](Lecture_notes/lecture_13_oop.md) | [pptx](Lecture_notes/Lecture_13_OOP_Introduction.pptx) | 🔗 |
+| 16 | [Class Constructor and Destructor](Lecture_notes/lecture_14_constructors_destructors.md) | [pptx](Lecture_notes/lecture_14_Constructors_Destructors.pptx) | 🔗 |
 
 
 ## 📝 Grading
