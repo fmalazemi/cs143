@@ -112,6 +112,7 @@ ___
 | 15 | [Introduction to Classes](Lecture_notes/lecture_13_oop.md) | [pptx](Lecture_notes/Lecture_13_OOP_Introduction.pptx) | 🔗 |
 | 16 | [Class Constructor and Destructor](Lecture_notes/lecture_14_constructors_destructors.md) | [pptx](Lecture_notes/lecture_14_Constructors_Destructors.pptx) | 🔗 |
 | 17 | [Dynamic Memory and Pointers](Lecture_notes/lecture_15_memory_pointers.md) | [pptx](Lecture_notes/Lecture_15_Memory_Pointers.pptx) | 🔗 |
+| 18 | [Inheritance](Lecture_notes/lecture_16_inheritance.md) | [pptx](Lecture_notes/Lecture_16_classInheritance.pptx) | 🔗 |
 
 
 ## 📝 Grading
