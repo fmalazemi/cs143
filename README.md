@@ -95,7 +95,7 @@ ___
 
 | Lecture | Topic | Slides |
 |:-------:|:-----:|:------:|
-| 1 | [C++ vs Python and I/O](Lecture_notes/lecture1_notes.md) | [🔗](Lecture_notes/lecture1.html) |
+| 1 | [C++ vs Python and I/O](Lecture_notes/lecture_1_intro.md) | [🔗](Lecture_notes/lecture1.html) |
 | 2 | [if, if-else, if-else-if](Lecture_notes/lecture_2_conditionals.md) | [🔗](Lecture_notes/lecture2.html) |
 | 3 | [while loop](Lecture_notes/lecture_3_while_loops.md) | [🔗](Lecture_notes/lecture3.html) |
 | 4 | [for loop](Lecture_notes/lecture_4_for_loops.md) | [🔗](Lecture_notes/lecture4.html) |
