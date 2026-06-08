@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — while Loops in C++ — Lecture 3</title>
+<style>
+  /* ============ THEME TOKENS ============ */
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #f5f7fb;
+    --text: #16202e;
+    --text-soft: #4a5a70;
+    --muted: #7a8aa0;
+    --border: #d8dfea;
+    --primary: #15406b;
+    --primary-soft: #e7eef7;
+    --accent: #0d7d7d;
+    --amber: #b45309;
+    --green: #1f7a4d;
+    --red: #c0392b;
+    --code-bg: #f3f5fa;
+    --code-text: #1d2733;
+    --kw: #15406b;
+    --str: #1f7a4d;
+    --com: #8a93a3;
+    --num: #b45309;
+    --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e;
+    --surface: #162130;
+    --surface-2: #1c2838;
+    --text: #e9eef6;
+    --text-soft: #b3c0d2;
+    --muted: #8493a8;
+    --border: #2a3850;
+    --primary: #6db3f2;
+    --primary-soft: #1b2a3e;
+    --accent: #4fd1c5;
+    --amber: #f0a64a;
+    --green: #5fd99a;
+    --red: #ef6b5e;
+    --code-bg: #0c131d;
+    --code-text: #dbe5f0;
+    --kw: #6db3f2;
+    --str: #7fd6a3;
+    --com: #6b7787;
+    --num: #f0a64a;
+    --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-sans); font-size: 24px; line-height: 1.5;
+    overflow: hidden; transition: background .3s ease, color .3s ease;
+  }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 50px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; background: var(--surface);
+    border-bottom: 1px solid var(--border); z-index: 100;
+  }
+  .topbar .brand {
+    font-size: 15px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--primary);
+  }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-soft); transition: all .2s ease;
+  }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ============ SLIDE DECK ============ */
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide {
+    display: none; position: absolute; inset: 0;
+    padding: 44px 70px 80px 70px;
+    flex-direction: column; overflow: hidden; animation: fade .35s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker {
+    font-size: 14px; font-weight: 700; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  h1 { font-size: 52px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 38px; line-height: 1.15; margin: 0 0 18px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 24px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 26px; color: var(--text-soft); max-width: 60ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 7px 0 7px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 7px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  /* ============ CODE ============ */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 18px 22px; margin: 0 0 14px;
+    font-family: var(--font-mono); font-size: 21px; line-height: 1.55; overflow: auto;
+  }
+  code.inline {
+    font-family: var(--font-mono); background: var(--primary-soft);
+    color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .92em;
+  }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output {
+    background: var(--surface-2); border: 1px dashed var(--muted);
+    border-radius: 8px; padding: 12px 18px; margin: 0;
+    font-family: var(--font-mono); font-size: 20px; color: var(--text); white-space: pre-wrap;
+  }
+  .out-label {
+    font-size: 13px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--green); margin: 4px 0 6px;
+  }
+
+  /* ============ LAYOUT HELPERS ============ */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 22px; box-shadow: var(--shadow);
+  }
+  .card h3 { color: var(--primary); }
+  .pill {
+    display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+    background: var(--primary-soft); color: var(--primary); margin-bottom: 10px;
+  }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 21px; }
+  table.cmp th, table.cmp td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 14px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* trace table */
+  table.trace { width: 100%; border-collapse: collapse; font-size: 20px; font-family: var(--font-mono); }
+  table.trace th, table.trace td { padding: 9px 12px; text-align: center; border: 1px solid var(--border); }
+  table.trace th { background: var(--primary-soft); color: var(--primary); }
+
+  /* ============ TITLE SLIDE ============ */
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag {
+    font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 18px;
+  }
+  .title-slide h1 { font-size: 72px; line-height: 1.05; }
+  .title-slide .sub { font-size: 30px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta {
+    margin-top: 40px; padding-top: 24px; border-top: 2px solid var(--border);
+    font-size: 24px; color: var(--text);
+  }
+  .title-slide .meta b { color: var(--primary); }
+
+  /* ============ BOTTOM NAV ============ */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
+  }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    padding: 8px 18px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease;
+  }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 30px 36px 76px; }
+    h1 { font-size: 40px; } h2 { font-size: 30px; }
+    .title-slide h1 { font-size: 52px; }
+    .two { grid-template-columns: 1fr; gap: 16px; }
+    pre { font-size: 17px; }
+  }
+
+  /* ============ PRINT / PDF ============ */
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide {
+      display: flex !important; position: relative; inset: auto;
+      width: 1280px; height: 720px; page-break-after: always; break-after: page;
+      animation: none; border-bottom: 1px solid #ccc;
+    }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">CS143 · while Loops in C++</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 3</div>
+    <h1>The while Loop</h1>
+    <div class="sub">Repeating work while a condition stays true</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 2 (conditions and comparisons)</p>
+    </div>
+  </section>
+
+  <!-- 2. LEARNING OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain why and when we repeat code with a loop.</li>
+      <li>Write a <code class="inline">while</code> loop with correct syntax.</li>
+      <li>Identify the three parts: <span class="hl">start</span>, <span class="hl">condition</span>, <span class="hl">update</span>.</li>
+      <li>Use a loop to <b>count</b> and to <b>add up</b> values.</li>
+      <li>Stop a loop when the user enters a special value (a <span class="hl">sentinel</span>).</li>
+      <li>Avoid infinite loops and other common mistakes.</li>
+    </ul>
+  </section>
+
+  <!-- 3. BRIDGE FROM PYTHON -->
+  <section class="slide">
+    <div class="kicker">02 · You Already Know This</div>
+    <h2>while Is Not New</h2>
+    <p class="lead">You used <code class="inline">while</code> in CS101. The idea is the same: repeat a block as long as a condition is true.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python (what you know)</h3>
+<pre><code>i = 1
+while i &lt;= 3:
+    print(i)
+    i = i + 1</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++ (what we learn today)</h3>
+<pre><code>int i = 1;
+while (i &lt;= 3) {
+    cout &lt;&lt; i &lt;&lt; endl;
+    i++;          // same as i = i + 1
+}</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Changes:</b> the condition needs <span class="hl">( )</span>, the body needs <span class="hl">{ }</span>, and C++ offers the short form <code class="inline">i++</code>.</p>
+  </section>
+
+  <!-- 4. WHY LOOPS -->
+  <section class="slide">
+    <div class="kicker">03 · The Idea</div>
+    <h2>Why Do We Need Loops?</h2>
+    <div class="two" style="flex:none;">
+      <div>
+        <p class="lead">Without a loop, repeating work means copying the same line many times.</p>
+<pre><code>cout &lt;&lt; 1 &lt;&lt; endl;
+cout &lt;&lt; 2 &lt;&lt; endl;
+cout &lt;&lt; 3 &lt;&lt; endl;
+// ... what about 1 to 1000?</code></pre>
+      </div>
+      <div>
+        <p class="lead">A loop lets the computer repeat the work for us.</p>
+<pre><code>int i = 1;
+while (i &lt;= 1000) {
+    cout &lt;&lt; i &lt;&lt; endl;
+    i++;
+}</code></pre>
+        <p><b>A <code class="inline">while</code> loop is best</b> when you do not know in advance how many times to repeat.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. SYNTAX / ANATOMY -->
+  <section class="slide">
+    <div class="kicker">04 · The Three Parts</div>
+    <h2>Anatomy of a <code class="inline" style="font-size:.8em;">while</code> Loop</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int i = 1;            // 1. START: set up a counter
+
+while (i &lt;= 5) {      // 2. CONDITION: keep going while true
+    cout &lt;&lt; i &lt;&lt; endl; //    body: the repeated work
+    i++;              // 3. UPDATE: move toward stopping
+}</code></pre>
+      </div>
+      <div>
+        <ul class="num">
+          <li><b>Start:</b> create and set the counter <i>before</i> the loop.</li>
+          <li><b>Condition:</b> a true/false test, checked <i>before</i> each pass.</li>
+          <li><b>Update:</b> change the counter so the loop will end.</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Warning:</b> if you forget the <span class="hl">update</span>, the condition stays true forever — an <span class="hl">infinite loop</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. TRACE -->
+  <section class="slide">
+    <div class="kicker">05 · Step by Step</div>
+    <h2>Tracing the Loop</h2>
+    <p class="lead">Let us follow <code class="inline">int i = 1; while (i &lt;= 3)</code> pass by pass.</p>
+    <div class="two" style="flex:none;">
+      <div>
+        <table class="trace">
+          <tr><th>Pass</th><th>i</th><th>i &lt;= 3 ?</th><th>prints</th></tr>
+          <tr><td>1</td><td>1</td><td>true</td><td>1</td></tr>
+          <tr><td>2</td><td>2</td><td>true</td><td>2</td></tr>
+          <tr><td>3</td><td>3</td><td>true</td><td>3</td></tr>
+          <tr><td>4</td><td>4</td><td>false</td><td>stop</td></tr>
+        </table>
+      </div>
+      <div>
+        <div class="out-label">Output</div>
+        <div class="output">1
+2
+3</div>
+        <p style="margin-top:14px;">When <code class="inline">i</code> becomes 4, the condition is false, so the loop ends and the program continues after the braces.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. COUNTING + SUM -->
+  <section class="slide">
+    <div class="kicker">06 · A Common Pattern</div>
+    <h2>Counting and Adding Up</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int n, i = 1, sum = 0;   // sum starts at 0
+    cout &lt;&lt; "Enter n: ";
+    cin &gt;&gt; n;
+
+    while (i &lt;= n) {
+        sum = sum + i;       // add i to the running total
+        i++;
+    }
+    cout &lt;&lt; "Sum = " &lt;&lt; sum &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If user types 5</div>
+        <div class="output">Enter n: 5
+Sum = 15</div>
+        <p style="margin-top:14px;"><b>What it does:</b> It adds 1 + 2 + 3 + 4 + 5. The variable <code class="inline">sum</code> is an <span class="hl">accumulator</span> — it grows each pass.</p>
+        <p><b>Key habit:</b> set the accumulator to 0 <i>before</i> the loop.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. SENTINEL -->
+  <section class="slide">
+    <div class="kicker">07 · Unknown Count</div>
+    <h2>Stop on a Special Value (Sentinel)</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int x, total = 0;
+    cout &lt;&lt; "Enter numbers (0 to stop):" &lt;&lt; endl;
+
+    cin &gt;&gt; x;               // read the first value
+    while (x != 0) {        // keep going until 0
+        total = total + x;
+        cin &gt;&gt; x;           // read the next value
+    }
+    cout &lt;&lt; "Total = " &lt;&lt; total &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">User types 4, 6, 10, 0</div>
+        <div class="output">Total = 20</div>
+        <p style="margin-top:14px;"><b>What it does:</b> It keeps adding numbers until the user enters <code class="inline">0</code>. We do not know how many numbers there will be.</p>
+        <p><b>This is where <code class="inline">while</code> shines</b> — the count is decided while the program runs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. BREAK / CONTINUE -->
+  <section class="slide">
+    <div class="kicker">08 · Two Helpers</div>
+    <h2><code class="inline" style="font-size:.8em;">break</code> and <code class="inline" style="font-size:.8em;">continue</code></h2>
+    <div class="two">
+      <div class="card">
+        <h3><code class="inline">break</code> — leave the loop now</h3>
+<pre><code>int i = 1;
+while (i &lt;= 10) {
+    if (i == 5) break;   // stop early
+    cout &lt;&lt; i &lt;&lt; " ";
+    i++;
+}</code></pre>
+        <div class="output">1 2 3 4</div>
+      </div>
+      <div class="card">
+        <h3><code class="inline">continue</code> — skip to next pass</h3>
+<pre><code>int i = 0;
+while (i &lt; 5) {
+    i++;
+    if (i == 3) continue; // skip 3
+    cout &lt;&lt; i &lt;&lt; " ";
+}</code></pre>
+        <div class="output">1 2 4 5</div>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Use sparingly.</b> Clear conditions are usually easier to read than many <code class="inline">break</code>s.</p>
+  </section>
+
+  <!-- 10. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">09 · Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Forgetting the update</b><br>no <code class="inline">i++</code> means the loop never ends (infinite loop)</li>
+          <li><b>Semicolon after while</b><br><code class="inline">while (i &lt; 5);</code> makes an empty body that loops forever</li>
+          <li><b>Counter not started</b><br>declare and set <code class="inline">i</code> before the loop</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>= instead of ==</b><br>use <code class="inline">==</code> to compare in the condition</li>
+          <li><b>Off-by-one</b><br><code class="inline">&lt;=</code> vs <code class="inline">&lt;</code> changes how many times it runs</li>
+          <li><b>Updating the wrong way</b><br>moving away from the stop value loops forever</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>If your program freezes,</b> you probably made an infinite loop. Press Ctrl+C to stop it.</p>
+  </section>
+
+  <!-- 11. PYTHON SIDE BY SIDE -->
+  <section class="slide">
+    <div class="kicker">10 · Side by Side</div>
+    <h2>Python vs. C++ while</h2>
+    <table class="cmp">
+      <tr><th>Idea</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Start the loop</td><td class="py">while i &lt; 5:</td><td class="cpp">while (i &lt; 5) {</td></tr>
+      <tr><td>Group the body</td><td class="py">indentation</td><td class="cpp">{ braces }</td></tr>
+      <tr><td>Add one</td><td class="py">i += 1</td><td class="cpp">i++; (or i += 1;)</td></tr>
+      <tr><td>Leave early</td><td class="py">break</td><td class="cpp">break;</td></tr>
+      <tr><td>Skip a pass</td><td class="py">continue</td><td class="cpp">continue;</td></tr>
+      <tr><td>End each line</td><td class="py">(nothing)</td><td class="cpp">; (semicolon)</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>Takeaway:</b> the loop idea is identical; C++ adds braces and semicolons.</p>
+  </section>
+
+  <!-- 12. WORKED EXAMPLE 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Count From 1 to 5</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int i = 1;            // start the counter
+    while (i &lt;= 5) {      // run while i is 5 or less
+        cout &lt;&lt; i &lt;&lt; " ";
+        i++;              // move toward the end
+    }
+    cout &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 3 4 5</div>
+        <p style="margin-top:16px;"><b>What it does:</b> It prints the numbers 1 through 5 on one line, separated by spaces.</p>
+        <p><b>Focus:</b> the three parts working together — start, condition, update.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED EXAMPLE 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Countdown Then Liftoff</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int t = 5;
+    while (t &gt;= 1) {        // count DOWN this time
+        cout &lt;&lt; t &lt;&lt; "... ";
+        t--;               // subtract one each pass
+    }
+    cout &lt;&lt; "Liftoff!" &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5... 4... 3... 2... 1... Liftoff!</div>
+        <p style="margin-top:16px;"><b>What it does:</b> It counts down from 5 to 1, then prints a final message.</p>
+        <p><b>Focus:</b> a loop can go <span class="hl">down</span> too — here the update is <code class="inline">t--</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. WORKED EXAMPLE 3 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Average of Numbers (Sentinel)</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int x, count = 0, sum = 0;
+    cin &gt;&gt; x;                  // first number
+    while (x != -1) {          // -1 means stop
+        sum = sum + x;
+        count = count + 1;
+        cin &gt;&gt; x;              // next number
+    }
+    if (count &gt; 0)
+        cout &lt;&lt; "Average = " &lt;&lt; sum / count &lt;&lt; endl;
+    else
+        cout &lt;&lt; "No numbers entered" &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">User types 10, 20, 30, -1</div>
+        <div class="output">Average = 20</div>
+        <p style="margin-top:12px;"><b>What it does:</b> It adds numbers and counts them until <code class="inline">-1</code>, then prints the average.</p>
+        <p><b>Note:</b> the <code class="inline">if</code> guards against dividing by zero when no numbers are entered.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. EXERCISES -->
+  <section class="slide">
+    <div class="kicker">11 · Your Turn</div>
+    <h2>Student Exercises</h2>
+    <p class="lead">Write a complete C++ program for each task using a <code class="inline">while</code> loop.</p>
+    <ul class="num">
+      <li>Print the numbers from <b>1 to 10</b>, each on its own line.</li>
+      <li>Print the <b>even</b> numbers from 2 to 20 on one line.</li>
+      <li>Read a number <code class="inline">n</code> and compute its <b>factorial</b> (1 × 2 × … × n).</li>
+      <li>Read <code class="inline">n</code> and print the <b>multiplication table</b> of n (n×1 up to n×10).</li>
+      <li>Keep reading numbers until the user enters a <b>negative</b> number. Print how many <b>positive</b> numbers were entered.</li>
+    </ul>
+  </section>
+
+  <!-- 16. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">12 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · One to ten</h3>
+<pre><code>int i = 1;
+while (i &lt;= 10) {
+    cout &lt;&lt; i &lt;&lt; endl;
+    i++;
+}</code></pre>
+        <h3>2 · Even numbers</h3>
+<pre><code>int i = 2;
+while (i &lt;= 20) {
+    cout &lt;&lt; i &lt;&lt; " ";
+    i += 2;        // jump by 2
+}
+cout &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Factorial</h3>
+<pre><code>int n, i = 1;
+long fact = 1;     // products grow fast
+cin &gt;&gt; n;
+while (i &lt;= n) {
+    fact = fact * i;
+    i++;
+}
+cout &lt;&lt; n &lt;&lt; "! = " &lt;&lt; fact &lt;&lt; endl;</code></pre>
+        <div class="out-label">If n = 5</div>
+        <div class="output">5! = 120</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">12 · Solutions (4–5)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Multiplication table</h3>
+<pre><code>int n, i = 1;
+cin &gt;&gt; n;
+while (i &lt;= 10) {
+    cout &lt;&lt; n &lt;&lt; " x " &lt;&lt; i
+         &lt;&lt; " = " &lt;&lt; n * i &lt;&lt; endl;
+    i++;
+}</code></pre>
+        <div class="out-label">If n = 3 (first lines)</div>
+        <div class="output">3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9</div>
+      </div>
+      <div class="scroll">
+        <h3>5 · Count positives</h3>
+<pre><code>int x, count = 0;
+cin &gt;&gt; x;
+while (x &gt;= 0) {       // stop on a negative
+    count = count + 1;
+    cin &gt;&gt; x;
+}
+cout &lt;&lt; "Positives: " &lt;&lt; count &lt;&lt; endl;</code></pre>
+        <div class="out-label">User types 5, 8, 2, -1</div>
+        <div class="output">Positives: 3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">13 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <code class="inline">while</code> loop repeats its body while a condition stays true.</li>
+      <li>Every loop needs three parts: <b>start</b>, <b>condition</b>, and <b>update</b>.</li>
+      <li>The condition is checked <i>before</i> each pass.</li>
+      <li>Use loops to <b>count</b> and to <b>add up</b> (accumulator starts at 0).</li>
+      <li>A <b>sentinel</b> value lets you stop when the count is unknown.</li>
+      <li>Forgetting the update creates an <span class="hl">infinite loop</span> — always move toward the stop.</li>
+    </ul>
+    <p style="margin-top:18px; font-size:26px;"><b>Next lecture:</b> the <code class="inline">for</code> loop — a tidy way to count.</p>
+  </section>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  /* ---------- SLIDE ENGINE ---------- */
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  /* ---------- THEME TOGGLE ---------- */
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  /* ---------- SIMPLE C++ SYNTAX HIGHLIGHTER ---------- */
+  const KW = /^(int|long|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  /* ---------- INIT ---------- */
+  show(0);
+</script>
+</body>
+</html>
