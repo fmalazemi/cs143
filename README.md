@@ -95,7 +95,7 @@ ___
 
 | Lecture | Topic | Slides | Exercises |
 |:-------:|:-----:|:------:|:---------:|
-| 1 | [Introduction to C++](Lecture_notes/lecture1_notes.md) | [pptx](Lecture_notes/lecture1.html) | [🔗](google.com) |
+| 1 | [C++ vs Python, I/O](Lecture_notes/lecture1_notes.md) | [Slides](Lecture_notes/lecture1.html) | [🔗](google.com) |
 
 
 ## 📝 Grading
