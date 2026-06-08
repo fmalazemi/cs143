@@ -93,7 +93,7 @@ ___
 
 ## Lecture Material
 
-| Lecture | Topic | Slides |
+| Lecture | Notes | Slides |
 |:-------:|:-----:|:------:|
 | 1 | [C++ vs Python and I/O](Lecture_notes/lecture_1_intro.md) | [🔗](Lecture_notes/lecture1.html) |
 | 2 | [if, if-else, if-else-if](Lecture_notes/lecture_2_conditionals.md) | [🔗](Lecture_notes/lecture2.html) |
