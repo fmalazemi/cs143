@@ -93,10 +93,12 @@ ___
 
 ## Lecture Material
 
-| Lecture | Topic | Slides | Exercises |
-|:-------:|:-----:|:------:|:---------:|
-| 1 | [C++ vs Python, I/O](Lecture_notes/lecture1_notes.md) | [Slides](Lecture_notes/lecture1.html) | [🔗](google.com) |
-
+| Lecture | Topic | Slides |
+|:-------:|:-----:|:------:|
+| 1 | [C++ vs Python and I/O](Lecture_notes/lecture1_notes.md) | [🔗](Lecture_notes/lecture1.html) |
+| 2 | [if, if-else, if-else-if](Lecture_notes/lecture_2_conditionals.md) | [🔗](Lecture_notes/lecture2.html) |
+| 3 | [while loop](Lecture_notes/lecture_3_while_loops.md) | [🔗](Lecture_notes/lecture3.html) |
+| 4 | [for loop](Lecture_notes/lecture_4_for_loops.md) | [🔗](Lecture_notes/lecture4.html) |
 
 ## 📝 Grading
 
