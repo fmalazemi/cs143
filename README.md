@@ -42,10 +42,10 @@ ___
 
 **Instructor:** Dr. Fawaz Alazemi  
 - Office: S02A2-150  
-- Office Hours: Monday and Wednesday 12:30PM - 1:50PM  
+- Office Hours: Monday and Wednesday 12:30PM - 1:00PM (or by Appointment)  
 
-**Teaching Assistant:** Mr. Assma AlOtaibi  
-- Office: N00B1-221  
+**Teaching Assistant:** Mr. Fatema AlBdaiwi  
+- Office: N00-B2-012  
 - Office Hours: TBA  
 
 ---
@@ -56,14 +56,14 @@ ___
 
 | Lectures | Labs |
 |------------|------------|
-| 📍 **Location:** C1-007 | 📍 **Location:** B1-089 |
-| 🗓️ **Days:** Sunday & Tuesday | 🗓️ **Days:** Monday & Tuesday |
-| ⏰ **Time:** 11:00 AM – 12:15 PM | ⏰ **Time:** 2:00 PM – 3:15 PM |
+| 📍 **Location:** C1-010  | 📍 **Location:** B1-086 |
+| 🗓️ **Days:** 12345 | 🗓️ **Days:** Monday & Tuesday |
+| ⏰ **Time:** 01:00 PM – 02:00 PM | ⏰ **Time:** 2:15 PM – 4:30 PM |
 
 ### Important Dates
-- **Midterm 1 (20%):**  25/03/2025, 11:00am - 12:15pm 
-- **Midterm 2 (20%):**  22/04/2025, 11:00am - 12:15pm
-- **Final Exam (40%):** Wed 20/05/2026, 12:00PM – 14:00PM  
+- **Midterm 1 (20%):**  (Wed) 01/07/2026, 11:00am - 12:15pm 
+- **Midterm 2 (20%):**  (Wed) 15/04/2025, 11:00am - 12:15pm
+- **Final Exam (40%):** (Sat) 25/07/2026, 03:00PM – 05:00PM  
 
 ---
 
