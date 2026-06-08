@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Nested if &amp; Nested Loops — Lecture 5</title>
+<style>
+  /* ============ THEME TOKENS ============ */
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #f5f7fb;
+    --text: #16202e;
+    --text-soft: #4a5a70;
+    --muted: #7a8aa0;
+    --border: #d8dfea;
+    --primary: #15406b;
+    --primary-soft: #e7eef7;
+    --accent: #0d7d7d;
+    --amber: #b45309;
+    --green: #1f7a4d;
+    --red: #c0392b;
+    --code-bg: #f3f5fa;
+    --code-text: #1d2733;
+    --kw: #15406b;
+    --str: #1f7a4d;
+    --com: #8a93a3;
+    --num: #b45309;
+    --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e;
+    --surface: #162130;
+    --surface-2: #1c2838;
+    --text: #e9eef6;
+    --text-soft: #b3c0d2;
+    --muted: #8493a8;
+    --border: #2a3850;
+    --primary: #6db3f2;
+    --primary-soft: #1b2a3e;
+    --accent: #4fd1c5;
+    --amber: #f0a64a;
+    --green: #5fd99a;
+    --red: #ef6b5e;
+    --code-bg: #0c131d;
+    --code-text: #dbe5f0;
+    --kw: #6db3f2;
+    --str: #7fd6a3;
+    --com: #6b7787;
+    --num: #f0a64a;
+    --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-sans); font-size: 24px; line-height: 1.5;
+    overflow: hidden; transition: background .3s ease, color .3s ease;
+  }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 50px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; background: var(--surface);
+    border-bottom: 1px solid var(--border); z-index: 100;
+  }
+  .topbar .brand {
+    font-size: 15px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--primary);
+  }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-soft); transition: all .2s ease;
+  }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ============ SLIDE DECK ============ */
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide {
+    display: none; position: absolute; inset: 0;
+    padding: 40px 70px 80px 70px;
+    flex-direction: column; overflow: hidden; animation: fade .35s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker {
+    font-size: 14px; font-weight: 700; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  /* ============ CODE ============ */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 16px 20px; margin: 0 0 12px;
+    font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto;
+  }
+  code.inline {
+    font-family: var(--font-mono); background: var(--primary-soft);
+    color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em;
+  }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output {
+    background: var(--surface-2); border: 1px dashed var(--muted);
+    border-radius: 8px; padding: 12px 16px; margin: 0;
+    font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre;
+  }
+  .out-label {
+    font-size: 13px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--green); margin: 4px 0 6px;
+  }
+
+  /* ============ LAYOUT HELPERS ============ */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow);
+  }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill {
+    display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+    background: var(--primary-soft); color: var(--primary); margin-bottom: 10px;
+  }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  table.trace { width: 100%; border-collapse: collapse; font-size: 19px; font-family: var(--font-mono); }
+  table.trace th, table.trace td { padding: 8px 11px; text-align: center; border: 1px solid var(--border); }
+  table.trace th { background: var(--primary-soft); color: var(--primary); }
+
+  /* ============ FLOWCHART (SVG) ============ */
+  .fc { width: 100%; max-height: 60vh; display: block; }
+  .fc .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fc .cond { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+  .fc .term { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2; }
+  .fc .leaf { fill: var(--surface); stroke: var(--green); stroke-width: 2; }
+  .fc .lbl { fill: var(--text); font-family: var(--font-sans); font-size: 18px; text-anchor: middle; }
+  .fc .mono { fill: var(--text); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fc .edge { stroke: var(--muted); stroke-width: 2; fill: none; }
+  .fc .yes { fill: var(--green); font-size: 16px; font-weight: 700; font-family: var(--font-sans); }
+  .fc .no { fill: var(--red); font-size: 16px; font-weight: 700; font-family: var(--font-sans); }
+  .fc .tag { fill: var(--accent); font-size: 15px; font-weight: 700; font-family: var(--font-sans); }
+
+  /* ============ TITLE / SECTION SLIDE ============ */
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag {
+    font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 18px;
+  }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta {
+    margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border);
+    font-size: 23px; color: var(--text);
+  }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 60px; margin-top: 10px; }
+
+  /* ============ BOTTOM NAV ============ */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100;
+  }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    padding: 8px 18px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease;
+  }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  /* ============ PRINT / PDF ============ */
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide {
+      display: flex !important; position: relative; inset: auto;
+      width: 1280px; height: 720px; page-break-after: always; break-after: page;
+      animation: none; border-bottom: 1px solid #ccc;
+    }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">CS143 · Nested if &amp; Nested Loops</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 5</div>
+    <h1>Nested if &amp; Nested Loops</h1>
+    <div class="sub">Putting decisions inside decisions, and loops inside loops</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lectures 2–4 (if, while, for)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Place one <code class="inline">if</code> inside another and read the flow with a flowchart.</li>
+      <li>Decide when a nested <code class="inline">if</code> is clearer than an else-if chain.</li>
+      <li>Place one loop inside another (a <span class="hl">nested loop</span>).</li>
+      <li>Trace how the inner loop runs fully for each outer pass.</li>
+      <li>Build grids and shape patterns with nested loops.</li>
+      <li>Avoid the most common nesting mistakes.</li>
+    </ul>
+  </section>
+
+  <!-- 3. BRIDGE -->
+  <section class="slide">
+    <div class="kicker">02 · You Already Know This</div>
+    <h2>Nesting Is Not New</h2>
+    <p class="lead">In CS101 you already wrote an <code class="inline">if</code> inside an <code class="inline">if</code>, and a loop inside a loop. C++ uses the same idea — with braces instead of indentation.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python</h3>
+<pre><code>for i in range(3):
+    for j in range(3):
+        print(i, j)</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++</h3>
+<pre><code>for (int i = 0; i &lt; 3; i++) {
+    for (int j = 0; j &lt; 3; j++) {
+        cout &lt;&lt; i &lt;&lt; j &lt;&lt; " ";
+    }
+}</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The skill today:</b> keeping the levels organised so the logic stays clear.</p>
+  </section>
+
+  <!-- 4. SECTION A -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>Nested <code class="inline" style="font-size:.85em;">if</code></h1>
+    <p class="lead">A decision made <i>after</i> another decision has already been true.</p>
+  </section>
+
+  <!-- 5. WHAT IS NESTED IF + FLOWCHART -->
+  <section class="slide">
+    <div class="kicker">03 · The Idea</div>
+    <h2>What Is a Nested <code class="inline" style="font-size:.8em;">if</code>?</h2>
+    <div class="two" style="flex:none;">
+      <div>
+        <p class="lead">A nested <code class="inline">if</code> is an <code class="inline">if</code> placed <b>inside</b> the body of another <code class="inline">if</code>. The inner test is only reached when the outer test is true.</p>
+        <p><b>Example question:</b> "Are you old enough to drive? <i>If yes</i>, do you also have a license?"</p>
+      </div>
+      <div>
+        <svg class="fc" viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" aria-label="Nested if flowchart">
+          <defs>
+            <marker id="ar5a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L8,3 L0,6 Z" fill="var(--muted)"/>
+            </marker>
+          </defs>
+          <!-- start -->
+          <rect class="term" x="365" y="10" width="150" height="40" rx="20"/>
+          <text class="lbl" x="440" y="35">Start</text>
+          <path class="edge" d="M440,50 L440,72" marker-end="url(#ar5a)"/>
+          <!-- outer condition -->
+          <polygon class="cond" points="440,72 555,104 440,136 325,104"/>
+          <text class="mono" x="440" y="109">age &gt;= 18 ?</text>
+          <!-- outer NO -> right leaf -->
+          <path class="edge" d="M555,104 L700,104" marker-end="url(#ar5a)"/>
+          <text class="no" x="610" y="94">No</text>
+          <rect class="leaf" x="700" y="82" width="180" height="44" rx="8"/>
+          <text class="lbl" x="790" y="109">"Too young"</text>
+          <!-- outer YES down -->
+          <path class="edge" d="M440,136 L440,168" marker-end="url(#ar5a)"/>
+          <text class="yes" x="452" y="158">Yes</text>
+          <!-- inner condition -->
+          <polygon class="cond" points="440,168 555,200 440,232 325,200"/>
+          <text class="mono" x="440" y="205">license == 1 ?</text>
+          <!-- inner NO -> left leaf -->
+          <path class="edge" d="M325,200 L180,200" marker-end="url(#ar5a)"/>
+          <text class="no" x="250" y="190">No</text>
+          <rect class="leaf" x="10" y="178" width="170" height="44" rx="8"/>
+          <text class="lbl" x="95" y="205">"Get license"</text>
+          <!-- inner YES -> down leaf -->
+          <path class="edge" d="M440,232 L440,264" marker-end="url(#ar5a)"/>
+          <text class="yes" x="452" y="254">Yes</text>
+          <rect class="leaf" x="350" y="264" width="180" height="44" rx="8"/>
+          <text class="lbl" x="440" y="291">"You can drive"</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. NESTED IF SYNTAX -->
+  <section class="slide">
+    <div class="kicker">04 · The Syntax</div>
+    <h2>Writing a Nested <code class="inline" style="font-size:.8em;">if</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int age, license;          // license: 1 = yes, 0 = no
+    cin &gt;&gt; age &gt;&gt; license;
+
+    if (age &gt;= 18) {           // outer test
+        if (license == 1) {    // inner test (only if outer true)
+            cout &lt;&lt; "You can drive" &lt;&lt; endl;
+        } else {
+            cout &lt;&lt; "Get license" &lt;&lt; endl;
+        }
+    } else {
+        cout &lt;&lt; "Too young" &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">age=20, license=1</div>
+        <div class="output">You can drive</div>
+        <div class="out-label" style="margin-top:10px;">age=20, license=0</div>
+        <div class="output">Get license</div>
+        <div class="out-label" style="margin-top:10px;">age=15, license=1</div>
+        <div class="output">Too young</div>
+        <p style="margin-top:10px;"><b>Note:</b> match each <code class="inline">{</code> with its <code class="inline">}</code>. Indentation helps you see the levels.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. NESTED IF VS ELSE-IF -->
+  <section class="slide">
+    <div class="kicker">05 · Choose Wisely</div>
+    <h2>Nested <code class="inline" style="font-size:.8em;">if</code> vs. else-if Chain</h2>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Use nested if when…</h3>
+        <ul class="check">
+          <li>The second test only makes sense <b>after</b> the first is true.</li>
+          <li>The tests check <b>different</b> things (age, then license).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Use else-if chain when…</h3>
+        <ul class="check">
+          <li>You pick <b>one</b> option from a list.</li>
+          <li>The tests check the <b>same</b> value (a mark → A/B/C).</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Warning:</b> too much nesting becomes hard to read. If you go more than 2–3 levels deep, consider combining tests with <code class="inline">&amp;&amp;</code> instead.</p>
+  </section>
+
+  <!-- 8. WORKED A1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1 · Nested if</div>
+    <h2>Pass, and Maybe Distinction</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int mark;
+    cin &gt;&gt; mark;
+
+    if (mark &gt;= 50) {              // first: did they pass?
+        cout &lt;&lt; "Pass" &lt;&lt; endl;
+        if (mark &gt;= 85) {         // only checked if passed
+            cout &lt;&lt; "With distinction!" &lt;&lt; endl;
+        }
+    } else {
+        cout &lt;&lt; "Fail" &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If mark = 90</div>
+        <div class="output">Pass
+With distinction!</div>
+        <div class="out-label" style="margin-top:10px;">If mark = 60</div>
+        <div class="output">Pass</div>
+        <div class="out-label" style="margin-top:10px;">If mark = 40</div>
+        <div class="output">Fail</div>
+        <p style="margin-top:10px;"><b>Idea:</b> the distinction test only runs for students who already passed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. WORKED A2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2 · Nested if</div>
+    <h2>Ticket Price by Age and Membership</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int age, member;          // member: 1 = yes, 0 = no
+    cin &gt;&gt; age &gt;&gt; member;
+
+    if (age &lt; 13) {
+        cout &lt;&lt; "Child: free" &lt;&lt; endl;
+    } else {
+        if (member == 1) {    // nested: only for non-children
+            cout &lt;&lt; "Member: 5 KD" &lt;&lt; endl;
+        } else {
+            cout &lt;&lt; "Adult: 10 KD" &lt;&lt; endl;
+        }
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">age=10, member=0</div>
+        <div class="output">Child: free</div>
+        <div class="out-label" style="margin-top:10px;">age=30, member=1</div>
+        <div class="output">Member: 5 KD</div>
+        <div class="out-label" style="margin-top:10px;">age=30, member=0</div>
+        <div class="output">Adult: 10 KD</div>
+        <p style="margin-top:10px;"><b>Idea:</b> membership only matters once we know the person is not a child.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. COMMON MISTAKES NESTED IF -->
+  <section class="slide">
+    <div class="kicker">06 · Be Careful</div>
+    <h2>Nested <code class="inline" style="font-size:.8em;">if</code> Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Mismatched braces</b><br>each <code class="inline">{</code> needs a matching <code class="inline">}</code> — count them</li>
+          <li><b>Which else?</b><br>an <code class="inline">else</code> pairs with the nearest unmatched <code class="inline">if</code> — use braces to be sure</li>
+          <li><b>Too deep</b><br>4+ levels is hard to read</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Cleaner with &amp;&amp;</h3>
+<pre><code>// nested
+if (age &gt;= 18) {
+    if (license == 1) {
+        cout &lt;&lt; "Drive";
+    }
+}
+// same idea, flatter
+if (age &gt;= 18 &amp;&amp; license == 1) {
+    cout &lt;&lt; "Drive";
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. SECTION B -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>Nested Loops</h1>
+    <p class="lead">A loop inside a loop — the key tool for grids, tables, and patterns.</p>
+  </section>
+
+  <!-- 12. WHAT IS NESTED LOOP + FLOWCHART -->
+  <section class="slide">
+    <div class="kicker">07 · The Idea</div>
+    <h2>What Is a Nested Loop?</h2>
+    <div class="two" style="flex:none;">
+      <div>
+        <p class="lead">The <b>inner</b> loop runs all the way through for <b>each single pass</b> of the <b>outer</b> loop.</p>
+        <p>If the outer runs 3 times and the inner runs 4 times, the inner body runs <span class="hl">3 × 4 = 12</span> times in total.</p>
+        <p><b>Think:</b> outer = rows, inner = columns.</p>
+      </div>
+      <div>
+        <svg class="fc" viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" aria-label="Nested loop flowchart">
+          <defs>
+            <marker id="ar5b" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L8,3 L0,6 Z" fill="var(--muted)"/>
+            </marker>
+          </defs>
+          <!-- start -->
+          <rect class="term" x="295" y="8" width="150" height="38" rx="19"/>
+          <text class="lbl" x="370" y="32">Start</text>
+          <path class="edge" d="M370,46 L370,64" marker-end="url(#ar5b)"/>
+          <!-- outer init -->
+          <rect class="box" x="280" y="64" width="180" height="40" rx="8"/>
+          <text class="mono" x="370" y="89">i = 1</text>
+          <path class="edge" d="M370,104 L370,118" marker-end="url(#ar5b)"/>
+          <!-- outer cond -->
+          <polygon class="cond" points="370,118 480,150 370,182 260,150"/>
+          <text class="mono" x="370" y="155">i &lt;= n ?</text>
+          <!-- outer NO -> end -->
+          <path class="edge" d="M480,150 L560,150" marker-end="url(#ar5b)"/>
+          <text class="no" x="505" y="140">No</text>
+          <rect class="term" x="560" y="131" width="140" height="38" rx="19"/>
+          <text class="lbl" x="630" y="155">End</text>
+          <!-- outer YES down -> inner init -->
+          <path class="edge" d="M370,182 L370,200" marker-end="url(#ar5b)"/>
+          <text class="yes" x="382" y="196">Yes</text>
+          <rect class="box" x="280" y="200" width="180" height="40" rx="8"/>
+          <text class="mono" x="370" y="225">j = 1</text>
+          <path class="edge" d="M370,240 L370,256" marker-end="url(#ar5b)"/>
+          <!-- inner cond -->
+          <polygon class="cond" points="370,256 480,288 370,320 260,288"/>
+          <text class="mono" x="370" y="293">j &lt;= m ?</text>
+          <!-- inner YES -> body -->
+          <path class="edge" d="M370,320 L370,338" marker-end="url(#ar5b)"/>
+          <text class="yes" x="382" y="334">Yes</text>
+          <rect class="box" x="265" y="338" width="210" height="40" rx="8"/>
+          <text class="lbl" x="370" y="363">do the work</text>
+          <path class="edge" d="M370,378 L370,396" marker-end="url(#ar5b)"/>
+          <!-- inner update -->
+          <rect class="box" x="265" y="396" width="210" height="40" rx="8"/>
+          <text class="mono" x="370" y="421">j++</text>
+          <!-- inner update -> back to inner cond (right side) -->
+          <path class="edge" d="M475,416 L560,416 L560,288 L480,288" marker-end="url(#ar5b)"/>
+          <text class="tag" x="566" y="360">repeat inner</text>
+          <!-- inner NO -> outer update (left side) -->
+          <path class="edge" d="M260,288 L150,288 L150,165" marker-end="url(#ar5b)"/>
+          <text class="no" x="175" y="278">No</text>
+          <rect class="box" x="60" y="125" width="170" height="40" rx="8"/>
+          <text class="mono" x="145" y="150">i++</text>
+          <!-- outer update -> back to outer cond -->
+          <path class="edge" d="M230,150 L260,150" marker-end="url(#ar5b)"/>
+          <text class="tag" x="70" y="200">repeat outer</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. NESTED LOOP SYNTAX + TRACE -->
+  <section class="slide">
+    <div class="kicker">08 · Syntax &amp; Trace</div>
+    <h2>Writing a Nested Loop</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// outer uses i, inner uses j (different names!)
+for (int i = 1; i &lt;= 3; i++) {
+    for (int j = 1; j &lt;= 3; j++) {
+        cout &lt;&lt; i &lt;&lt; j &lt;&lt; " ";
+    }
+    cout &lt;&lt; endl;   // new line after each row
+}</code></pre>
+        <div class="out-label">Output</div>
+        <div class="output">11 12 13 
+21 22 23 
+31 32 33 </div>
+      </div>
+      <div>
+        <table class="trace">
+          <tr><th>i</th><th>j</th><th>prints</th></tr>
+          <tr><td>1</td><td>1,2,3</td><td>11 12 13</td></tr>
+          <tr><td>2</td><td>1,2,3</td><td>21 22 23</td></tr>
+          <tr><td>3</td><td>1,2,3</td><td>31 32 33</td></tr>
+        </table>
+        <p style="margin-top:12px;">For <b>each</b> value of <code class="inline">i</code>, the inner loop counts <code class="inline">j</code> from 1 to 3 completely. The <code class="inline">endl</code> after the inner loop ends each row.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. WORKED B1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3 · Nested loop</div>
+    <h2>A Rectangle of Stars</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int rows = 3, cols = 5;
+    for (int r = 1; r &lt;= rows; r++) {   // each row
+        for (int c = 1; c &lt;= cols; c++) {   // each column
+            cout &lt;&lt; "*";
+        }
+        cout &lt;&lt; endl;   // move to next line
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">*****
+*****
+*****</div>
+        <p style="margin-top:14px;"><b>What it does:</b> The outer loop chooses a row; the inner loop prints all 5 stars in that row.</p>
+        <p><b>Key:</b> the <code class="inline">endl</code> belongs to the <i>outer</i> loop, not the inner one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. WORKED B2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 4 · Nested loop</div>
+    <h2>A Multiplication Grid</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    for (int i = 1; i &lt;= 4; i++) {
+        for (int j = 1; j &lt;= 4; j++) {
+            cout &lt;&lt; i * j &lt;&lt; "\t";  // \t = a tab gap
+        }
+        cout &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1   2   3   4
+2   4   6   8
+3   6   9   12
+4   8   12  16</div>
+        <p style="margin-top:14px;"><b>What it does:</b> Each cell is <code class="inline">i * j</code>. The <code class="inline">\t</code> (tab) lines the numbers up into neat columns.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. WORKED B3 -->
+  <section class="slide">
+    <div class="pill">Worked Example 5 · Nested loop</div>
+    <h2>A Right Triangle</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int n = 5;
+    for (int i = 1; i &lt;= n; i++) {
+        // inner limit depends on the OUTER counter i
+        for (int j = 1; j &lt;= i; j++) {
+            cout &lt;&lt; "*";
+        }
+        cout &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">*
+**
+***
+****
+*****</div>
+        <p style="margin-top:14px;"><b>The trick:</b> the inner condition is <code class="inline">j &lt;= i</code>. Row 1 prints 1 star, row 2 prints 2, and so on.</p>
+        <p><b>Idea:</b> the inner loop can <span class="hl">depend on</span> the outer counter.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. WORKED B4 -->
+  <section class="slide">
+    <div class="pill">Worked Example 6 · Nested loop</div>
+    <h2>A Number Triangle</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int n = 5;
+    for (int i = 1; i &lt;= n; i++) {
+        for (int j = 1; j &lt;= i; j++) {
+            cout &lt;&lt; j;   // print the column number
+        }
+        cout &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1
+12
+123
+1234
+12345</div>
+        <p style="margin-top:14px;"><b>What it does:</b> Same shape as the star triangle, but it prints <code class="inline">j</code> (the column number) instead of a star.</p>
+        <p><b>Compare:</b> changing one line inside the inner loop changes the whole pattern.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. COMMON MISTAKES NESTED LOOPS -->
+  <section class="slide">
+    <div class="kicker">09 · Be Careful</div>
+    <h2>Nested Loop Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Same counter name</b><br>the inner loop must use a <i>different</i> variable (use <code class="inline">i</code> and <code class="inline">j</code>)</li>
+          <li><b>endl in the wrong place</b><br>inside the inner loop it breaks the line too often</li>
+          <li><b>Forgetting braces</b><br>without <code class="inline">{ }</code> only one line belongs to the loop</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Wrong inner limit</b><br>for triangles, use <code class="inline">j &lt;= i</code>, not a fixed number</li>
+          <li><b>Very slow loops</b><br>outer × inner can be huge; 1000 × 1000 = one million passes</li>
+          <li><b>Not resetting (while)</b><br>with <code class="inline">while</code>, reset the inner counter each time</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">10 · Side by Side</div>
+    <h2>Python vs. C++ Nesting</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python (indentation = levels)</h3>
+<pre><code>for i in range(1, 4):
+    for j in range(1, 4):
+        print(i * j, end=" ")
+    print()</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++ (braces = levels)</h3>
+<pre><code>for (int i = 1; i &lt; 4; i++) {
+    for (int j = 1; j &lt; 4; j++) {
+        cout &lt;&lt; i * j &lt;&lt; " ";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Takeaway:</b> the structure is identical. In Python the indent shows the level; in C++ the braces do. Both have an outer and an inner loop.</p>
+  </section>
+
+  <!-- 20. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">11 · Your Turn (Nested if)</div>
+    <h2>Exercises 1–4</h2>
+    <ul class="num">
+      <li>Read a number. If it is <b>positive</b>, print "Positive"; then if it is also <b>even</b>, print "and even". If it is not positive, print "Not positive".</li>
+      <li>Read three integers and print the <b>largest</b> using nested <code class="inline">if</code> statements.</li>
+      <li>Read a mark (0–100). Print "Pass" if it is 50 or more; inside that, print "Distinction" if it is 85 or more. Otherwise print "Fail".</li>
+      <li>Read <code class="inline">age</code> and <code class="inline">hasTicket</code> (1/0). If age ≥ 18, then if hasTicket is 1 print "Enter", else print "Buy a ticket". If under 18 print "Not allowed". (nested if)</li>
+    </ul>
+  </section>
+
+  <!-- 21. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">11 · Your Turn (Nested loops)</div>
+    <h2>Exercises 5–8</h2>
+    <ul class="num" style="counter-reset: c 4;">
+      <li>Print a <b>5 × 5 square</b> made of the character <code class="inline">#</code>.</li>
+      <li>Read <code class="inline">n</code> and print a <b>right triangle of stars</b> with n rows.</li>
+      <li>Print a <b>number triangle</b> with 4 rows, where row <code class="inline">i</code> shows the numbers 1 up to <code class="inline">i</code>.</li>
+      <li>Read <code class="inline">n</code> and print an <b>inverted</b> star triangle: the first row has n stars, the last row has 1 star.</li>
+    </ul>
+    <p style="margin-top:10px;"><b>Tip:</b> for shapes, the outer loop is the row and the inner loop fills that row.</p>
+  </section>
+
+  <!-- 22. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">12 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Positive and even</h3>
+<pre><code>int n;
+cin &gt;&gt; n;
+if (n &gt; 0) {
+    cout &lt;&lt; "Positive" &lt;&lt; endl;
+    if (n % 2 == 0)
+        cout &lt;&lt; "and even" &lt;&lt; endl;
+} else {
+    cout &lt;&lt; "Not positive" &lt;&lt; endl;
+}</code></pre>
+        <h3>2 · Largest of three</h3>
+<pre><code>int a, b, c;
+cin &gt;&gt; a &gt;&gt; b &gt;&gt; c;
+if (a &gt;= b) {
+    if (a &gt;= c) cout &lt;&lt; a;
+    else        cout &lt;&lt; c;
+} else {
+    if (b &gt;= c) cout &lt;&lt; b;
+    else        cout &lt;&lt; c;
+}
+cout &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Pass / Distinction</h3>
+<pre><code>int m;
+cin &gt;&gt; m;
+if (m &gt;= 50) {
+    cout &lt;&lt; "Pass" &lt;&lt; endl;
+    if (m &gt;= 85)
+        cout &lt;&lt; "Distinction" &lt;&lt; endl;
+} else {
+    cout &lt;&lt; "Fail" &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If m = 92</div>
+        <div class="output">Pass
+Distinction</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">12 · Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Entry check</h3>
+<pre><code>int age, hasTicket;
+cin &gt;&gt; age &gt;&gt; hasTicket;
+if (age &gt;= 18) {
+    if (hasTicket == 1)
+        cout &lt;&lt; "Enter" &lt;&lt; endl;
+    else
+        cout &lt;&lt; "Buy a ticket" &lt;&lt; endl;
+} else {
+    cout &lt;&lt; "Not allowed" &lt;&lt; endl;
+}</code></pre>
+        <h3>5 · 5 x 5 square</h3>
+<pre><code>for (int r = 1; r &lt;= 5; r++) {
+    for (int c = 1; c &lt;= 5; c++) {
+        cout &lt;&lt; "#";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · Right triangle</h3>
+<pre><code>int n;
+cin &gt;&gt; n;
+for (int i = 1; i &lt;= n; i++) {
+    for (int j = 1; j &lt;= i; j++) {
+        cout &lt;&lt; "*";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If n = 4</div>
+        <div class="output">*
+**
+***
+****</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24. ANSWERS 3 -->
+  <section class="slide">
+    <div class="kicker">12 · Solutions (7–8)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>7 · Number triangle</h3>
+<pre><code>for (int i = 1; i &lt;= 4; i++) {
+    for (int j = 1; j &lt;= i; j++) {
+        cout &lt;&lt; j;
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">Output</div>
+        <div class="output">1
+12
+123
+1234</div>
+      </div>
+      <div class="scroll">
+        <h3>8 · Inverted triangle</h3>
+<pre><code>int n;
+cin &gt;&gt; n;
+// row i prints (n - i + 1) stars
+for (int i = 1; i &lt;= n; i++) {
+    for (int j = 1; j &lt;= n - i + 1; j++) {
+        cout &lt;&lt; "*";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If n = 4</div>
+        <div class="output">****
+***
+**
+*</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 25. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">13 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>nested if</b> places one decision inside another; the inner test runs only when the outer is true.</li>
+      <li>Use a nested <code class="inline">if</code> for follow-up questions; use an else-if chain to pick one option from a list.</li>
+      <li>A <b>nested loop</b> runs its inner loop fully for each outer pass (outer × inner total).</li>
+      <li>For shapes and grids: <b>outer = rows</b>, <b>inner = columns</b>.</li>
+      <li>The inner loop may <b>depend on</b> the outer counter (e.g. <code class="inline">j &lt;= i</code>) to make triangles.</li>
+      <li>Use different counter names, mind your braces, and place <code class="inline">endl</code> with care.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Well done — you have now covered C++ basics, decisions, and loops.</b></p>
+  </section>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  /* ---------- SLIDE ENGINE ---------- */
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  /* ---------- THEME TOGGLE ---------- */
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  /* ---------- SIMPLE C++ SYNTAX HIGHLIGHTER ---------- */
+  const KW = /^(int|long|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  /* ---------- INIT ---------- */
+  show(0);
+</script>
+</body>
+</html>
