@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Introduction to C++ — Lecture 1</title>
+<style>
+  /* ============ THEME TOKENS ============ */
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #f5f7fb;
+    --text: #16202e;
+    --text-soft: #4a5a70;
+    --muted: #7a8aa0;
+    --border: #d8dfea;
+    --primary: #15406b;     /* deep academic navy */
+    --primary-soft: #e7eef7;
+    --accent: #0d7d7d;      /* teal */
+    --amber: #b45309;       /* warnings / mistakes */
+    --green: #1f7a4d;       /* correct / output */
+    --red: #c0392b;
+    --code-bg: #f3f5fa;
+    --code-text: #1d2733;
+    --kw: #15406b;
+    --str: #1f7a4d;
+    --com: #8a93a3;
+    --num: #b45309;
+    --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e;
+    --surface: #162130;
+    --surface-2: #1c2838;
+    --text: #e9eef6;
+    --text-soft: #b3c0d2;
+    --muted: #8493a8;
+    --border: #2a3850;
+    --primary: #6db3f2;
+    --primary-soft: #1b2a3e;
+    --accent: #4fd1c5;
+    --amber: #f0a64a;
+    --green: #5fd99a;
+    --red: #ef6b5e;
+    --code-bg: #0c131d;
+    --code-text: #dbe5f0;
+    --kw: #6db3f2;
+    --str: #7fd6a3;
+    --com: #6b7787;
+    --num: #f0a64a;
+    --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 24px;
+    line-height: 1.5;
+    overflow: hidden;
+    transition: background .3s ease, color .3s ease;
+  }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 50px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .topbar .brand {
+    font-size: 15px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--primary);
+  }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn {
+    font-family: var(--font-sans);
+    font-size: 13px; font-weight: 600; letter-spacing: .05em;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-soft); transition: all .2s ease;
+  }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ============ SLIDE DECK ============ */
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide {
+    display: none;
+    position: absolute; inset: 0;
+    padding: 44px 70px 80px 70px;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fade .35s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker {
+    font-size: 14px; font-weight: 700; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 10px;
+  }
+  h1 { font-size: 52px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 38px; line-height: 1.15; margin: 0 0 18px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 24px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 26px; color: var(--text-soft); max-width: 60ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 7px 0 7px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 7px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  /* ============ CODE ============ */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 0 0 14px;
+    font-family: var(--font-mono);
+    font-size: 21px; line-height: 1.55;
+    overflow: auto;
+  }
+  code.inline {
+    font-family: var(--font-mono);
+    background: var(--primary-soft);
+    color: var(--primary);
+    padding: 2px 8px; border-radius: 5px; font-size: .92em;
+  }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output {
+    background: var(--surface-2);
+    border: 1px dashed var(--muted);
+    border-radius: 8px;
+    padding: 12px 18px; margin: 0;
+    font-family: var(--font-mono); font-size: 20px;
+    color: var(--text); white-space: pre-wrap;
+  }
+  .out-label {
+    font-size: 13px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--green);
+    margin: 4px 0 6px;
+  }
+
+  /* ============ LAYOUT HELPERS ============ */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 22px; box-shadow: var(--shadow);
+  }
+  .card h3 { color: var(--primary); }
+  .pill {
+    display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+    background: var(--primary-soft); color: var(--primary); margin-bottom: 10px;
+  }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 21px; }
+  table.cmp th, table.cmp td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 14px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+  [data-theme="dark"] .cpp { color: var(--primary); }
+
+  /* flow / steps */
+  .flow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .flow .step {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 24px; text-align: center; box-shadow: var(--shadow); min-width: 150px;
+  }
+  .flow .step .big { font-size: 30px; }
+  .flow .arrow { font-size: 34px; color: var(--accent); font-weight: 700; }
+
+  /* ============ TITLE SLIDE ============ */
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag {
+    font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 18px;
+  }
+  .title-slide h1 { font-size: 76px; line-height: 1.05; }
+  .title-slide .sub { font-size: 30px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta {
+    margin-top: 40px; padding-top: 24px; border-top: 2px solid var(--border);
+    font-size: 24px; color: var(--text);
+  }
+  .title-slide .meta b { color: var(--primary); }
+
+  /* ============ BOTTOM NAV ============ */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    padding: 8px 18px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--primary); background: var(--primary); color: #fff;
+    transition: all .2s ease;
+  }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 30px 36px 76px; }
+    h1 { font-size: 40px; } h2 { font-size: 30px; }
+    .title-slide h1 { font-size: 52px; }
+    .two { grid-template-columns: 1fr; gap: 16px; }
+    pre { font-size: 17px; }
+  }
+
+  /* ============ PRINT / PDF ============ */
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide {
+      display: flex !important; position: relative; inset: auto;
+      width: 1280px; height: 720px; page-break-after: always; break-after: page;
+      animation: none; border-bottom: 1px solid #ccc;
+    }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">CS143 · Introduction to C++</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 1</div>
+    <h1>Introduction to C++</h1>
+    <div class="sub">Your first program, and talking to the user</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>For students who finished:</b> CS101 (Python)</p>
+    </div>
+  </section>
+
+  <!-- 2. LEARNING OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what C++ is and how it is <span class="hl">different from Python</span>.</li>
+      <li>Describe the steps to turn C++ code into a running program.</li>
+      <li>Write and understand a <span class="hl">"Hello, World!"</span> program in C++.</li>
+      <li>Use <code class="inline">cout</code> to show output on the screen.</li>
+      <li>Use <code class="inline">cin</code> to read input from the user.</li>
+      <li>Recognise common beginner mistakes and how to fix them.</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHAT YOU ALREADY LEARNED -->
+  <section class="slide">
+    <div class="kicker">02 · Bridge From CS101</div>
+    <h2>What You Already Learned</h2>
+    <p class="lead">In CS101 you learned to <b>think like a programmer</b> using Python. That thinking carries over directly.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Ideas you already know</h3>
+        <ul class="check">
+          <li>Variables that store values</li>
+          <li><code class="inline">if</code>, <code class="inline">if-else</code>, <code class="inline">if-elif-else</code></li>
+          <li><code class="inline">while</code> loops and <code class="inline">for</code> loops</li>
+          <li>Nested conditions and nested loops</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>More ideas you know</h3>
+        <ul class="check">
+          <li>Calling functions</li>
+          <li>Lists and collections</li>
+          <li>Reading input and printing output</li>
+          <li>Breaking a problem into steps</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:14px;"><b>Good news:</b> C++ uses the same ideas. Mostly the <span class="hl">spelling and rules</span> change.</p>
+  </section>
+
+  <!-- 4. WHAT IS C++ -->
+  <section class="slide">
+    <div class="kicker">03 · The Big Picture</div>
+    <h2>What Is C++?</h2>
+    <div class="two" style="flex:none;">
+      <div>
+        <p class="lead">C++ is a <b>general-purpose programming language</b>. It is fast and is used for games, operating systems, browsers, and high-performance software.</p>
+        <ul>
+          <li>It is a <span class="hl">compiled</span> language.</li>
+          <li>You must tell C++ the <span class="hl">type</span> of every variable.</li>
+          <li>Lines end with a semicolon <code class="inline">;</code>.</li>
+          <li>Blocks of code are wrapped in braces <code class="inline">{ }</code>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Compiled vs. Interpreted</h3>
+        <p><b>Python (interpreted):</b> the computer reads and runs your code line by line, directly.</p>
+        <p><b>C++ (compiled):</b> a tool called a <span class="hl">compiler</span> first translates all your code into a machine program. Then you run that program.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. PYTHON VS C++ AT A GLANCE -->
+  <section class="slide">
+    <div class="kicker">04 · Quick Comparison</div>
+    <h2>Python vs. C++ at a Glance</h2>
+    <table class="cmp">
+      <tr><th>Idea</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Print to screen</td><td class="py">print("Hi")</td><td class="cpp">cout &lt;&lt; "Hi";</td></tr>
+      <tr><td>Read input</td><td class="py">x = input()</td><td class="cpp">cin &gt;&gt; x;</td></tr>
+      <tr><td>Declare a variable</td><td class="py">age = 20</td><td class="cpp">int age = 20;</td></tr>
+      <tr><td>End of a line</td><td class="py">(nothing)</td><td class="cpp">; (semicolon)</td></tr>
+      <tr><td>Group code</td><td class="py">indentation</td><td class="cpp">{ braces }</td></tr>
+      <tr><td>How it runs</td><td class="py">interpreted</td><td class="cpp">compiled</td></tr>
+    </table>
+    <p style="margin-top:16px;"><b>Note:</b> The biggest new rules to remember are <span class="hl">types</span>, <span class="hl">semicolons</span>, and <span class="hl">braces</span>.</p>
+  </section>
+
+  <!-- 6. HOW C++ RUNS -->
+  <section class="slide">
+    <div class="kicker">05 · From Code to Program</div>
+    <h2>How a C++ Program Runs</h2>
+    <p class="lead">Unlike Python, there is one extra step before your program runs: <b>compiling</b>.</p>
+    <div class="flow">
+      <div class="step"><div class="big">📝</div>Write code<br><small>file.cpp</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="big">⚙️</div>Compile<br><small>g++ file.cpp</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="big">📦</div>Program<br><small>a.out / .exe</small></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="big">▶️</div>Run it<br><small>see output</small></div>
+    </div>
+    <p style="margin-top:20px;">If you make a typing mistake, the compiler stops and shows an <span class="hl">error message</span>. This happens <b>before</b> the program runs.</p>
+  </section>
+
+  <!-- 7. HELLO WORLD -->
+  <section class="slide">
+    <div class="kicker">06 · Your First Program</div>
+    <h2>"Hello, World!" in C++</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;   // brings in input/output tools
+using namespace std;  // lets us write cout, not std::cout
+
+int main() {          // the program starts running here
+    cout &lt;&lt; "Hello, World!" &lt;&lt; endl;  // print a line
+    return 0;         // tell the system: finished OK
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Hello, World!</div>
+        <p style="margin-top:16px;"><b>What it does:</b> It prints the text <span class="hl">Hello, World!</span> on the screen and then moves to a new line.</p>
+        <p>This is the traditional first program in almost every language.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. ANATOMY -->
+  <section class="slide">
+    <div class="kicker">07 · Line by Line</div>
+    <h2>The Parts of the Program</h2>
+    <div class="scroll">
+    <table class="cmp">
+      <tr><th>Code</th><th>What it means</th></tr>
+      <tr><td class="cpp">#include &lt;iostream&gt;</td><td>Loads the tools for input and output (<code class="inline">cin</code> and <code class="inline">cout</code>).</td></tr>
+      <tr><td class="cpp">using namespace std;</td><td>Lets us write short names like <code class="inline">cout</code> instead of <code class="inline">std::cout</code>.</td></tr>
+      <tr><td class="cpp">int main() { ... }</td><td>Every C++ program starts at <code class="inline">main</code>. The code runs inside the braces.</td></tr>
+      <tr><td class="cpp">cout &lt;&lt; "..." ;</td><td>Sends text to the screen.</td></tr>
+      <tr><td class="cpp">endl</td><td>Ends the current line (like a new line).</td></tr>
+      <tr><td class="cpp">return 0;</td><td>Tells the system the program ended with no error.</td></tr>
+      <tr><td class="cpp">;</td><td>A semicolon ends each statement. Do not forget it!</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <!-- 9. COUT OUTPUT -->
+  <section class="slide">
+    <div class="kicker">08 · Output</div>
+    <h2>Showing Output with <code class="inline" style="font-size:.8em;">cout</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    // &lt;&lt; sends each item to the screen, in order
+    cout &lt;&lt; "I am learning C++" &lt;&lt; endl;
+    cout &lt;&lt; "The answer is " &lt;&lt; 42 &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">I am learning C++
+The answer is 42</div>
+        <ul style="margin-top:14px;">
+          <li><code class="inline">&lt;&lt;</code> means "send this to <code class="inline">cout</code>".</li>
+          <li>You can join text and numbers in one line.</li>
+          <li><code class="inline">endl</code> starts a new line.</li>
+        </ul>
+        <p><b>Python compare:</b> <span class="py">print("...")</span> adds a new line for you. In C++ you add <code class="inline">endl</code> yourself.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. CIN INPUT -->
+  <section class="slide">
+    <div class="kicker">09 · Input</div>
+    <h2>Reading Input with <code class="inline" style="font-size:.8em;">cin</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int age;                    // a box for a whole number
+    cout &lt;&lt; "Enter your age: "; // ask the user
+    cin &gt;&gt; age;                 // read typed value into age
+    cout &lt;&lt; "You are " &lt;&lt; age &lt;&lt; " years old." &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Example Run (user types 20)</div>
+        <div class="output">Enter your age: 20
+You are 20 years old.</div>
+        <ul style="margin-top:14px;">
+          <li>The arrows point the <span class="hl">other way</span>: <code class="inline">cin &gt;&gt; age</code>.</li>
+          <li>Think: data flows <b>from</b> <code class="inline">cin</code> <b>into</b> the variable.</li>
+          <li>You must declare the variable first (<code class="inline">int age;</code>).</li>
+        </ul>
+        <p><b>Python compare:</b> <span class="py">age = input()</span> gives text; C++ <code class="inline">cin &gt;&gt; age</code> reads it directly as a number.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. WORKED EXAMPLE 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>A Friendly Greeting</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    // Print two separate lines of text
+    cout &lt;&lt; "Welcome to CS143!" &lt;&lt; endl;
+    cout &lt;&lt; "Today we learn C++." &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Welcome to CS143!
+Today we learn C++.</div>
+        <p style="margin-top:16px;"><b>What it does:</b> It prints two lines, one after the other. Each <code class="inline">cout</code> line ends with <code class="inline">endl</code> to move down.</p>
+        <p><b>Focus:</b> using <code class="inline">cout</code> for plain text output.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED EXAMPLE 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Double a Number</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int number;                       // store the user's number
+    cout &lt;&lt; "Enter a number: ";
+    cin &gt;&gt; number;                     // read it from the keyboard
+    cout &lt;&lt; "Double is: " &lt;&lt; number * 2 &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Example Run (user types 5)</div>
+        <div class="output">Enter a number: 5
+Double is: 10</div>
+        <p style="margin-top:16px;"><b>What it does:</b> It reads one whole number, multiplies it by 2 with <code class="inline">number * 2</code>, and prints the result.</p>
+        <p><b>Focus:</b> combining <code class="inline">cin</code> input with a small calculation inside <code class="inline">cout</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED EXAMPLE 3 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Name and Age Together</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;     // needed to use text (string)
+using namespace std;
+
+int main() {
+    string name;       // a box for text
+    int age;           // a box for a whole number
+    cout &lt;&lt; "Enter your name: ";
+    cin &gt;&gt; name;
+    cout &lt;&lt; "Enter your age: ";
+    cin &gt;&gt; age;
+    cout &lt;&lt; "Hello " &lt;&lt; name &lt;&lt; ", you are " &lt;&lt; age &lt;&lt; "!" &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Example Run (types Sara, then 19)</div>
+        <div class="output">Enter your name: Sara
+Enter your age: 19
+Hello Sara, you are 19!</div>
+        <p style="margin-top:14px;"><b>What it does:</b> It reads <span class="hl">text</span> and a <span class="hl">number</span>, then builds one sentence.</p>
+        <p><b>Note:</b> <code class="inline">cin &gt;&gt; name</code> reads one word only (it stops at a space).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">10 · Be Careful</div>
+    <h2>Common Beginner Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Missing semicolon</b> — <code class="inline">cout &lt;&lt; "Hi"</code> &nbsp;needs a final <code class="inline">;</code></li>
+          <li><b>Wrong arrows</b> — write <code class="inline">cin &gt;&gt; x</code>, not <code class="inline">cin &lt;&lt; x</code></li>
+          <li><b>Forgetting the include</b> — <code class="inline">#include &lt;iostream&gt;</code> is required for <code class="inline">cin</code>/<code class="inline">cout</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>No type given</b> — write <code class="inline">int x;</code>, not just <code class="inline">x;</code></li>
+          <li><b>Wrong capital letters</b> — it is <code class="inline">cout</code>, not <code class="inline">Cout</code> or <code class="inline">COUT</code></li>
+          <li><b>Using Python style</b> — <code class="inline">print(...)</code> does not exist in C++</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:14px;"><b>Tip:</b> Read the first compiler error first. Later errors are often caused by the first one.</p>
+  </section>
+
+  <!-- 15. PYTHON SIDE BY SIDE -->
+  <section class="slide">
+    <div class="kicker">11 · Side by Side</div>
+    <h2>Same Task in Both Languages</h2>
+    <div class="two">
+      <div>
+        <h3 style="color:var(--accent);">Python</h3>
+<pre><code>name = input("Name: ")
+print("Hello", name)</code></pre>
+        <p>No types. No semicolons. <code class="inline">print</code> adds a new line.</p>
+      </div>
+      <div>
+        <h3 style="color:var(--primary);">C++</h3>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+int main() {
+    string name;
+    cout &lt;&lt; "Name: ";
+    cin &gt;&gt; name;
+    cout &lt;&lt; "Hello " &lt;&lt; name &lt;&lt; endl;
+}</code></pre>
+      </div>
+    </div>
+    <p><b>Takeaway:</b> The <span class="hl">idea</span> is the same. C++ just asks you to be more exact.</p>
+  </section>
+
+  <!-- 16. EXERCISES -->
+  <section class="slide">
+    <div class="kicker">12 · Your Turn</div>
+    <h2>Student Exercises</h2>
+    <p class="lead">Write a complete C++ program for each task. Test it by running it.</p>
+    <ul class="num">
+      <li>Print three lines: your <b>name</b>, your <b>major</b>, and your <b>favourite food</b>.</li>
+      <li>Ask the user for their first name, then print <code class="inline">Welcome, &lt;name&gt;!</code></li>
+      <li>Read two whole numbers <code class="inline">a</code> and <code class="inline">b</code>, then print their <b>sum</b> and their <b>product</b>.</li>
+      <li>Read a circle's radius (use type <code class="inline">double</code>) and print the <b>area</b> using <code class="inline">3.14159 * radius * radius</code>.</li>
+      <li>Read a temperature in Celsius (<code class="inline">double</code>) and print it in Fahrenheit using <code class="inline">c * 9 / 5 + 32</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 17. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">13 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Three facts</h3>
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+int main() {
+    cout &lt;&lt; "Ali" &lt;&lt; endl;
+    cout &lt;&lt; "Computer Science" &lt;&lt; endl;
+    cout &lt;&lt; "Machboos" &lt;&lt; endl;
+}</code></pre>
+        <h3>2 · Welcome message</h3>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+int main() {
+    string name;
+    cin &gt;&gt; name;
+    cout &lt;&lt; "Welcome, " &lt;&lt; name &lt;&lt; "!" &lt;&lt; endl;
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Sum and product</h3>
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+int main() {
+    int a, b;
+    cin &gt;&gt; a &gt;&gt; b;        // read two numbers
+    cout &lt;&lt; "Sum: " &lt;&lt; a + b &lt;&lt; endl;
+    cout &lt;&lt; "Product: " &lt;&lt; a * b &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If user types 3 and 4</div>
+        <div class="output">Sum: 7
+Product: 12</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">13 · Solutions (4–5)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Circle area</h3>
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+int main() {
+    double radius;
+    cin &gt;&gt; radius;
+    double area = 3.14159 * radius * radius;
+    cout &lt;&lt; "Area: " &lt;&lt; area &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If radius = 2</div>
+        <div class="output">Area: 12.5664</div>
+      </div>
+      <div class="scroll">
+        <h3>5 · Celsius to Fahrenheit</h3>
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+int main() {
+    double c;
+    cin &gt;&gt; c;
+    double f = c * 9 / 5 + 32;
+    cout &lt;&lt; c &lt;&lt; " C = " &lt;&lt; f &lt;&lt; " F" &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If c = 25</div>
+        <div class="output">25 C = 77 F</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">14 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>C++ is a <b>compiled</b> language: write → compile → run.</li>
+      <li>Every program starts in <code class="inline">int main() { ... }</code>.</li>
+      <li>Lines end with <code class="inline">;</code> and code blocks use braces <code class="inline">{ }</code>.</li>
+      <li><code class="inline">cout &lt;&lt; ...</code> shows output; use <code class="inline">endl</code> for a new line.</li>
+      <li><code class="inline">cin &gt;&gt; ...</code> reads input into a variable.</li>
+      <li>You must give each variable a <b>type</b> (<code class="inline">int</code>, <code class="inline">double</code>, <code class="inline">string</code>).</li>
+    </ul>
+    <p style="margin-top:18px; font-size:26px;"><b>Next lecture:</b> variables, data types, and arithmetic in C++.</p>
+  </section>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  /* ---------- SLIDE ENGINE ---------- */
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  /* ---------- THEME TOGGLE ---------- */
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) {
+      document.documentElement.removeAttribute('data-theme');
+      btn.textContent = '🌙 Dark';
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      btn.textContent = '☀ Light';
+    }
+  }
+
+  /* ---------- SIMPLE C++ SYNTAX HIGHLIGHTER ---------- */
+  const KW = /^(int|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|main|true|false)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {                 // comment
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {                                     // preprocessor
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {                                     // string
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {                           // word / keyword
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {                               // number
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => {
+    el.innerHTML = highlight(el.textContent);
+  });
+
+  /* ---------- INIT ---------- */
+  show(0);
+</script>
+</body>
+</html>
