@@ -187,6 +187,6 @@ This course material is for educational purposes at Kuwait University.
 
 ---
 
-**Last Updated:** February 2025  
-**Semester:** Spring  
-**Academic Year:** 2024-2025
+**Last Updated:** June 2026  
+**Semester:** Summar  
+**Academic Year:** 2025-2026
