@@ -27,7 +27,7 @@
 
 ## Introduction
 
-Data structures are foundational building blocks in computer science. A **data structure** is an organized way of storing and managing data so that you can perform operations on it efficiently. In C++, you can use built-in Standard Template Library (STL) containers or implement your own from scratch.
+Data structures are foundational building blocks in computer science. A **data structure** is an organized way of storing and managing data so that you can perform operations on it efficiently. In[...]
 
 ### Why Learn Data Structures?
 
@@ -48,12 +48,13 @@ Data structures are foundational building blocks in computer science. A **data s
 
 ### What is a Stack?
 
-A **stack** is a linear data structure that follows the **LIFO** (Last In, First Out) principle. The last element you push onto the stack is the first one you pop off. Think of it like a stack of books — you can only take the top one.
+A **stack** is a linear data structure that follows the **LIFO** (Last In, First Out) principle. The last element you push onto the stack is the first one you pop off. Think of it like a stack of [...]
 
 ### Stack in C++ (STL)
 
 C++ provides `std::stack` in the `<stack>` header. It is a container adapter built on top of `std::deque` by default.
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <stack>
@@ -75,6 +76,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -93,6 +95,7 @@ After pop, Top: 20
 | Check empty | `empty()`    | O(1)            |
 | Size        | `size()`     | O(1)            |
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <stack>
@@ -115,6 +118,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -125,6 +129,7 @@ Is empty: no
 
 ### Implementing a Stack from Scratch
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -175,6 +180,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -188,12 +194,13 @@ After pop: 15
 
 ### What is a Queue?
 
-A **queue** is a linear data structure that follows the **FIFO** (First In, First Out) principle. Elements are added at the **rear** and removed from the **front** — just like a line of people waiting for service.
+A **queue** is a linear data structure that follows the **FIFO** (First In, First Out) principle. Elements are added at the **rear** and removed from the **front** — just like a line of people [...]
 
 ### Queue in C++ (STL)
 
 C++ provides `std::queue` in the `<queue>` header.
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <queue>
@@ -216,6 +223,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -235,6 +243,7 @@ After pop, Front: 2
 | Rear peek   | `back()`     | O(1)            |
 | Check empty | `empty()`    | O(1)            |
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <queue>
@@ -257,6 +266,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -268,6 +278,7 @@ Printing: Photo.png
 
 ### Implementing a Queue from Scratch
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -317,6 +328,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -330,10 +342,11 @@ After dequeue, Front: 200
 
 ### What is a Linked List?
 
-A **linked list** is a dynamic data structure made of **nodes**, where each node stores a **data value** and a **pointer** to the next node. Unlike arrays, nodes are not stored in contiguous memory — they can be anywhere in RAM, connected by pointers.
+A **linked list** is a dynamic data structure made of **nodes**, where each node stores a **data value** and a **pointer** to the next node. Unlike arrays, nodes are not stored in contiguous memo[...]
 
 ### Singly Linked List
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -385,6 +398,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -393,6 +407,7 @@ int main() {
 
 ### Doubly Linked List
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -439,6 +454,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -455,6 +471,7 @@ int main() {
 | Search         | O(n)            |
 | Access by index| O(n)            |
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -499,6 +516,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -526,18 +544,22 @@ int main() {
 ### Mistake 1: Calling `top()` or `front()` on an Empty Container
 
 **Wrong:**
+{% raw %}
 ```cpp
 stack<int> s;
 cout << s.top(); // Undefined behavior — stack is empty!
 ```
+{% endraw %}
 
 **Correct:**
+{% raw %}
 ```cpp
 stack<int> s;
 if (!s.empty()) {
     cout << s.top();
 }
 ```
+{% endraw %}
 
 **Explanation:** Always check `empty()` before accessing `top()` or `front()`. Accessing an empty container is undefined behavior and can crash your program.
 
@@ -546,17 +568,21 @@ if (!s.empty()) {
 ### Mistake 2: Forgetting to Delete Linked List Nodes (Memory Leak)
 
 **Wrong:**
+{% raw %}
 ```cpp
 Node* n = new Node(10);
 n = new Node(20); // Original node is now lost — memory leak!
 ```
+{% endraw %}
 
 **Correct:**
+{% raw %}
 ```cpp
 Node* n = new Node(10);
 delete n;          // Free old memory first
 n = new Node(20);  // Now safe to reassign
 ```
+{% endraw %}
 
 **Explanation:** Every `new` must be paired with a `delete`. Failing to do so causes memory leaks that grow over time and crash long-running programs.
 
@@ -565,20 +591,24 @@ n = new Node(20);  // Now safe to reassign
 ### Mistake 3: Dereferencing a Null Pointer in Linked List Traversal
 
 **Wrong:**
+{% raw %}
 ```cpp
 Node* curr = head;
 while (curr->next != nullptr) { // Crashes if head is nullptr!
     curr = curr->next;
 }
 ```
+{% endraw %}
 
 **Correct:**
+{% raw %}
 ```cpp
 Node* curr = head;
 while (curr != nullptr && curr->next != nullptr) {
     curr = curr->next;
 }
 ```
+{% endraw %}
 
 **Explanation:** Always check that the node itself is not null before accessing its members. An empty list has `head == nullptr`.
 
@@ -587,13 +617,16 @@ while (curr != nullptr && curr->next != nullptr) {
 ### Mistake 4: Not Updating the Head Pointer After Deletion
 
 **Wrong:**
+{% raw %}
 ```cpp
 void deleteHead(Node* head) {
     delete head; // head in caller is unchanged — dangling pointer!
 }
 ```
+{% endraw %}
 
 **Correct:**
+{% raw %}
 ```cpp
 Node* deleteHead(Node* head) {
     if (!head) return nullptr;
@@ -602,6 +635,7 @@ Node* deleteHead(Node* head) {
     return temp; // caller must reassign: head = deleteHead(head);
 }
 ```
+{% endraw %}
 
 **Explanation:** In C++, pointers are passed by value. You must return the new head or pass it by reference/pointer-to-pointer to update the caller's variable.
 
@@ -610,19 +644,23 @@ Node* deleteHead(Node* head) {
 ### Mistake 5: Using `pop()` and Expecting a Return Value
 
 **Wrong:**
+{% raw %}
 ```cpp
 stack<int> s;
 s.push(42);
 int val = s.pop(); // ERROR: pop() returns void in C++ STL!
 ```
+{% endraw %}
 
 **Correct:**
+{% raw %}
 ```cpp
 stack<int> s;
 s.push(42);
 int val = s.top(); // Read first
 s.pop();           // Then remove
 ```
+{% endraw %}
 
 **Explanation:** Unlike some other languages, C++ STL's `pop()` for both `stack` and `queue` returns `void`. You must use `top()` (stack) or `front()` (queue) first to read, then call `pop()` to remove.
 
@@ -644,6 +682,7 @@ Write a function that takes a string of brackets `()[]{}` and returns `true` if 
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <stack>
@@ -675,6 +714,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 </details>
 
 ---
@@ -688,6 +728,7 @@ Using only a stack, reverse all elements in a queue.
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <queue>
@@ -712,6 +753,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 </details>
 
 ---
@@ -725,6 +767,7 @@ Without using `size()`, find the middle node of a singly linked list using the *
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -754,6 +797,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 </details>
 
 ---
@@ -765,6 +809,7 @@ Implement a stack's `push` and `pop` operations using two `std::queue` objects.
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 #include <iostream>
 #include <queue>
@@ -794,6 +839,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 </details>
 
 ---
@@ -807,6 +853,7 @@ Write a function to reverse a singly linked list in-place.
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -844,6 +891,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 </details>
 
 ---
@@ -871,6 +919,7 @@ int main() {
 
 ### Quick Reference
 
+{% raw %}
 ```cpp
 // Stack
 #include <stack>
@@ -893,6 +942,7 @@ struct Node {
     Node(int val) : data(val), next(nullptr) {}
 };
 ```
+{% endraw %}
 
 ### Next Steps
 
