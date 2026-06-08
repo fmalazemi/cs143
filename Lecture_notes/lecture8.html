@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Recursion — Lecture 8</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--base { border-color: var(--green); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 56vh; display: block; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .box-base { fill: var(--primary-soft); stroke: var(--green); stroke-width: 2.5; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 18px; text-anchor: middle; }
+  .fig .call { stroke: var(--primary); stroke-width: 2.5; fill: none; }
+  .fig .ret { stroke: var(--green); stroke-width: 2.5; fill: none; }
+  .fig .callT { fill: var(--primary); font-family: var(--font-sans); font-size: 16px; font-weight: 700; }
+  .fig .retT { fill: var(--green); font-family: var(--font-sans); font-size: 16px; font-weight: 700; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Recursion</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 8</div>
+    <h1>Recursion</h1>
+    <div class="sub">A function that calls itself</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 7 (functions)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what recursion is and when it helps.</li>
+      <li>Identify the <span class="hl">base case</span> and the <span class="hl">recursive case</span>.</li>
+      <li>Trace a recursive call using the idea of a call stack.</li>
+      <li>Write simple recursive functions that print and that return values.</li>
+      <li>Compare a recursive solution with a loop.</li>
+      <li>Avoid infinite recursion (the dreaded stack overflow).</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHAT IS RECURSION -->
+  <section class="slide">
+    <div class="kicker">02 · The Idea</div>
+    <h2>What Is Recursion?</h2>
+    <p class="lead"><b>Recursion</b> is when a function solves a problem by calling <i>itself</i> on a smaller version of the same problem.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Everyday picture</h3>
+        <p>Two mirrors facing each other show a smaller copy inside a smaller copy, again and again. Each copy is the same picture, just smaller.</p>
+      </div>
+      <div class="card card--featured">
+        <h3>In programming</h3>
+        <p>To solve a big task, do one small step, then ask the <b>same function</b> to solve the slightly smaller rest — until the task is tiny enough to answer directly.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Key requirement:</b> the problem must get smaller each time, and there must be a point where it simply stops.</p>
+  </section>
+
+  <!-- 4. TWO PARTS -->
+  <section class="slide">
+    <div class="kicker">03 · Every Recursion Has Two Parts</div>
+    <h2>Base Case &amp; Recursive Case</h2>
+    <div class="two" style="flex:none;">
+      <div class="card card--base">
+        <h3 style="color:var(--green);">1 · Base case</h3>
+        <p>The simplest version, answered directly with <b>no further call</b>. This is what <b>stops</b> the recursion.</p>
+        <p style="margin:0;"><i>Example:</i> the factorial of 1 is 1.</p>
+      </div>
+      <div class="card">
+        <h3>2 · Recursive case</h3>
+        <p>Do one step, then call the function again on a <b>smaller</b> input that moves toward the base case.</p>
+        <p style="margin:0;"><i>Example:</i> n! = n × (n−1)!</p>
+      </div>
+    </div>
+<pre><code>int factorial(int n) {
+    if (n &lt;= 1) return 1;           // base case: stop here
+    return n * factorial(n - 1);    // recursive case: smaller n
+}</code></pre>
+    <p style="margin:0;"><b>Rule:</b> always write the base case first, or the function may never stop.</p>
+  </section>
+
+  <!-- 5. WORKED 1 COUNTDOWN -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Countdown (recursive void)</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+void countdown(int n) {
+    if (n == 0) {              // base case
+        cout &lt;&lt; "Done!" &lt;&lt; endl;
+        return;                // stop
+    }
+    cout &lt;&lt; n &lt;&lt; " ";          // one step
+    countdown(n - 1);          // smaller problem
+}
+
+int main() {
+    countdown(3);
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">3 2 1 Done!</div>
+        <p style="margin-top:12px;"><b>Trace:</b> countdown(3) prints 3, then calls countdown(2) → prints 2, then countdown(1) → prints 1, then countdown(0) → prints "Done!" and stops.</p>
+        <p><b>Notice:</b> each call uses a smaller <code class="inline">n</code>, heading toward the base case <code class="inline">n == 0</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. WORKED 2 FACTORIAL CODE -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Factorial (returns a value)</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int factorial(int n) {
+    if (n &lt;= 1) return 1;            // base case
+    return n * factorial(n - 1);     // recursive case
+}
+
+int main() {
+    cout &lt;&lt; factorial(3) &lt;&lt; endl;    // 6
+    cout &lt;&lt; factorial(5) &lt;&lt; endl;    // 120
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">6
+120</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">factorial(n)</code> returns <code class="inline">n</code> multiplied by the factorial of <code class="inline">n − 1</code>, until it reaches 1.</p>
+        <p><b>Next slide:</b> let us see exactly how the calls stack up and return.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. CALL STACK FIGURE -->
+  <section class="slide">
+    <div class="kicker">04 · Under the Hood</div>
+    <h2>The Call Stack: factorial(3)</h2>
+    <p class="lead">Each call waits for the smaller call to finish. Calls pile up going <b>down</b>, then values come back going <b>up</b>.</p>
+    <svg class="fig" viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" aria-label="Call stack for factorial of 3">
+      <defs>
+        <marker id="mc" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--primary)"/>
+        </marker>
+        <marker id="mr" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--green)"/>
+        </marker>
+      </defs>
+      <!-- frames -->
+      <rect class="box"      x="150" y="40"  width="360" height="56" rx="8"/>
+      <text class="mono" x="330" y="74">factorial(3) = 3 * factorial(2)</text>
+      <rect class="box"      x="190" y="150" width="360" height="56" rx="8"/>
+      <text class="mono" x="370" y="184">factorial(2) = 2 * factorial(1)</text>
+      <rect class="box-base" x="230" y="260" width="360" height="56" rx="8"/>
+      <text class="mono" x="410" y="294">factorial(1) = 1  (base case)</text>
+      <!-- call arrows (down, left side) -->
+      <path class="call" d="M180,96 L210,150" marker-end="url(#mc)"/>
+      <path class="call" d="M220,206 L250,260" marker-end="url(#mc)"/>
+      <text class="callT" x="120" y="128">calls</text>
+      <text class="callT" x="160" y="238">calls</text>
+      <!-- return arrows (up, right side) -->
+      <path class="ret" d="M560,260 L520,206" marker-end="url(#mr)"/>
+      <path class="ret" d="M520,150 L480,96" marker-end="url(#mr)"/>
+      <path class="ret" d="M470,40 L470,16" marker-end="url(#mr)"/>
+      <text class="retT" x="568" y="238">returns 1</text>
+      <text class="retT" x="528" y="128">returns 2</text>
+      <text class="retT" x="486" y="32">returns 6</text>
+      <text class="cap" x="380" y="346">down = calls go deeper · up = each call multiplies and returns</text>
+    </svg>
+  </section>
+
+  <!-- 8. WORKED 3 SUM -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Sum From 1 to n</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int sumTo(int n) {
+    if (n == 0) return 0;          // base case
+    return n + sumTo(n - 1);       // recursive case
+}
+
+int main() {
+    cout &lt;&lt; sumTo(4) &lt;&lt; endl;       // 4+3+2+1+0
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">sumTo(4)</code> = 4 + sumTo(3) = 4 + 3 + sumTo(2) … down to <code class="inline">sumTo(0)</code> which returns 0.</p>
+        <p><b>Pattern:</b> same shape as factorial — one step plus a smaller call, with a clear stopping point.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. RECURSION VS ITERATION -->
+  <section class="slide">
+    <div class="kicker">05 · Two Ways</div>
+    <h2>Recursion vs. a Loop</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Loop (iteration)</h3>
+<pre><code>int factLoop(int n) {
+    int result = 1;
+    for (int i = 2; i &lt;= n; i++)
+        result *= i;
+    return result;
+}</code></pre>
+      </div>
+      <div class="card">
+        <h3>Recursion</h3>
+<pre><code>int factRec(int n) {
+    if (n &lt;= 1) return 1;
+    return n * factRec(n - 1);
+}</code></pre>
+      </div>
+    </div>
+    <ul style="margin-top:8px;">
+      <li>Both give the same answer. Many problems can be written either way.</li>
+      <li><b>Loops</b> are usually faster and use less memory.</li>
+      <li><b>Recursion</b> can be shorter and clearer for problems that are naturally "smaller copies of themselves".</li>
+    </ul>
+  </section>
+
+  <!-- 10. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">06 · Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>No base case</b><br>the function calls forever and the program crashes</li>
+          <li><b>Not getting smaller</b><br>calling <code class="inline">f(n)</code> instead of <code class="inline">f(n - 1)</code> never reaches the base case</li>
+          <li><b>Base case after the call</b><br>check the stop condition <i>first</i></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Stack overflow</h3>
+<pre><code>int bad(int n) {
+    return n + bad(n - 1);
+    // no base case!
+    // crashes: stack overflow
+}</code></pre>
+        <p style="margin:0;">Each call uses a little memory. Endless calls run out of space and the program stops with an error.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">07 · Side by Side</div>
+    <h2>Python vs. C++ Recursion</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python</h3>
+<pre><code>def factorial(n):
+    if n &lt;= 1:
+        return 1
+    return n * factorial(n - 1)</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++</h3>
+<pre><code>int factorial(int n) {
+    if (n &lt;= 1) return 1;
+    return n * factorial(n - 1);
+}</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Takeaway:</b> the recursive idea is identical — a base case and a smaller call. C++ only adds the return type, the parameter type, and braces.</p>
+  </section>
+
+  <!-- 12. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">08 · Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write a recursive function <code class="inline">int power(int base, int exp)</code> that returns <code class="inline">base</code> raised to <code class="inline">exp</code>. (Base case: <code class="inline">exp == 0</code> returns 1.)</li>
+      <li>Write a recursive <code class="inline">void printDown(int n)</code> that prints <code class="inline">n, n-1, ..., 1</code>.</li>
+      <li>Write a recursive <code class="inline">void printUp(int n)</code> that prints <code class="inline">1, 2, ..., n</code>. (Hint: call first, then print.)</li>
+    </ul>
+  </section>
+
+  <!-- 13. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">08 · Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write a recursive <code class="inline">int countDigits(int n)</code> that returns how many digits a positive number has. (Hint: <code class="inline">n / 10</code> removes the last digit.)</li>
+      <li>Write a recursive <code class="inline">int fib(int n)</code> that returns the n-th Fibonacci number. (Base cases: <code class="inline">fib(0)=0</code>, <code class="inline">fib(1)=1</code>.)</li>
+      <li>Write a recursive <code class="inline">int multiply(int a, int b)</code> that multiplies using repeated addition. (Base case: <code class="inline">b == 0</code> returns 0.)</li>
+    </ul>
+  </section>
+
+  <!-- 14. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">09 · Solutions (1–2)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Power</h3>
+<pre><code>int power(int base, int exp) {
+    if (exp == 0) return 1;          // base case
+    return base * power(base, exp-1);
+}
+// power(2, 3) -> 8</code></pre>
+        <div class="out-label">power(2, 3)</div>
+        <div class="output">8</div>
+      </div>
+      <div class="scroll">
+        <h3>2 · Print down</h3>
+<pre><code>void printDown(int n) {
+    if (n == 0) return;     // base case
+    cout &lt;&lt; n &lt;&lt; " ";       // print first
+    printDown(n - 1);       // then recurse
+}
+// printDown(4) -> 4 3 2 1</code></pre>
+        <div class="out-label">printDown(4)</div>
+        <div class="output">4 3 2 1</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">09 · Solutions (3–4)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>3 · Print up</h3>
+<pre><code>void printUp(int n) {
+    if (n == 0) return;     // base case
+    printUp(n - 1);         // recurse FIRST
+    cout &lt;&lt; n &lt;&lt; " ";       // then print
+}
+// printUp(4) -> 1 2 3 4</code></pre>
+        <p style="margin:0;"><b>Why:</b> printing after the call reverses the order.</p>
+      </div>
+      <div class="scroll">
+        <h3>4 · Count digits</h3>
+<pre><code>int countDigits(int n) {
+    if (n &lt; 10) return 1;            // base case
+    return 1 + countDigits(n / 10);
+}
+// countDigits(572) -> 3</code></pre>
+        <div class="out-label">countDigits(572)</div>
+        <div class="output">3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. ANSWERS 3 -->
+  <section class="slide">
+    <div class="kicker">09 · Solutions (5–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>5 · Fibonacci</h3>
+<pre><code>int fib(int n) {
+    if (n &lt;= 1) return n;       // fib(0)=0, fib(1)=1
+    return fib(n-1) + fib(n-2); // two calls
+}
+// fib(6) -> 8</code></pre>
+        <div class="out-label">fib(6)</div>
+        <div class="output">8</div>
+      </div>
+      <div class="scroll">
+        <h3>6 · Multiply by adding</h3>
+<pre><code>int multiply(int a, int b) {
+    if (b == 0) return 0;          // base case
+    return a + multiply(a, b - 1);
+}
+// multiply(4, 3) -> 12</code></pre>
+        <div class="out-label">multiply(4, 3)</div>
+        <div class="output">12</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">10 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>Recursion is a function that <b>calls itself</b> on a smaller problem.</li>
+      <li>Every recursion needs a <b>base case</b> (to stop) and a <b>recursive case</b> (to shrink).</li>
+      <li>Write the base case first, and make sure the input gets smaller each call.</li>
+      <li>Calls pile up on the <b>call stack</b>, then values return back up.</li>
+      <li>Many problems can be solved by recursion <i>or</i> a loop; pick the clearer one.</li>
+      <li>No base case (or input that never shrinks) causes a <b>stack overflow</b>.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Well done — you now have the full toolkit:</b> input/output, decisions, loops, arrays, strings, functions, and recursion.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>

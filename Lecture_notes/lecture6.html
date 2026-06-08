@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Arrays &amp; Strings — Lecture 6</title>
+<style>
+  /* ============ THEME TOKENS ============ */
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-sans); font-size: 24px; line-height: 1.5;
+    overflow: hidden; transition: background .3s ease, color .3s ease;
+  }
+
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 50px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; background: var(--surface);
+    border-bottom: 1px solid var(--border); z-index: 100;
+  }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-soft); transition: all .2s ease;
+  }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide {
+    display: none; position: absolute; inset: 0;
+    padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 16px 20px; margin: 0 0 12px;
+    font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto;
+  }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .cell-hi { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 3.5; }
+  .fig .val { fill: var(--text); font-family: var(--font-mono); font-size: 26px; text-anchor: middle; font-weight: 700; }
+  .fig .idx { fill: var(--muted); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .addr { fill: var(--accent); font-family: var(--font-mono); font-size: 15px; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 18px; text-anchor: middle; }
+  .fig .name { fill: var(--primary); font-family: var(--font-mono); font-size: 19px; font-weight: 700; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .fig .bracket { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 60px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Arrays &amp; Strings</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 6</div>
+    <h1>Arrays &amp; Strings</h1>
+    <div class="sub">Storing many values, and working with text</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lectures 1–5 (variables, loops)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Declare an array and store many values of one type.</li>
+      <li>Access any element using its <span class="hl">index</span>.</li>
+      <li>Explain how an array is laid out in <span class="hl">memory</span>.</li>
+      <li>Loop through an array to read, change, and total values.</li>
+      <li>Use the C++ <code class="inline">string</code> type to store and process text.</li>
+      <li>Avoid out-of-range and input mistakes.</li>
+    </ul>
+  </section>
+
+  <!-- 3. BRIDGE -->
+  <section class="slide">
+    <div class="kicker">02 · From Python Lists</div>
+    <h2>You Already Used Lists</h2>
+    <p class="lead">In CS101 a Python list held many values. A C++ <b>array</b> is similar, with two big differences: every element has the <b>same type</b>, and the <b>size is fixed</b>.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python list</h3>
+<pre><code>scores = [90, 85, 70]
+print(scores[0])   # 90
+scores.append(60)  # can grow</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++ array</h3>
+<pre><code>int scores[3] = {90, 85, 70};
+cout &lt;&lt; scores[0];   // 90
+// fixed size: cannot grow</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Same idea:</b> indexing starts at <span class="hl">0</span> in both languages.</p>
+  </section>
+
+  <!-- 4. SECTION A -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>Arrays</h1>
+    <p class="lead">A fixed-size group of values of the same type, stored side by side.</p>
+  </section>
+
+  <!-- 5. WHAT IS AN ARRAY + FIGURE -->
+  <section class="slide">
+    <div class="kicker">03 · The Picture</div>
+    <h2>What an Array Looks Like</h2>
+    <p class="lead">An array is a row of numbered boxes. Each box holds one value; each box has an <b>index</b> that starts at 0.</p>
+    <svg class="fig" viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg" aria-label="Array of five boxes with indices">
+      <text class="name" x="40" y="40">int scores[5]</text>
+      <!-- boxes -->
+      <g>
+        <rect class="cell" x="40"  y="60" width="140" height="70"/>
+        <rect class="cell" x="180" y="60" width="140" height="70"/>
+        <rect class="cell" x="320" y="60" width="140" height="70"/>
+        <rect class="cell" x="460" y="60" width="140" height="70"/>
+        <rect class="cell" x="600" y="60" width="140" height="70"/>
+      </g>
+      <text class="val" x="110" y="105">90</text>
+      <text class="val" x="250" y="105">85</text>
+      <text class="val" x="390" y="105">70</text>
+      <text class="val" x="530" y="105">60</text>
+      <text class="val" x="670" y="105">95</text>
+      <!-- index labels -->
+      <text class="idx" x="110" y="158">index 0</text>
+      <text class="idx" x="250" y="158">index 1</text>
+      <text class="idx" x="390" y="158">index 2</text>
+      <text class="idx" x="530" y="158">index 3</text>
+      <text class="idx" x="670" y="158">index 4</text>
+      <text class="cap" x="390" y="192">5 elements, so the indices are 0 to 4 (size − 1)</text>
+    </svg>
+  </section>
+
+  <!-- 6. DECLARING ARRAYS -->
+  <section class="slide">
+    <div class="kicker">04 · The Syntax</div>
+    <h2>Declaring and Filling Arrays</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// 1. declare with a size (empty boxes)
+int scores[5];
+
+// 2. declare AND give values
+int scores[5] = {90, 85, 70, 60, 95};
+
+// 3. let the size be counted for you
+int marks[] = {7, 8, 9};   // size is 3
+
+// put a value into one box
+scores[0] = 100;</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>The type (<code class="inline">int</code>) applies to <b>every</b> box.</li>
+          <li>The size in <code class="inline">[ ]</code> must be a whole number known in advance.</li>
+          <li>Values inside <code class="inline">{ }</code> fill the boxes in order.</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Note:</b> an array cannot change size later. Choose a size big enough for your needs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ACCESSING ELEMENTS + FIGURE -->
+  <section class="slide">
+    <div class="kicker">05 · The Access Pattern</div>
+    <h2>Reaching One Element</h2>
+    <p class="lead">Write the array name, then the index in <code class="inline">[ ]</code>. The expression <code class="inline">scores[2]</code> means "the box at index 2".</p>
+    <svg class="fig" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" aria-label="Accessing index 2 of the array">
+      <defs>
+        <marker id="arA" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <text class="name" x="300" y="34">scores[2]</text>
+      <path class="edge" d="M360,44 C380,75 390,80 390,96" marker-end="url(#arA)"/>
+      <rect class="cell"    x="40"  y="96" width="140" height="70"/>
+      <rect class="cell"    x="180" y="96" width="140" height="70"/>
+      <rect class="cell-hi" x="320" y="96" width="140" height="70"/>
+      <rect class="cell"    x="460" y="96" width="140" height="70"/>
+      <rect class="cell"    x="600" y="96" width="140" height="70"/>
+      <text class="val" x="110" y="141">90</text>
+      <text class="val" x="250" y="141">85</text>
+      <text class="val" x="390" y="141">70</text>
+      <text class="val" x="530" y="141">60</text>
+      <text class="val" x="670" y="141">95</text>
+      <text class="idx" x="110" y="192">[0]</text>
+      <text class="idx" x="250" y="192">[1]</text>
+      <text class="idx" x="390" y="192">[2]</text>
+      <text class="idx" x="530" y="192">[3]</text>
+      <text class="idx" x="670" y="192">[4]</text>
+      <text class="cap" x="390" y="220">scores[2] reads the value 70 · you can also write to it: scores[2] = 100;</text>
+    </svg>
+  </section>
+
+  <!-- 8. ARRAYS IN MEMORY + FIGURE -->
+  <section class="slide">
+    <div class="kicker">06 · Under the Hood</div>
+    <h2>How Arrays Live in Memory</h2>
+    <p class="lead">An array's boxes sit <b>side by side</b> in memory, with no gaps. If each <code class="inline">int</code> takes 4 bytes, the addresses go up by 4 each time.</p>
+    <svg class="fig" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" aria-label="Array memory layout with addresses">
+      <rect class="cell" x="40"  y="50" width="140" height="70"/>
+      <rect class="cell" x="180" y="50" width="140" height="70"/>
+      <rect class="cell" x="320" y="50" width="140" height="70"/>
+      <rect class="cell" x="460" y="50" width="140" height="70"/>
+      <rect class="cell" x="600" y="50" width="140" height="70"/>
+      <text class="val" x="110" y="95">90</text>
+      <text class="val" x="250" y="95">85</text>
+      <text class="val" x="390" y="95">70</text>
+      <text class="val" x="530" y="95">60</text>
+      <text class="val" x="670" y="95">95</text>
+      <text class="idx" x="110" y="40">[0]</text>
+      <text class="idx" x="250" y="40">[1]</text>
+      <text class="idx" x="390" y="40">[2]</text>
+      <text class="idx" x="530" y="40">[3]</text>
+      <text class="idx" x="670" y="40">[4]</text>
+      <text class="addr" x="110" y="148">1000</text>
+      <text class="addr" x="250" y="148">1004</text>
+      <text class="addr" x="390" y="148">1008</text>
+      <text class="addr" x="530" y="148">1012</text>
+      <text class="addr" x="670" y="148">1016</text>
+      <text class="cap" x="390" y="178">each box = 4 bytes · the addresses increase by 4</text>
+      <text class="cap" x="390" y="212" style="font-family:var(--font-mono); fill:var(--primary); font-size:19px;">address of scores[i] = base + i × 4</text>
+    </svg>
+    <p style="margin-top:6px;"><b>Why it matters:</b> because boxes are evenly spaced, the computer can jump straight to <code class="inline">scores[i]</code> instantly — no searching.</p>
+  </section>
+
+  <!-- 9. LOOPING THROUGH AN ARRAY -->
+  <section class="slide">
+    <div class="kicker">07 · The Main Skill</div>
+    <h2>Looping Through an Array</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int scores[5] = {90, 85, 70, 60, 95};
+
+    // index goes 0, 1, 2, 3, 4
+    for (int i = 0; i &lt; 5; i++) {
+        cout &lt;&lt; "scores[" &lt;&lt; i &lt;&lt; "] = "
+             &lt;&lt; scores[i] &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">scores[0] = 90
+scores[1] = 85
+scores[2] = 70
+scores[3] = 60
+scores[4] = 95</div>
+        <p style="margin-top:12px;"><b>Pattern:</b> start <code class="inline">i</code> at 0 and loop while <code class="inline">i &lt; size</code>. The counter <code class="inline">i</code> becomes the index.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. WORKED A1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1 · Arrays</div>
+    <h2>Sum and Average</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int a[5] = {10, 20, 30, 40, 50};
+    int sum = 0;
+
+    for (int i = 0; i &lt; 5; i++) {
+        sum += a[i];          // add each element
+    }
+    cout &lt;&lt; "Sum = " &lt;&lt; sum &lt;&lt; endl;
+    cout &lt;&lt; "Average = " &lt;&lt; sum / 5 &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Sum = 150
+Average = 30</div>
+        <p style="margin-top:14px;"><b>What it does:</b> It walks through every box, adding each value to a running total, then divides by the count.</p>
+        <p><b>Reuse:</b> this is the accumulator pattern from the loops lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. WORKED A2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2 · Arrays</div>
+    <h2>Find the Largest Value</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int a[5] = {12, 45, 7, 99, 30};
+    int biggest = a[0];        // start with the first
+
+    for (int i = 1; i &lt; 5; i++) {
+        if (a[i] &gt; biggest) {  // found a bigger one?
+            biggest = a[i];
+        }
+    }
+    cout &lt;&lt; "Largest = " &lt;&lt; biggest &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Largest = 99</div>
+        <p style="margin-top:14px;"><b>What it does:</b> It assumes the first element is the largest, then checks every other element and updates when it finds a bigger one.</p>
+        <p><b>Note:</b> the loop starts at <code class="inline">1</code> because index 0 is already the starting guess.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. ARRAY MISTAKES -->
+  <section class="slide">
+    <div class="kicker">08 · Be Careful</div>
+    <h2>Array Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Out of range</b><br>for <code class="inline">int a[5]</code>, valid indices are 0–4. <code class="inline">a[5]</code> is past the end</li>
+          <li><b>No safety net</b><br>C++ does <i>not</i> warn you; it reads garbage or crashes</li>
+          <li><b>Starting at 1</b><br>the first element is index <code class="inline">0</code>, not 1</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Wrong loop limit</b><br>use <code class="inline">i &lt; size</code>, not <code class="inline">i &lt;= size</code></li>
+          <li><b>Trying to grow it</b><br>an array's size is fixed at creation</li>
+          <li><b>Comparing whole arrays</b><br><code class="inline">a == b</code> does not compare contents</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Golden rule:</b> the last valid index is always <span class="hl">size − 1</span>.</p>
+  </section>
+
+  <!-- 13. SECTION B -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>Strings</h1>
+    <p class="lead">Text is just a sequence of characters — and C++ makes it easy with the <code class="inline" style="font-size:.85em;">string</code> type.</p>
+  </section>
+
+  <!-- 14. WHAT IS A STRING -->
+  <section class="slide">
+    <div class="kicker">09 · Text in C++</div>
+    <h2>The <code class="inline" style="font-size:.8em;">string</code> Type</h2>
+    <div class="two" style="flex:none;">
+      <div>
+        <p class="lead">A <code class="inline">string</code> holds text. You must include the string library first.</p>
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;      // needed for string
+using namespace std;
+
+int main() {
+    string name = "Sara";
+    cout &lt;&lt; name &lt;&lt; endl;       // Sara
+    cout &lt;&lt; name.length();     // 4
+    return 0;
+}</code></pre>
+      </div>
+      <div class="card">
+        <h3>Python compare</h3>
+<pre><code># Python
+name = "Sara"
+print(len(name))   # 4</code></pre>
+        <p style="margin-top:8px;">C++ uses <code class="inline">name.length()</code> where Python uses <code class="inline">len(name)</code>. Both count the characters.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. STRING INPUT -->
+  <section class="slide">
+    <div class="kicker">10 · Reading Text</div>
+    <h2>Two Ways to Read a String</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3><code class="inline">cin &gt;&gt;</code> — one word</h3>
+<pre><code>string word;
+cin &gt;&gt; word;   // stops at a space
+// input: Hello World
+// word  = "Hello"</code></pre>
+      </div>
+      <div class="card">
+        <h3><code class="inline">getline</code> — whole line</h3>
+<pre><code>string line;
+getline(cin, line);  // reads spaces too
+// input: Hello World
+// line  = "Hello World"</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Choose by need:</b> use <code class="inline">cin &gt;&gt;</code> for a single word, and <code class="inline">getline</code> when the text may contain spaces (like a full name).</p>
+  </section>
+
+  <!-- 16. STRING OPS + FIGURE -->
+  <section class="slide">
+    <div class="kicker">11 · A String Is Like an Array</div>
+    <h2>Characters and Indexing</h2>
+    <p class="lead">A string is a sequence of characters, each with an index from 0. You can read any character with <code class="inline">[ ]</code>, just like an array.</p>
+    <svg class="fig" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" aria-label="String Hello as boxes of characters">
+      <text class="name" x="40" y="38">string s = "Hello"</text>
+      <rect class="cell" x="40"  y="56" width="120" height="68"/>
+      <rect class="cell" x="160" y="56" width="120" height="68"/>
+      <rect class="cell" x="280" y="56" width="120" height="68"/>
+      <rect class="cell" x="400" y="56" width="120" height="68"/>
+      <rect class="cell" x="520" y="56" width="120" height="68"/>
+      <text class="val" x="100" y="100">H</text>
+      <text class="val" x="220" y="100">e</text>
+      <text class="val" x="340" y="100">l</text>
+      <text class="val" x="460" y="100">l</text>
+      <text class="val" x="580" y="100">o</text>
+      <text class="idx" x="100" y="150">[0]</text>
+      <text class="idx" x="220" y="150">[1]</text>
+      <text class="idx" x="340" y="150">[2]</text>
+      <text class="idx" x="460" y="150">[3]</text>
+      <text class="idx" x="580" y="150">[4]</text>
+      <text class="cap" x="340" y="184">s[0] is 'H' · s.length() is 5 · last index is 4</text>
+    </svg>
+  </section>
+
+  <!-- 17. STRING JOIN / LOOP -->
+  <section class="slide">
+    <div class="kicker">12 · Joining and Walking</div>
+    <h2>Combine and Loop Over Text</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>string first = "Ali";
+string last  = "Hassan";
+
+// join strings with +
+string full = first + " " + last;
+cout &lt;&lt; full &lt;&lt; endl;   // Ali Hassan
+
+// walk through each character
+int n = full.length();
+for (int i = 0; i &lt; n; i++) {
+    cout &lt;&lt; full[i] &lt;&lt; "-";
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Ali Hassan
+A-l-i- -H-a-s-s-a-n-</div>
+        <p style="margin-top:12px;"><b>Joining:</b> the <code class="inline">+</code> sign glues strings together (this is called concatenation).</p>
+        <p><b>Looping:</b> store the length in <code class="inline">n</code> first, then use <code class="inline">full[i]</code> for each character.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. WORKED S1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3 · Strings</div>
+    <h2>Count the Vowels</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+int main() {
+    string word;
+    cin &gt;&gt; word;
+    int count = 0;
+
+    int n = word.length();
+    for (int i = 0; i &lt; n; i++) {
+        char ch = word[i];
+        if (ch=='a'||ch=='e'||ch=='i'||ch=='o'||ch=='u')
+            count++;
+    }
+    cout &lt;&lt; "Vowels: " &lt;&lt; count &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If user types "education"</div>
+        <div class="output">Vowels: 5</div>
+        <p style="margin-top:14px;"><b>What it does:</b> It looks at each character and adds 1 to the counter whenever that character is a vowel.</p>
+        <p><b>Combines:</b> a loop, string indexing, and an <code class="inline">if</code> condition.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. WORKED S2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 4 · Strings</div>
+    <h2>A Personalised Greeting</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+int main() {
+    string name;
+    cout &lt;&lt; "Enter your full name: ";
+    getline(cin, name);        // read the whole line
+
+    string message = "Welcome, " + name + "!";
+    cout &lt;&lt; message &lt;&lt; endl;
+    cout &lt;&lt; "Your name has " &lt;&lt; name.length()
+         &lt;&lt; " characters." &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If user types "Sara Ali"</div>
+        <div class="output">Welcome, Sara Ali!
+Your name has 8 characters.</div>
+        <p style="margin-top:12px;"><b>What it does:</b> It reads a full name (with the space), builds a message by joining strings, and reports the length.</p>
+        <p><b>Note:</b> the space counts as a character, so "Sara Ali" has 8.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. STRING MISTAKES -->
+  <section class="slide">
+    <div class="kicker">13 · Be Careful</div>
+    <h2>String Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Forgetting the include</b><br>you need <code class="inline">#include &lt;string&gt;</code></li>
+          <li><b>cin only reads a word</b><br><code class="inline">cin &gt;&gt; s</code> stops at the first space</li>
+          <li><b>Index out of range</b><br>valid indices are 0 to <code class="inline">length() − 1</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Single vs double quotes</b><br><code class="inline">"A"</code> is a string, <code class="inline">'A'</code> is one character</li>
+          <li><b>Mixing cin and getline</b><br>a leftover newline can make getline read an empty line</li>
+          <li><b>Comparing with numbers</b><br>a string is text, even if it looks like "123"</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">14 · Side by Side</div>
+    <h2>Python vs. C++ Quick Map</h2>
+    <table class="cmp">
+      <tr><th>Task</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Make a list / array</td><td class="py">a = [1, 2, 3]</td><td class="cpp">int a[3] = {1,2,3};</td></tr>
+      <tr><td>First element</td><td class="py">a[0]</td><td class="cpp">a[0]</td></tr>
+      <tr><td>Length</td><td class="py">len(a)</td><td class="cpp">(fixed size you set)</td></tr>
+      <tr><td>Text length</td><td class="py">len(s)</td><td class="cpp">s.length()</td></tr>
+      <tr><td>Join text</td><td class="py">a + b</td><td class="cpp">a + b</td></tr>
+      <tr><td>Read a word</td><td class="py">input()</td><td class="cpp">cin &gt;&gt; s;</td></tr>
+      <tr><td>Read a line</td><td class="py">input()</td><td class="cpp">getline(cin, s);</td></tr>
+    </table>
+  </section>
+
+  <!-- 22. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">15 · Your Turn (Arrays)</div>
+    <h2>Exercises 1–4</h2>
+    <ul class="num">
+      <li>Read 5 integers into an array, then print them in <b>reverse order</b>.</li>
+      <li>Read 5 integers into an array and print the <b>smallest</b> value.</li>
+      <li>Read <code class="inline">n</code>, then <code class="inline">n</code> integers into an array; count how many are <b>even</b>.</li>
+      <li>Read 5 integers and print their <b>sum</b> and <b>average</b>.</li>
+    </ul>
+  </section>
+
+  <!-- 23. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">15 · Your Turn (Strings)</div>
+    <h2>Exercises 5–7</h2>
+    <ul class="num" style="counter-reset: c 4;">
+      <li>Read a word and print its <b>length</b>, its <b>first</b> character, and its <b>last</b> character.</li>
+      <li>Read a word and print each character on its <b>own line</b>.</li>
+      <li>Read a word and count how many <b>vowels</b> it contains.</li>
+    </ul>
+    <p style="margin-top:12px;"><b>Tip:</b> the last index of a string is <code class="inline">length() − 1</code>.</p>
+  </section>
+
+  <!-- 24. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">16 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Reverse order</h3>
+<pre><code>int a[5];
+for (int i = 0; i &lt; 5; i++) cin &gt;&gt; a[i];
+for (int i = 4; i &gt;= 0; i--)
+    cout &lt;&lt; a[i] &lt;&lt; " ";
+cout &lt;&lt; endl;</code></pre>
+        <h3>2 · Smallest value</h3>
+<pre><code>int a[5];
+for (int i = 0; i &lt; 5; i++) cin &gt;&gt; a[i];
+int small = a[0];
+for (int i = 1; i &lt; 5; i++)
+    if (a[i] &lt; small) small = a[i];
+cout &lt;&lt; "Smallest = " &lt;&lt; small &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Count evens</h3>
+<pre><code>int n;
+cin &gt;&gt; n;
+int a[100];                // big enough
+for (int i = 0; i &lt; n; i++) cin &gt;&gt; a[i];
+int count = 0;
+for (int i = 0; i &lt; n; i++)
+    if (a[i] % 2 == 0) count++;
+cout &lt;&lt; "Even count = " &lt;&lt; count &lt;&lt; endl;</code></pre>
+        <div class="out-label">n=4, values 2 5 8 7</div>
+        <div class="output">Even count = 2</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 25. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">16 · Solutions (4–5)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Sum and average</h3>
+<pre><code>int a[5], sum = 0;
+for (int i = 0; i &lt; 5; i++) {
+    cin &gt;&gt; a[i];
+    sum += a[i];
+}
+cout &lt;&lt; "Sum = " &lt;&lt; sum &lt;&lt; endl;
+cout &lt;&lt; "Average = " &lt;&lt; sum / 5 &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>5 · Length, first, last</h3>
+<pre><code>#include &lt;string&gt;
+string w;
+cin &gt;&gt; w;
+int n = w.length();
+cout &lt;&lt; "Length: " &lt;&lt; n &lt;&lt; endl;
+cout &lt;&lt; "First: " &lt;&lt; w[0] &lt;&lt; endl;
+cout &lt;&lt; "Last: " &lt;&lt; w[n - 1] &lt;&lt; endl;</code></pre>
+        <div class="out-label">If w = "code"</div>
+        <div class="output">Length: 4
+First: c
+Last: e</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 26. ANSWERS 3 -->
+  <section class="slide">
+    <div class="kicker">16 · Solutions (6–7)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>6 · One character per line</h3>
+<pre><code>#include &lt;string&gt;
+string w;
+cin &gt;&gt; w;
+int n = w.length();
+for (int i = 0; i &lt; n; i++) {
+    cout &lt;&lt; w[i] &lt;&lt; endl;
+}</code></pre>
+        <div class="out-label">If w = "hi"</div>
+        <div class="output">h
+i</div>
+      </div>
+      <div class="scroll">
+        <h3>7 · Count vowels</h3>
+<pre><code>#include &lt;string&gt;
+string w;
+cin &gt;&gt; w;
+int n = w.length(), count = 0;
+for (int i = 0; i &lt; n; i++) {
+    char c = w[i];
+    if (c=='a'||c=='e'||c=='i'||c=='o'||c=='u')
+        count++;
+}
+cout &lt;&lt; "Vowels: " &lt;&lt; count &lt;&lt; endl;</code></pre>
+        <div class="out-label">If w = "banana"</div>
+        <div class="output">Vowels: 3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 27. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">17 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>An <b>array</b> stores many values of one type in numbered boxes, indexed from 0.</li>
+      <li>Access any element with <code class="inline">name[index]</code>; the last index is <b>size − 1</b>.</li>
+      <li>In memory, array boxes sit <b>side by side</b>; the address grows by the element size each step.</li>
+      <li>Loop with <code class="inline">for (int i = 0; i &lt; size; i++)</code> to visit every element.</li>
+      <li>A <code class="inline">string</code> is a sequence of characters; use <code class="inline">s.length()</code> and <code class="inline">s[i]</code>.</li>
+      <li>Use <code class="inline">cin &gt;&gt;</code> for one word and <code class="inline">getline</code> for a whole line.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Next up:</b> functions — packaging code so you can reuse it.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
