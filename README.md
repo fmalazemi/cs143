@@ -44,7 +44,7 @@ ___
 - Office: S02A2-150  
 - Office Hours: Monday and Wednesday 12:30PM - 1:00PM (or by Appointment)  
 
-**Teaching Assistant:** Mr. Fatema AlBdaiwi  
+**Teaching Assistant:** TA. Fatema AlBdaiwi  
 - Office: N00-B2-012  
 - Office Hours: TBA  
 
@@ -62,7 +62,7 @@ ___
 
 ### Important Dates
 - **Midterm 1 (20%):**  (Wed) 01/07/2026, 11:00am - 12:15pm 
-- **Midterm 2 (20%):**  (Wed) 15/04/2025, 11:00am - 12:15pm
+- **Midterm 2 (20%):**  (Wed) 15/07/2026, 11:00am - 12:15pm
 - **Final Exam (40%):** (Sat) 25/07/2026, 03:00PM – 05:00PM  
 
 ---
