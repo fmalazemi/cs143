@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CS143 — Pointers — Lecture 10</title>
+<title>CS143 — Pointers &amp; Memory — Lecture 10</title>
 <style>
   :root {
     --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
@@ -86,20 +86,27 @@
   .fig { width: 100%; max-height: 50vh; display: block; }
   .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
   .fig .box-hi { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.5; }
-  .fig .val { fill: var(--text); font-family: var(--font-mono); font-size: 25px; font-weight: 700; text-anchor: middle; }
-  .fig .name { fill: var(--primary); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
-  .fig .addr { fill: var(--accent); font-family: var(--font-mono); font-size: 15px; text-anchor: middle; }
-  .fig .idx { fill: var(--muted); font-family: var(--font-mono); font-size: 16px; text-anchor: middle; }
+  .fig .region { fill: none; stroke: var(--primary); stroke-width: 2; }
+  .fig .regionLbl { fill: var(--primary); font-family: var(--font-sans); font-size: 17px; font-weight: 800; letter-spacing: .08em; }
+  .fig .divider { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 6; }
+  .fig .growth { fill: var(--muted); font-family: var(--font-sans); font-size: 14px; text-anchor: middle; }
+  .fig .val { fill: var(--text); font-family: var(--font-mono); font-size: 24px; font-weight: 700; text-anchor: middle; }
+  .fig .name { fill: var(--primary); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .addr { fill: var(--accent); font-family: var(--font-mono); font-size: 14px; text-anchor: middle; }
+  .fig .idx { fill: var(--muted); font-family: var(--font-mono); font-size: 15px; text-anchor: middle; }
   .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
   .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
-  .fig .tag { fill: var(--accent); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .tag { fill: var(--accent); font-family: var(--font-sans); font-size: 15px; font-weight: 700; text-anchor: middle; }
 
   .title-slide { align-items: flex-start; justify-content: center; }
   .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
-  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide h1 { font-size: 62px; line-height: 1.05; }
   .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
   .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
   .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 56px; margin-top: 10px; }
 
   .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
   .nav .navbtns { display: flex; gap: 10px; }
@@ -113,7 +120,7 @@
     body { font-size: 20px; }
     .slide { padding: 28px 34px 76px; }
     h1 { font-size: 38px; } h2 { font-size: 28px; }
-    .title-slide h1 { font-size: 46px; }
+    .title-slide h1, .section-slide h1 { font-size: 44px; }
     .two { grid-template-columns: 1fr; gap: 14px; }
     pre { font-size: 16px; }
   }
@@ -131,7 +138,7 @@
 <body>
 
 <div class="topbar">
-  <div class="brand">CS143 · Pointers</div>
+  <div class="brand">CS143 · Pointers &amp; Memory</div>
   <div class="tools">
     <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
     <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
@@ -144,72 +151,71 @@
   <!-- 1. TITLE -->
   <section class="slide title-slide active">
     <div class="course-tag">CS143 · Lecture 10</div>
-    <h1>Pointers</h1>
-    <div class="sub">Variables that hold memory addresses</div>
+    <h1>Pointers &amp; Memory</h1>
+    <div class="sub">Addresses, and how static and dynamic memory work</div>
     <div class="meta">
       <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
-      <p><b>Builds on:</b> Lecture 6 (arrays in memory) &amp; Lecture 7 (references)</p>
+      <p><b>Builds on:</b> Lecture 6 (arrays in memory), Lecture 7 (references), Lecture 9 (scope)</p>
     </div>
   </section>
 
   <!-- 2. OBJECTIVES -->
   <section class="slide">
-    <div class="kicker">01 · Today's Goals</div>
+    <div class="kicker">Today's Goals</div>
     <h2>Learning Objectives</h2>
     <p class="lead">By the end of this lecture, you will be able to:</p>
     <ul class="num">
-      <li>Explain what a pointer is: a variable that stores an <span class="hl">address</span>.</li>
-      <li>Use the address-of operator <code class="inline">&amp;</code> and the dereference operator <code class="inline">*</code>.</li>
-      <li>Declare a pointer and make it point to a variable.</li>
-      <li>Read and change a value <i>through</i> a pointer.</li>
-      <li>Pass a pointer to a function and use pointers with arrays.</li>
-      <li>Avoid null, wild, and dangling pointer mistakes.</li>
+      <li>Explain what a pointer is and why pointers are useful.</li>
+      <li>Use <code class="inline">&amp;</code> and <code class="inline">*</code> to point to, read, and change a variable.</li>
+      <li>Pass pointers to functions and use them with arrays.</li>
+      <li>Distinguish <span class="hl">static</span> (stack) memory from <span class="hl">dynamic</span> (heap) memory.</li>
+      <li>Use <code class="inline">new</code> / <code class="inline">delete</code> and build run-time-sized dynamic arrays.</li>
+      <li>Avoid null, dangling, leak, and double-delete mistakes.</li>
     </ul>
   </section>
 
-  <!-- 3. BRIDGE / WHY -->
+  <!-- 3. WHY POINTERS / USE-CASE -->
   <section class="slide">
-    <div class="kicker">02 · Why Pointers</div>
+    <div class="kicker">Why Pointers</div>
     <h2>Every Variable Has an Address</h2>
-    <p class="lead">In Lecture 6 you saw that array boxes live at numbered <b>addresses</b> in memory. Every variable has one. A <b>pointer</b> is simply a variable that stores such an address.</p>
+    <p class="lead">In Lecture 6 you saw that variables live at numbered <b>addresses</b> in memory. A <b>pointer</b> is a variable that stores such an address. That single idea unlocks three things.</p>
     <div class="two" style="flex:none;">
       <div class="card">
-        <h3>You have already met this idea</h3>
+        <h3>What pointers let you do</h3>
         <ul class="check">
-          <li>Arrays sit at addresses in memory (Lecture 6).</li>
-          <li>References let a function change the caller's variable (Lecture 7).</li>
+          <li>Let a function <b>change</b> the caller's variable.</li>
+          <li>Walk through <b>arrays</b> efficiently.</li>
+          <li>Use <b>dynamic memory</b> (ask for space at run time).</li>
         </ul>
       </div>
       <div class="card card--featured">
-        <h3>Pointers go one step further</h3>
-        <p>They let you <b>hold an address in a variable</b>, pass it around, and reach the value it points to. This powers arrays, function output, and dynamic memory.</p>
+        <h3>The plan for today</h3>
+        <p><b>Part A:</b> what pointers are and how to use them.</p>
+        <p style="margin:0;"><b>Part B:</b> the two places data lives — <span class="hl">static</span> (stack) and <span class="hl">dynamic</span> (heap) memory.</p>
       </div>
     </div>
-    <p style="margin-top:10px;"><b>Python note:</b> Python hides addresses from you; C++ lets you work with them directly.</p>
+    <p style="margin-top:10px;"><b>Python note:</b> Python hides addresses and frees memory for you; C++ lets you work with them directly.</p>
   </section>
 
   <!-- 4. WHAT IS A POINTER + FIGURE -->
   <section class="slide">
-    <div class="kicker">03 · The Picture</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>What a Pointer Looks Like</h2>
-    <p class="lead">A pointer is a box that stores the <b>address</b> of another box. Here <code class="inline">p</code> holds the address of <code class="inline">x</code>, so we say "<code class="inline">p</code> points to <code class="inline">x</code>".</p>
+    <p class="lead">A pointer is a box that stores the <b>address</b> of another box. Here <code class="inline">p</code> holds the address of <code class="inline">x</code>, so "<code class="inline">p</code> points to <code class="inline">x</code>".</p>
     <svg class="fig" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" aria-label="Pointer p stores the address of variable x">
       <defs>
         <marker id="ap" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
           <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
         </marker>
       </defs>
-      <!-- pointer box -->
       <text class="name" x="170" y="58">int *p</text>
       <rect class="box" x="70" y="74" width="200" height="68"/>
       <text class="val" x="170" y="116">1000</text>
       <text class="addr" x="170" y="166">p lives at address 2000</text>
-      <!-- variable box -->
       <text class="name" x="640" y="58">int x</text>
       <rect class="box-hi" x="540" y="74" width="200" height="68"/>
       <text class="val" x="640" y="116">42</text>
       <text class="addr" x="640" y="166">x lives at address 1000</text>
-      <!-- arrow -->
       <path class="edge" d="M270,108 C380,108 430,108 540,108" marker-end="url(#ap)"/>
       <text class="tag" x="405" y="96">p holds the address of x</text>
     </svg>
@@ -218,7 +224,7 @@
 
   <!-- 5. ADDRESS-OF + DECLARE -->
   <section class="slide">
-    <div class="kicker">04 · Two Operators</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>Address-of <code class="inline" style="font-size:.8em;">&amp;</code> and Declaring a Pointer</h2>
     <div class="two">
       <div class="scroll">
@@ -250,12 +256,12 @@ int main() {
 
   <!-- 6. DEREFERENCE + FIGURE -->
   <section class="slide">
-    <div class="kicker">05 · Following the Pointer</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>Dereference with <code class="inline" style="font-size:.8em;">*</code></h2>
-    <p class="lead">Putting <code class="inline">*</code> before a pointer means "go to that address and use the value there". This is called <b>dereferencing</b>.</p>
+    <p class="lead">Putting <code class="inline">*</code> before a pointer means "go to that address and use the value there". This is <b>dereferencing</b>.</p>
     <svg class="fig" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" aria-label="Dereferencing p reaches the value of x">
       <defs>
-        <marker id="ad" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <marker id="ade" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
           <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
         </marker>
       </defs>
@@ -265,16 +271,16 @@ int main() {
       <rect class="box-hi" x="560" y="60" width="180" height="64"/>
       <text class="name" x="650" y="48">x</text>
       <text class="val" x="650" y="100">42</text>
-      <path class="edge" d="M250,92 C380,92 440,92 560,92" marker-end="url(#ad)"/>
+      <path class="edge" d="M250,92 C380,92 440,92 560,92" marker-end="url(#ade)"/>
       <text class="tag" x="405" y="80">*p follows the arrow</text>
       <text class="cap" x="650" y="150">*p is 42 · writing *p = 100 changes x to 100</text>
     </svg>
     <p style="margin-top:6px;"><code class="inline">p</code> is the address; <code class="inline">*p</code> is the value at that address.</p>
   </section>
 
-  <!-- 7. WORKED 1 BASICS -->
+  <!-- 7. WORKED P1 BASICS -->
   <section class="slide">
-    <div class="pill">Worked Example 1</div>
+    <div class="pill">Worked Example 1 · Pointers</div>
     <h2>Reading and Changing Through a Pointer</h2>
     <div class="two">
       <div class="scroll">
@@ -304,7 +310,7 @@ int main() {
 
   <!-- 8. NULL POINTERS -->
   <section class="slide">
-    <div class="kicker">06 · Pointing at Nothing</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>Null Pointers</h2>
     <div class="two">
       <div class="scroll">
@@ -337,7 +343,7 @@ int main() {
 
   <!-- 9. POINTERS AND FUNCTIONS -->
   <section class="slide">
-    <div class="kicker">07 · Pointers Into Functions</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>Changing a Caller's Variable</h2>
     <div class="two">
       <div class="scroll">
@@ -365,9 +371,9 @@ int main() {
     </div>
   </section>
 
-  <!-- 10. WORKED 2 SWAP -->
+  <!-- 10. WORKED P2 SWAP -->
   <section class="slide">
-    <div class="pill">Worked Example 2</div>
+    <div class="pill">Worked Example 2 · Pointers</div>
     <h2>Swap Using Pointers</h2>
     <div class="two">
       <div class="scroll">
@@ -398,7 +404,7 @@ int main() {
 
   <!-- 11. POINTERS AND ARRAYS + FIGURE -->
   <section class="slide">
-    <div class="kicker">08 · A Close Relationship</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>Pointers and Arrays</h2>
     <p class="lead">An array's name is really the <b>address of its first element</b>. So a pointer can step through an array.</p>
     <svg class="fig" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" aria-label="Pointer p points to first array element">
@@ -427,9 +433,9 @@ int main() {
     </svg>
   </section>
 
-  <!-- 12. WORKED 3 WALK ARRAY -->
+  <!-- 12. WORKED P3 WALK ARRAY -->
   <section class="slide">
-    <div class="pill">Worked Example 3</div>
+    <div class="pill">Worked Example 3 · Pointers</div>
     <h2>Walking an Array With a Pointer</h2>
     <div class="two">
       <div class="scroll">
@@ -456,42 +462,9 @@ int main() {
     </div>
   </section>
 
-  <!-- 13. NEW / DELETE -->
+  <!-- 13. POINTERS VS REFERENCES -->
   <section class="slide">
-    <div class="kicker">09 · Dynamic Memory (a First Look)</div>
-    <h2><code class="inline" style="font-size:.8em;">new</code> and <code class="inline" style="font-size:.8em;">delete</code></h2>
-    <div class="two">
-      <div class="scroll">
-<pre><code>#include &lt;iostream&gt;
-using namespace std;
-
-int main() {
-    // ask for one int while the program runs
-    int *p = new int;
-
-    *p = 50;                 // use it through the pointer
-    cout &lt;&lt; *p &lt;&lt; endl;       // 50
-
-    delete p;                // give the memory back
-    return 0;
-}</code></pre>
-      </div>
-      <div>
-        <div class="out-label">Expected Output</div>
-        <div class="output">50</div>
-        <ul style="margin-top:12px;">
-          <li><code class="inline">new</code> reserves memory and returns its address.</li>
-          <li><code class="inline">delete</code> frees that memory when you are done.</li>
-          <li><b>Rule:</b> every <code class="inline">new</code> needs a matching <code class="inline">delete</code>.</li>
-        </ul>
-        <p><b>Why:</b> forgetting <code class="inline">delete</code> wastes memory (a "memory leak").</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 14. POINTERS VS REFERENCES -->
-  <section class="slide">
-    <div class="kicker">10 · Two Similar Tools</div>
+    <div class="kicker">Part A · Pointers</div>
     <h2>Pointers vs. References</h2>
     <table class="cmp">
       <tr><th>Feature</th><th>Reference (&amp;)</th><th>Pointer (*)</th></tr>
@@ -501,13 +474,317 @@ int main() {
       <tr><td>Can point elsewhere later</td><td>no</td><td>yes</td></tr>
       <tr><td>Need <code class="inline">*</code> to read value</td><td>no</td><td>yes (<code class="inline">*p</code>)</td></tr>
     </table>
-    <p style="margin-top:12px;"><b>Guideline:</b> prefer references when you simply need to share a variable; use pointers when you need to repoint, allow "nothing", or manage dynamic memory.</p>
+    <p style="margin-top:12px;"><b>Guideline:</b> prefer references for simple sharing; use pointers to repoint, allow "nothing", or manage dynamic memory — which is exactly where we go next.</p>
   </section>
 
-  <!-- 15. COMMON MISTAKES -->
+  <!-- 14. SECTION B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>Static &amp; Dynamic Memory</h1>
+    <p class="lead">Now that you can hold an address, let us see the two places data lives: the <b>stack</b> (static) and the <b>heap</b> (dynamic).</p>
+  </section>
+
+  <!-- 15. TWO REGIONS -->
   <section class="slide">
-    <div class="kicker">11 · Be Careful</div>
-    <h2>Common Mistakes</h2>
+    <div class="kicker">Part B · Memory</div>
+    <h2>Two Kinds of Memory</h2>
+    <p class="lead">A running C++ program uses memory in two main areas. They behave very differently.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Static — the Stack</h3>
+        <ul class="check">
+          <li>Holds your local variables.</li>
+          <li>Size fixed when you write the code.</li>
+          <li>Created and freed <b>for you</b>; fast but limited.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Dynamic — the Heap</h3>
+        <ul class="check">
+          <li>Memory you request with <code class="inline">new</code>.</li>
+          <li>Size and lifetime chosen at run time.</li>
+          <li>Large and flexible — but <b>you</b> must free it.</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Python note:</b> Python manages all of this automatically. C++ gives you the stack for free, but the heap is your responsibility.</p>
+  </section>
+
+  <!-- 16. MEMORY MAP + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part B · Memory</div>
+    <h2>The Memory Map</h2>
+    <p class="lead">A local pointer <code class="inline">p</code> lives on the stack, but the value it points to (from <code class="inline">new</code>) lives on the heap.</p>
+    <svg class="fig" viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" aria-label="Memory map showing stack and heap with a pointer crossing">
+      <defs>
+        <marker id="am" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="region" x="250" y="20" width="260" height="280" rx="10"/>
+      <line class="divider" x1="250" y1="160" x2="510" y2="160"/>
+      <text class="regionLbl" x="120" y="60">STACK</text>
+      <text class="growth" x="120" y="82">static</text>
+      <text class="growth" x="380" y="150">↓ stack grows down</text>
+      <text class="regionLbl" x="560" y="272">HEAP</text>
+      <text class="growth" x="560" y="294">dynamic</text>
+      <text class="growth" x="380" y="180">↑ heap grows up</text>
+      <rect class="box" x="285" y="58" width="190" height="56"/>
+      <text class="name" x="380" y="80">p (pointer)</text>
+      <text class="val" x="380" y="104" style="font-size:16px;">holds an address</text>
+      <rect class="box-hi" x="285" y="210" width="190" height="56"/>
+      <text class="name" x="380" y="232" style="fill:var(--accent);">new int</text>
+      <text class="val" x="380" y="258">50</text>
+      <path class="edge" d="M475,86 C610,86 610,238 475,238" marker-end="url(#am)"/>
+      <text class="tag" x="600" y="162">points to</text>
+    </svg>
+  </section>
+
+  <!-- 17. THE STACK -->
+  <section class="slide">
+    <div class="kicker">Part B · Memory</div>
+    <h2>Static: Local Variables on the Stack</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+void f() {
+    int x = 5;        // x is created on the stack
+    int arr[3];       // also on the stack
+    cout &lt;&lt; x &lt;&lt; endl;
+}                     // x and arr are freed automatically here
+
+int main() {
+    f();
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>Local variables are placed on the <b>stack</b> automatically.</li>
+          <li>They disappear when their <code class="inline">{ }</code> block ends — you do nothing.</li>
+          <li>Each function call gets its own stack <b>frame</b> (recursion, Lecture 8).</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Limit:</b> the stack is small. A huge local array or very deep recursion causes a <span class="hl">stack overflow</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. THE HEAP -->
+  <section class="slide">
+    <div class="kicker">Part B · Memory</div>
+    <h2>Dynamic: <code class="inline" style="font-size:.8em;">new</code> and <code class="inline" style="font-size:.8em;">delete</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int *p = new int;   // reserve one int on the heap
+
+    *p = 50;            // use it through the pointer
+    cout &lt;&lt; *p &lt;&lt; endl;  // 50
+
+    delete p;           // give the memory back
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">50</div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">new</code> reserves heap memory and returns its <b>address</b>.</li>
+          <li>You reach the value through a pointer (<code class="inline">*p</code>).</li>
+          <li><code class="inline">delete</code> frees it when you are done.</li>
+        </ul>
+        <p><b>Rule:</b> every <code class="inline">new</code> needs exactly one matching <code class="inline">delete</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. WORKED M1 LIFETIME -->
+  <section class="slide">
+    <div class="pill">Worked Example 4 · Memory</div>
+    <h2>Stack vs. Heap Lifetime</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    // stack: lives only inside this block
+    {
+        int s = 10;
+        cout &lt;&lt; s &lt;&lt; endl;   // 10
+    }   // s is gone here
+
+    // heap: lives until we delete it
+    int *h = new int;
+    *h = 20;
+    cout &lt;&lt; *h &lt;&lt; endl;       // 20
+    delete h;                // we choose when it ends
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10
+20</div>
+        <p style="margin-top:14px;"><b>The difference:</b> the stack variable <code class="inline">s</code> ends automatically at the closing brace. The heap value lives until <i>you</i> call <code class="inline">delete</code>.</p>
+        <p><b>Power and duty:</b> the heap lets you control lifetime — but you must remember to free it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. DYNAMIC ARRAYS + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part B · Memory</div>
+    <h2>Dynamic Arrays</h2>
+    <p class="lead">A fixed array needs a size known when you write the code. A <b>heap array</b> can have a size chosen <span class="hl">while the program runs</span>.</p>
+    <svg class="fig" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" aria-label="Pointer on stack to a dynamic array on the heap">
+      <defs>
+        <marker id="ady" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <text class="name" x="60" y="56" style="text-anchor:start;">stack: int *p</text>
+      <rect class="box" x="60" y="66" width="150" height="62"/>
+      <text class="val" x="135" y="104" style="font-size:16px;">address</text>
+      <text class="name" x="320" y="56" style="text-anchor:start;">heap: new int[4]</text>
+      <rect class="box-hi" x="320" y="66" width="120" height="62"/>
+      <rect class="box"    x="440" y="66" width="120" height="62"/>
+      <rect class="box"    x="560" y="66" width="120" height="62"/>
+      <rect class="box"    x="680" y="66" width="120" height="62"/>
+      <text class="val" x="380" y="104">0</text>
+      <text class="val" x="500" y="104">1</text>
+      <text class="val" x="620" y="104">4</text>
+      <text class="val" x="740" y="104">9</text>
+      <text class="idx" x="380" y="148">[0]</text>
+      <text class="idx" x="500" y="148">[1]</text>
+      <text class="idx" x="620" y="148">[2]</text>
+      <text class="idx" x="740" y="148">[3]</text>
+      <path class="edge" d="M210,97 L320,97" marker-end="url(#ady)"/>
+      <text class="cap" x="430" y="184">delete[] p frees the whole array</text>
+    </svg>
+  </section>
+
+  <!-- 21. WORKED M2 DYNAMIC ARRAY -->
+  <section class="slide">
+    <div class="pill">Worked Example 5 · Memory</div>
+    <h2>An Array Sized by the User</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int n;
+    cout &lt;&lt; "How many? ";
+    cin &gt;&gt; n;
+
+    int *a = new int[n];     // size decided at run time!
+
+    for (int i = 0; i &lt; n; i++)
+        a[i] = i * i;        // 0, 1, 4, 9, ...
+
+    for (int i = 0; i &lt; n; i++)
+        cout &lt;&lt; a[i] &lt;&lt; " ";
+    cout &lt;&lt; endl;
+
+    delete[] a;              // free an ARRAY with delete[]
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If user types 5</div>
+        <div class="output">How many? 5
+0 1 4 9 16</div>
+        <p style="margin-top:12px;"><b>Why this matters:</b> a normal array cannot do this — its size must be fixed in the code. The heap lets the size come from input.</p>
+        <p><b>Note:</b> free an array with <code class="inline">delete[]</code>, not <code class="inline">delete</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 22. OUTLIVE A FUNCTION -->
+  <section class="slide">
+    <div class="kicker">Part B · Memory</div>
+    <h2>Data That Outlives a Function</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--red);">Wrong — returns a dead address</h3>
+<pre><code>int* makeNumber() {
+    int x = 7;     // on the stack
+    return &amp;x;     // x dies when function ends!
+}   // the returned address is now invalid</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--green);">Right — heap survives</h3>
+<pre><code>int* makeNumber() {
+    int *p = new int;  // on the heap
+    *p = 7;
+    return p;          // still valid after return
+}   // caller must delete it later</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Key idea:</b> a stack variable dies when its function ends. To hand data back from a function, put it on the <span class="hl">heap</span> — but the caller becomes responsible for the <code class="inline">delete</code>.</p>
+  </section>
+
+  <!-- 23. WORKED M3 RETURN ARRAY -->
+  <section class="slide">
+    <div class="pill">Worked Example 6 · Memory</div>
+    <h2>A Function That Builds an Array</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+// build a heap array of the first n squares
+int* makeSquares(int n) {
+    int *a = new int[n];
+    for (int i = 0; i &lt; n; i++)
+        a[i] = (i + 1) * (i + 1);
+    return a;            // heap data survives the return
+}
+
+int main() {
+    int *sq = makeSquares(4);
+    for (int i = 0; i &lt; 4; i++)
+        cout &lt;&lt; sq[i] &lt;&lt; " ";
+    cout &lt;&lt; endl;
+    delete[] sq;         // caller frees it
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 4 9 16</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the function reserves an array on the heap, fills it, and returns the pointer. The data stays alive after the function ends.</p>
+        <p><b>Contract:</b> whoever receives the pointer must <code class="inline">delete[]</code> it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24. STACK VS HEAP COMPARISON -->
+  <section class="slide">
+    <div class="kicker">Part B · Memory</div>
+    <h2>Static (Stack) vs. Dynamic (Heap)</h2>
+    <table class="cmp">
+      <tr><th>Feature</th><th>Stack (static)</th><th>Heap (dynamic)</th></tr>
+      <tr><td>Managed by</td><td>automatic (the compiler)</td><td>you (<code class="inline">new</code> / <code class="inline">delete</code>)</td></tr>
+      <tr><td>Lifetime</td><td>until the block ends</td><td>until you <code class="inline">delete</code> it</td></tr>
+      <tr><td>Size known</td><td>at compile time</td><td>can be at run time</td></tr>
+      <tr><td>Size limit</td><td>small</td><td>large</td></tr>
+      <tr><td>Speed</td><td>very fast</td><td>a little slower</td></tr>
+      <tr><td>Risk</td><td>stack overflow</td><td>leaks &amp; dangling pointers</td></tr>
+    </table>
+    <p style="margin-top:12px;"><b>Guideline:</b> use the stack by default. Use the heap when the size is unknown until run time, the data must outlive a function, or it is very large.</p>
+  </section>
+
+  <!-- 25. POINTER MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful · Pointers</div>
+    <h2>Common Pointer Mistakes</h2>
     <div class="two" style="flex:none;">
       <div class="card">
         <ul class="cross">
@@ -520,54 +797,81 @@ int main() {
         <ul class="cross">
           <li><b>Confusing <code class="inline">*</code></b><br>in a declaration it marks a pointer; in code it dereferences</li>
           <li><b>Dangling pointer</b><br>pointing to a local variable that has ended</li>
-          <li><b>Leak</b><br>using <code class="inline">new</code> without a matching <code class="inline">delete</code></li>
+          <li><b>Wrong target type</b><br>an <code class="inline">int*</code> must point to an <code class="inline">int</code></li>
         </ul>
       </div>
     </div>
     <p style="margin-top:10px;"><b>Safe habit:</b> start a pointer at <code class="inline">nullptr</code>, and check before you dereference.</p>
   </section>
 
-  <!-- 16. PYTHON COMPARISON -->
+  <!-- 26. MEMORY MISTAKES -->
   <section class="slide">
-    <div class="kicker">12 · Side by Side</div>
+    <div class="kicker">Be Careful · Memory</div>
+    <h2>Common Memory Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Memory leak</b><br><code class="inline">new</code> without a matching <code class="inline">delete</code> wastes memory</li>
+          <li><b>Double delete</b><br>calling <code class="inline">delete p</code> twice crashes</li>
+          <li><b>Wrong delete form</b><br>free arrays with <code class="inline">delete[]</code>, single values with <code class="inline">delete</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Leak in a loop</b><br><code class="inline">new</code> inside a loop with no <code class="inline">delete</code> adds up fast</li>
+          <li><b>Using after delete</b><br>the pointer is now dangling</li>
+          <li><b>Huge stack array</b><br>very large local arrays overflow the stack</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Safe habit:</b> right after writing <code class="inline">new</code>, write the matching <code class="inline">delete</code> before you forget.</p>
+  </section>
+
+  <!-- 27. PYTHON COMPARISON (MERGED) -->
+  <section class="slide">
+    <div class="kicker">Side by Side</div>
     <h2>Python vs. C++</h2>
     <table class="cmp">
       <tr><th>Idea</th><th>Python</th><th>C++</th></tr>
       <tr><td>Address of a variable</td><td class="py">hidden from you</td><td class="cpp">&amp;x</td></tr>
       <tr><td>Hold an address</td><td class="py">not available</td><td class="cpp">int *p = &amp;x;</td></tr>
       <tr><td>Value at an address</td><td class="py">automatic</td><td class="cpp">*p</td></tr>
-      <tr><td>Change caller's variable</td><td class="py">return a new value</td><td class="cpp">pass a pointer or reference</td></tr>
-      <tr><td>Manage memory</td><td class="py">automatic</td><td class="cpp">new / delete</td></tr>
+      <tr><td>Change caller's variable</td><td class="py">return a new value</td><td class="cpp">pass a pointer / reference</td></tr>
+      <tr><td>Freeing memory</td><td class="py">automatic (garbage collector)</td><td class="cpp">manual (delete)</td></tr>
+      <tr><td>Run-time-sized storage</td><td class="py">lists grow freely</td><td class="cpp">new T[n]</td></tr>
     </table>
-    <p style="margin-top:12px;"><b>Takeaway:</b> Python manages memory and addresses for you. C++ gives you direct control — powerful, but you must be careful.</p>
+    <p style="margin-top:12px;"><b>Takeaway:</b> Python manages addresses and memory for you. C++ gives direct control — powerful, but you carry the responsibility.</p>
   </section>
 
-  <!-- 17. EXERCISES 1 -->
+  <!-- 28. EXERCISES 1 -->
   <section class="slide">
-    <div class="kicker">13 · Your Turn</div>
-    <h2>Exercises 1–3</h2>
+    <div class="kicker">Your Turn · Pointers</div>
+    <h2>Exercises 1–5</h2>
     <ul class="num">
       <li>Declare <code class="inline">int x = 7;</code> and a pointer <code class="inline">p</code> to it. Print <code class="inline">x</code>, the address <code class="inline">&amp;x</code>, and the value <code class="inline">*p</code>.</li>
-      <li>Use a pointer to change <code class="inline">x</code> to 99. Print <code class="inline">x</code> before and after the change.</li>
-      <li>Write a function <code class="inline">void doubleIt(int *p)</code> that doubles the value the pointer points to. Test it in <code class="inline">main</code>.</li>
-    </ul>
-  </section>
-
-  <!-- 18. EXERCISES 2 -->
-  <section class="slide">
-    <div class="kicker">13 · Your Turn</div>
-    <h2>Exercises 4–6</h2>
-    <ul class="num" style="counter-reset: c 3;">
+      <li>Use a pointer to change <code class="inline">x</code> to 99. Print <code class="inline">x</code> before and after.</li>
+      <li>Write <code class="inline">void doubleIt(int *p)</code> that doubles the value the pointer points to.</li>
       <li>Given <code class="inline">int a[5]</code>, use a pointer to print all five elements.</li>
-      <li>Write a function <code class="inline">void swap(int *a, int *b)</code> that swaps two integers using pointers.</li>
-      <li>Use <code class="inline">new</code> to create one <code class="inline">int</code>, store 50 in it, print it, then <code class="inline">delete</code> it.</li>
+      <li>Write <code class="inline">void swap(int *a, int *b)</code> that swaps two integers using pointers.</li>
     </ul>
-    <p style="margin-top:12px;"><b>Tip:</b> for exercise 4, set <code class="inline">int *p = a;</code> then use <code class="inline">*(p + i)</code>.</p>
   </section>
 
-  <!-- 19. ANSWERS 1 -->
+  <!-- 29. EXERCISES 2 -->
   <section class="slide">
-    <div class="kicker">14 · Solutions (1–3)</div>
+    <div class="kicker">Your Turn · Memory</div>
+    <h2>Exercises 6–10</h2>
+    <ul class="num" style="counter-reset: c 5;">
+      <li>Create one <code class="inline">int</code> on the heap, store 42, print it, then <code class="inline">delete</code> it.</li>
+      <li>Read <code class="inline">n</code>, make a dynamic array of <code class="inline">n</code> ints, fill it with <code class="inline">1..n</code>, print, then <code class="inline">delete[]</code>.</li>
+      <li>Read <code class="inline">n</code> numbers into a heap array and print their <b>sum</b>.</li>
+      <li><b>Fix the leak:</b> a loop does <code class="inline">new int</code> each pass but never frees. Rewrite it so each allocation is deleted.</li>
+      <li><b>Fix the dangling pointer:</b> a function returns the address of a local variable. Rewrite it to return heap memory.</li>
+    </ul>
+  </section>
+
+  <!-- 30. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
     <h2>Exercise Answers</h2>
     <div class="two">
       <div class="scroll">
@@ -601,18 +905,17 @@ int main() {
     </div>
   </section>
 
-  <!-- 20. ANSWERS 2 -->
+  <!-- 31. ANSWERS 2 -->
   <section class="slide">
-    <div class="kicker">14 · Solutions (4–6)</div>
+    <div class="kicker">Solutions (4–6)</div>
     <h2>Exercise Answers</h2>
     <div class="two">
       <div class="scroll">
         <h3>4 · Print array via pointer</h3>
 <pre><code>int a[5] = {1, 2, 3, 4, 5};
 int *p = a;
-for (int i = 0; i &lt; 5; i++) {
+for (int i = 0; i &lt; 5; i++)
     cout &lt;&lt; *(p + i) &lt;&lt; " ";
-}
 cout &lt;&lt; endl;   // 1 2 3 4 5</code></pre>
         <h3>5 · Swap with pointers</h3>
 <pre><code>void swap(int *a, int *b) {
@@ -623,30 +926,92 @@ cout &lt;&lt; endl;   // 1 2 3 4 5</code></pre>
 // swap(&amp;x, &amp;y);</code></pre>
       </div>
       <div class="scroll">
-        <h3>6 · new and delete</h3>
-<pre><code>int *p = new int;   // reserve memory
-*p = 50;
-cout &lt;&lt; *p &lt;&lt; endl;  // 50
-delete p;           // free memory</code></pre>
+        <h3>6 · One heap int</h3>
+<pre><code>int *p = new int;
+*p = 42;
+cout &lt;&lt; *p &lt;&lt; endl;  // 42
+delete p;</code></pre>
         <div class="out-label">Output</div>
-        <div class="output">50</div>
+        <div class="output">42</div>
       </div>
     </div>
   </section>
 
-  <!-- 21. SUMMARY -->
+  <!-- 32. ANSWERS 3 -->
   <section class="slide">
-    <div class="kicker">15 · Wrap Up</div>
+    <div class="kicker">Solutions (7–8)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>7 · Dynamic array 1..n</h3>
+<pre><code>int n;
+cin &gt;&gt; n;
+int *a = new int[n];
+for (int i = 0; i &lt; n; i++) a[i] = i + 1;
+for (int i = 0; i &lt; n; i++) cout &lt;&lt; a[i] &lt;&lt; " ";
+cout &lt;&lt; endl;
+delete[] a;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>8 · Sum of a heap array</h3>
+<pre><code>int n;
+cin &gt;&gt; n;
+int *a = new int[n];
+int sum = 0;
+for (int i = 0; i &lt; n; i++) {
+    cin &gt;&gt; a[i];
+    sum += a[i];
+}
+cout &lt;&lt; "Sum = " &lt;&lt; sum &lt;&lt; endl;
+delete[] a;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 33. ANSWERS 4 -->
+  <section class="slide">
+    <div class="kicker">Solutions (9–10)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>9 · Fix the leak</h3>
+<pre><code>for (int i = 0; i &lt; 3; i++) {
+    int *p = new int;
+    *p = i;
+    cout &lt;&lt; *p &lt;&lt; " ";
+    delete p;        // free EACH pass
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>10 · Fix the dangling pointer</h3>
+<pre><code>// before (wrong):
+// int* f() { int x = 7; return &amp;x; }
+
+int* f() {
+    int *p = new int;   // heap, not stack
+    *p = 7;
+    return p;           // valid after return
+}
+// caller: int *r = f(); ...; delete r;</code></pre>
+        <div class="out-label">Result</div>
+        <div class="output">valid pointer to 7</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 34. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
     <h2>Summary</h2>
     <ul class="check">
-      <li>A <b>pointer</b> is a variable that stores the <b>address</b> of another variable.</li>
-      <li><code class="inline">&amp;x</code> gives an address; <code class="inline">*p</code> gives the value at an address (dereferencing).</li>
-      <li><code class="inline">int *p = &amp;x;</code> makes <code class="inline">p</code> point to <code class="inline">x</code>; <code class="inline">*p = 100;</code> changes <code class="inline">x</code>.</li>
-      <li>Pass a pointer to let a function change the caller's variable.</li>
-      <li>An array name is the address of its first element, so pointers can walk arrays.</li>
+      <li>A <b>pointer</b> stores the <b>address</b> of another variable; <code class="inline">&amp;x</code> gives an address, <code class="inline">*p</code> the value.</li>
+      <li>Pointers let a function change the caller's variable and let you walk arrays.</li>
+      <li><b>Static</b> memory (the stack) holds local variables, freed automatically with their scope.</li>
+      <li><b>Dynamic</b> memory (the heap) is requested with <code class="inline">new</code> and released with <code class="inline">delete</code>.</li>
+      <li>A <b>dynamic array</b> (<code class="inline">new int[n]</code>) lets the size be chosen at run time; free it with <code class="inline">delete[]</code>.</li>
       <li>Start pointers at <code class="inline">nullptr</code>, never dereference null, and match every <code class="inline">new</code> with a <code class="inline">delete</code>.</li>
     </ul>
-    <p style="margin-top:16px; font-size:25px;"><b>Pointers are the foundation for dynamic data structures you will meet next.</b></p>
+    <p style="margin-top:16px; font-size:25px;"><b>Pointers plus dynamic memory are the foundation for the data structures you will meet next.</b></p>
   </section>
 
 </div>
