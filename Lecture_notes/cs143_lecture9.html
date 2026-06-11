@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Types, Scope &amp; Casting — Lecture 9</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  table.cmp td.mono, table.cmp td .mono { font-family: var(--font-mono); }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .outer { fill: none; stroke: var(--primary); stroke-width: 2.5; }
+  .fig .mid { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fig .inner { fill: var(--primary-soft); stroke: var(--green); stroke-width: 2.5; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-sans); font-size: 17px; }
+  .fig .mono { fill: var(--primary); font-family: var(--font-mono); font-size: 17px; font-weight: 700; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; }
+  .fig .line { stroke: var(--primary); stroke-width: 2.5; fill: none; }
+  .fig .wrap { stroke: var(--red); stroke-width: 2.5; fill: none; }
+  .fig .tick { fill: var(--text); font-family: var(--font-mono); font-size: 16px; text-anchor: middle; }
+  .fig .wrapT { fill: var(--red); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .dot { fill: var(--accent); }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 62px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 44px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Types, Scope &amp; Casting</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 9</div>
+    <h1>Types, Scope &amp; Casting</h1>
+    <div class="sub">Variable types, local vs global, overflow, underflow, and conversions</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lectures 1 &amp; 7 (variables, functions)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Name the main C++ variable types and what they hold.</li>
+      <li>Explain <span class="hl">scope</span>: where a variable can be used.</li>
+      <li>Tell the difference between <span class="hl">local</span> and <span class="hl">global</span> variables.</li>
+      <li>Describe <span class="hl">overflow</span> and <span class="hl">underflow</span> and why they happen.</li>
+      <li>Convert between types using implicit and explicit <span class="hl">casting</span>.</li>
+      <li>Avoid the common bugs these topics cause.</li>
+    </ul>
+  </section>
+
+  <!-- 3. BRIDGE -->
+  <section class="slide">
+    <div class="kicker">02 · From Python</div>
+    <h2>Static Types vs. Dynamic Types</h2>
+    <p class="lead">In Python a variable can hold anything and can change type at any time. In C++ you choose a <b>type</b> when you declare a variable, and it keeps that type.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python (dynamic)</h3>
+<pre><code>x = 5        # an int now
+x = "hello"  # a string now — allowed</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++ (static)</h3>
+<pre><code>int x = 5;       // x is an int, always
+// x = "hello";  // ERROR: wrong type</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Why it matters:</b> a fixed type fixes the <span class="hl">size</span> and <span class="hl">range</span> of a variable — which leads to today's topics.</p>
+  </section>
+
+  <!-- 4. TYPES TABLE -->
+  <section class="slide">
+    <div class="kicker">03 · Part A · Variable Types</div>
+    <h2>The Main C++ Types</h2>
+    <table class="cmp">
+      <tr><th>Type</th><th>Typical size</th><th>Holds</th><th>Example</th></tr>
+      <tr><td class="cpp">int</td><td>4 bytes</td><td>whole numbers</td><td class="mono">42</td></tr>
+      <tr><td class="cpp">long long</td><td>8 bytes</td><td>very large whole numbers</td><td class="mono">9000000000</td></tr>
+      <tr><td class="cpp">double</td><td>8 bytes</td><td>decimal numbers</td><td class="mono">3.14159</td></tr>
+      <tr><td class="cpp">float</td><td>4 bytes</td><td>smaller decimals</td><td class="mono">3.14f</td></tr>
+      <tr><td class="cpp">char</td><td>1 byte</td><td>a single character</td><td class="mono">'A'</td></tr>
+      <tr><td class="cpp">bool</td><td>1 byte</td><td>true or false</td><td class="mono">true</td></tr>
+      <tr><td class="cpp">string</td><td>varies</td><td>text</td><td class="mono">"Sara"</td></tr>
+    </table>
+    <p style="margin-top:12px;"><b>Range note:</b> a 4-byte <code class="inline">int</code> holds about −2.1 billion to +2.1 billion. Need bigger? Use <code class="inline">long long</code>.</p>
+  </section>
+
+  <!-- 5. CHOOSING A TYPE -->
+  <section class="slide">
+    <div class="kicker">03 · Part A · Variable Types</div>
+    <h2>Choosing and Declaring a Type</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+int main() {
+    int age = 20;          // whole number
+    double price = 4.50;   // decimal number
+    char grade = 'A';      // one character
+    bool passed = true;    // true / false
+    string name = "Sara";  // text
+
+    cout &lt;&lt; name &lt;&lt; " " &lt;&lt; age &lt;&lt; " " &lt;&lt; grade &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Sara 20 A</div>
+        <ul style="margin-top:12px;">
+          <li>Pick the <b>smallest type that fits</b> your data.</li>
+          <li>Use <code class="inline">int</code> for counting, <code class="inline">double</code> for money or measurements.</li>
+          <li>Use <code class="inline">char</code> for one letter, <code class="inline">string</code> for words.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. LOCAL + BLOCK SCOPE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">04 · Part B · Scope</div>
+    <h2>Local and Block Scope</h2>
+    <p class="lead"><b>Scope</b> is the region of code where a variable can be used. A variable is visible inside the braces <code class="inline">{ }</code> where it was declared.</p>
+    <svg class="fig" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" aria-label="Nested scope boxes: global, main, block">
+      <rect class="outer" x="20" y="20" width="780" height="262" rx="10"/>
+      <text class="mono" x="36" y="46">Global scope</text>
+      <text class="lbl" x="180" y="46">int g  —  visible everywhere</text>
+      <rect class="mid" x="60" y="70" width="700" height="190" rx="10"/>
+      <text class="mono" x="76" y="96" style="fill:var(--accent);">main() scope</text>
+      <text class="lbl" x="230" y="96">int x  —  visible in main and inside its blocks</text>
+      <rect class="inner" x="110" y="120" width="600" height="115" rx="10"/>
+      <text class="mono" x="126" y="146" style="fill:var(--green);">{ } block scope</text>
+      <text class="lbl" x="300" y="146">int y  —  visible ONLY inside this block</text>
+      <text class="cap" x="126" y="186">Inner code can see g, x, and y.</text>
+      <text class="cap" x="126" y="210">Outside the block, y no longer exists.</text>
+    </svg>
+  </section>
+
+  <!-- 7. GLOBAL VARIABLES -->
+  <section class="slide">
+    <div class="kicker">04 · Part B · Scope</div>
+    <h2>Global Variables</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int counter = 0;   // GLOBAL: declared outside all functions
+
+void addOne() {
+    counter++;      // can use the global directly
+}
+
+int main() {
+    addOne();
+    addOne();
+    cout &lt;&lt; counter &lt;&lt; endl;   // 2
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">2</div>
+        <ul style="margin-top:12px;">
+          <li>A <b>global</b> variable lives outside every function.</li>
+          <li>Every function can read and change it.</li>
+          <li>It exists for the whole run of the program.</li>
+        </ul>
+        <p><b>Caution:</b> use globals sparingly — when many functions change one, bugs are hard to find.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. GLOBAL VS LOCAL / SHADOWING -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Global vs. Local (Shadowing)</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int x = 100;        // global x
+
+void show() {
+    int x = 5;      // local x hides the global
+    cout &lt;&lt; "Inside: " &lt;&lt; x &lt;&lt; endl;   // 5
+}
+
+int main() {
+    show();
+    cout &lt;&lt; "Global: " &lt;&lt; x &lt;&lt; endl;    // 100
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Inside: 5
+Global: 100</div>
+        <p style="margin-top:14px;"><b>Shadowing:</b> when a local variable has the same name as a global, the local one is used inside that function. The global is untouched.</p>
+        <p><b>Advice:</b> avoid reusing names — it confuses readers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. OVERFLOW + FIGURE -->
+  <section class="slide">
+    <div class="kicker">05 · Part C · Overflow &amp; Underflow</div>
+    <h2>What Is Overflow?</h2>
+    <p class="lead">Each type can hold only a limited range. <b>Overflow</b> happens when a value goes past the maximum — it wraps around to the minimum, like a car odometer rolling over.</p>
+    <svg class="fig" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" aria-label="Integer overflow wrap-around number line">
+      <defs>
+        <marker id="wm" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--red)"/>
+        </marker>
+      </defs>
+      <line class="line" x1="90" y1="150" x2="730" y2="150"/>
+      <line class="line" x1="90" y1="138" x2="90" y2="162"/>
+      <line class="line" x1="730" y1="138" x2="730" y2="162"/>
+      <circle class="dot" cx="730" cy="150" r="6"/>
+      <text class="tick" x="90" y="186">−2,147,483,648</text>
+      <text class="tick" x="90" y="206" style="fill:var(--muted);">minimum</text>
+      <text class="tick" x="730" y="186">2,147,483,647</text>
+      <text class="tick" x="730" y="206" style="fill:var(--muted);">maximum</text>
+      <path class="wrap" d="M730,140 C730,40 90,40 90,138" marker-end="url(#wm)"/>
+      <text class="wrapT" x="410" y="44">+1 past the maximum wraps to the minimum</text>
+    </svg>
+    <p style="margin-top:6px;"><b>Result:</b> the number becomes wrong (often negative). The fix is to use a bigger type, such as <code class="inline">long long</code>.</p>
+  </section>
+
+  <!-- 10. OVERFLOW WORKED -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Overflow in Action</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int big = 2147483647;       // the largest int
+    cout &lt;&lt; big + 1 &lt;&lt; endl;     // overflow!
+
+    long long safe = 2147483647;
+    cout &lt;&lt; safe + 1 &lt;&lt; endl;    // plenty of room
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">-2147483648
+2147483648</div>
+        <p style="margin-top:14px;"><b>What happens:</b> adding 1 to the largest <code class="inline">int</code> wraps to the most negative number. The <code class="inline">long long</code> version has room, so it is correct.</p>
+        <p><b>Lesson:</b> choose a type big enough for the values you expect.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. UNDERFLOW -->
+  <section class="slide">
+    <div class="kicker">05 · Part C · Overflow &amp; Underflow</div>
+    <h2>Underflow</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Unsigned underflow (wrap down)</h3>
+<pre><code>unsigned int u = 0;
+cout &lt;&lt; u - 1 &lt;&lt; endl;
+// 4294967295  (wraps to the top)</code></pre>
+        <p style="margin:0;">An <code class="inline">unsigned</code> type cannot be negative, so going below 0 wraps to its largest value.</p>
+      </div>
+      <div class="card">
+        <h3>Float underflow (too small)</h3>
+<pre><code>double tiny = 1e-310;
+tiny = tiny / 1e100;
+cout &lt;&lt; tiny &lt;&lt; endl;   // 0
+</code></pre>
+        <p style="margin:0;">A decimal number can be so small that it cannot be stored, so it becomes <b>0</b>.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>In short:</b> overflow is "too big to fit"; underflow is "too small to fit" (below the minimum, or too close to zero).</p>
+  </section>
+
+  <!-- 12. CASTING IMPLICIT -->
+  <section class="slide">
+    <div class="kicker">06 · Part D · Casting</div>
+    <h2>Implicit Conversion &amp; Truncation</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int a = 5;
+    double d = a;       // int -&gt; double (automatic)
+    cout &lt;&lt; d &lt;&lt; endl;   // 5
+
+    double pi = 3.9;
+    int n = pi;         // double -&gt; int: decimals DROPPED
+    cout &lt;&lt; n &lt;&lt; endl;   // 3  (not 4!)
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5
+3</div>
+        <ul style="margin-top:12px;">
+          <li><b>Widening</b> (int → double) is safe and automatic.</li>
+          <li><b>Narrowing</b> (double → int) <span class="hl">truncates</span>: it cuts off the decimal part, it does not round.</li>
+          <li>So <code class="inline">3.9</code> becomes <code class="inline">3</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. CASTING EXPLICIT -->
+  <section class="slide">
+    <div class="kicker">06 · Part D · Casting</div>
+    <h2>Explicit Casting</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Two ways to cast</h3>
+<pre><code>double pi = 3.9;
+
+int a = (int)pi;             // C-style cast
+int b = static_cast&lt;int&gt;(pi); // C++ style
+
+cout &lt;&lt; a &lt;&lt; " " &lt;&lt; b;       // 3 3</code></pre>
+      </div>
+      <div>
+        <p class="lead"><b>Casting</b> tells C++ to change a value from one type to another on purpose.</p>
+        <ul>
+          <li><code class="inline">(int)x</code> is the short C-style form.</li>
+          <li><code class="inline">static_cast&lt;int&gt;(x)</code> is the preferred C++ form — clearer and safer.</li>
+          <li>Both drop the decimal part when going to <code class="inline">int</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. WORKED INT DIVISION -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>The Integer-Division Trap</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int a = 7, b = 2;
+
+    cout &lt;&lt; a / b &lt;&lt; endl;                  // 3  (wrong!)
+    cout &lt;&lt; (double)a / b &lt;&lt; endl;          // 3.5
+    cout &lt;&lt; static_cast&lt;double&gt;(a) / b;     // 3.5
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">3
+3.5
+3.5</div>
+        <p style="margin-top:14px;"><b>Why:</b> when both sides are <code class="inline">int</code>, C++ does integer division and throws away the fraction.</p>
+        <p><b>Fix:</b> cast one value to <code class="inline">double</code> first, so the division keeps the decimals.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">07 · Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Integer division</b><br><code class="inline">7 / 2</code> gives 3; cast to <code class="inline">double</code> for 3.5</li>
+          <li><b>Assuming int is unlimited</b><br>large sums overflow; use <code class="inline">long long</code></li>
+          <li><b>Expecting rounding</b><br>double → int <i>truncates</i>, it does not round</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Using a variable out of scope</b><br>a variable does not exist outside its braces</li>
+          <li><b>Name shadowing</b><br>a local name can hide a global one by accident</li>
+          <li><b>Mixing signed and unsigned</b><br><code class="inline">0u - 1</code> becomes a huge number</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">08 · Side by Side</div>
+    <h2>Python vs. C++</h2>
+    <table class="cmp">
+      <tr><th>Idea</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Type of a variable</td><td class="py">chosen automatically</td><td class="cpp">you declare it</td></tr>
+      <tr><td>Big integers</td><td class="py">unlimited size</td><td class="cpp">fixed size — can overflow</td></tr>
+      <tr><td>Whole-number division</td><td class="py">7 // 2 = 3</td><td class="cpp">7 / 2 = 3</td></tr>
+      <tr><td>Decimal division</td><td class="py">7 / 2 = 3.5</td><td class="cpp">(double)7 / 2 = 3.5</td></tr>
+      <tr><td>Convert to int</td><td class="py">int(3.9) = 3</td><td class="cpp">(int)3.9 = 3</td></tr>
+      <tr><td>Scope</td><td class="py">function / block</td><td class="cpp">block (braces)</td></tr>
+    </table>
+    <p style="margin-top:12px;"><b>Biggest surprise for Python users:</b> C++ integers have limits and can overflow.</p>
+  </section>
+
+  <!-- 17. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">09 · Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Declare one variable of each type (<code class="inline">int</code>, <code class="inline">double</code>, <code class="inline">char</code>, <code class="inline">bool</code>, <code class="inline">string</code>), give each a value, and print them with labels.</li>
+      <li>Read two integers and print their <b>average as a decimal</b> (cast so you do not lose the fraction).</li>
+      <li>Read a <code class="inline">double</code> and print it cast to an <code class="inline">int</code>. In a comment, say whether it rounds or truncates.</li>
+    </ul>
+  </section>
+
+  <!-- 18. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">09 · Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Set an <code class="inline">int</code> to its maximum (2147483647), add 1, and print it. Then do the same with <code class="inline">long long</code> and compare.</li>
+      <li>Create a global <code class="inline">count = 100</code>. In a function, make a local <code class="inline">count = 5</code> and print it; print the global from <code class="inline">main</code>. Observe shadowing.</li>
+      <li>Read a character and print its integer (ASCII) code by casting <code class="inline">char</code> to <code class="inline">int</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 19. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">10 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · One of each type</h3>
+<pre><code>int age = 20;
+double price = 4.5;
+char grade = 'A';
+bool ok = true;
+string name = "Sara";
+cout &lt;&lt; age &lt;&lt; " " &lt;&lt; price &lt;&lt; " "
+     &lt;&lt; grade &lt;&lt; " " &lt;&lt; ok &lt;&lt; " "
+     &lt;&lt; name &lt;&lt; endl;</code></pre>
+        <h3>2 · Decimal average</h3>
+<pre><code>int a, b;
+cin &gt;&gt; a &gt;&gt; b;
+cout &lt;&lt; (double)(a + b) / 2 &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Cast double to int</h3>
+<pre><code>double d;
+cin &gt;&gt; d;
+int n = (int)d;   // truncates (drops decimals)
+cout &lt;&lt; n &lt;&lt; endl;</code></pre>
+        <div class="out-label">If d = 3.9</div>
+        <div class="output">3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">10 · Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Overflow vs long long</h3>
+<pre><code>int big = 2147483647;
+cout &lt;&lt; big + 1 &lt;&lt; endl;     // -2147483648
+
+long long safe = 2147483647;
+cout &lt;&lt; safe + 1 &lt;&lt; endl;    // 2147483648</code></pre>
+        <h3>5 · Shadowing</h3>
+<pre><code>int count = 100;            // global
+void f() {
+    int count = 5;         // local hides global
+    cout &lt;&lt; count &lt;&lt; endl;  // 5
+}
+// in main: cout &lt;&lt; count;  // 100</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · Character to ASCII code</h3>
+<pre><code>char c;
+cin &gt;&gt; c;
+int code = (int)c;   // cast char to int
+cout &lt;&lt; c &lt;&lt; " = " &lt;&lt; code &lt;&lt; endl;</code></pre>
+        <div class="out-label">If c = 'A'</div>
+        <div class="output">A = 65</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">11 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>C++ is <b>statically typed</b>: each variable has a fixed type with a fixed size and range.</li>
+      <li>Main types: <code class="inline">int</code>, <code class="inline">long long</code>, <code class="inline">double</code>, <code class="inline">char</code>, <code class="inline">bool</code>, <code class="inline">string</code>.</li>
+      <li><b>Scope</b> is where a variable lives; <b>local</b> stays in its braces, <b>global</b> is everywhere.</li>
+      <li><b>Overflow</b> = past the maximum; <b>underflow</b> = below the minimum or too tiny to store.</li>
+      <li><b>Casting</b> converts types; narrowing to <code class="inline">int</code> truncates the decimals.</li>
+      <li>Cast to <code class="inline">double</code> before dividing to keep the fraction; use <code class="inline">long long</code> for big values.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>These habits prevent some of the most common beginner bugs in C++.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.eE]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>

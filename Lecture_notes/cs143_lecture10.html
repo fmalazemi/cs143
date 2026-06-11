@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Pointers — Lecture 10</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 50vh; display: block; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .box-hi { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .val { fill: var(--text); font-family: var(--font-mono); font-size: 25px; font-weight: 700; text-anchor: middle; }
+  .fig .name { fill: var(--primary); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .addr { fill: var(--accent); font-family: var(--font-mono); font-size: 15px; text-anchor: middle; }
+  .fig .idx { fill: var(--muted); font-family: var(--font-mono); font-size: 16px; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .fig .tag { fill: var(--accent); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Pointers</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 10</div>
+    <h1>Pointers</h1>
+    <div class="sub">Variables that hold memory addresses</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 6 (arrays in memory) &amp; Lecture 7 (references)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what a pointer is: a variable that stores an <span class="hl">address</span>.</li>
+      <li>Use the address-of operator <code class="inline">&amp;</code> and the dereference operator <code class="inline">*</code>.</li>
+      <li>Declare a pointer and make it point to a variable.</li>
+      <li>Read and change a value <i>through</i> a pointer.</li>
+      <li>Pass a pointer to a function and use pointers with arrays.</li>
+      <li>Avoid null, wild, and dangling pointer mistakes.</li>
+    </ul>
+  </section>
+
+  <!-- 3. BRIDGE / WHY -->
+  <section class="slide">
+    <div class="kicker">02 · Why Pointers</div>
+    <h2>Every Variable Has an Address</h2>
+    <p class="lead">In Lecture 6 you saw that array boxes live at numbered <b>addresses</b> in memory. Every variable has one. A <b>pointer</b> is simply a variable that stores such an address.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>You have already met this idea</h3>
+        <ul class="check">
+          <li>Arrays sit at addresses in memory (Lecture 6).</li>
+          <li>References let a function change the caller's variable (Lecture 7).</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Pointers go one step further</h3>
+        <p>They let you <b>hold an address in a variable</b>, pass it around, and reach the value it points to. This powers arrays, function output, and dynamic memory.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Python note:</b> Python hides addresses from you; C++ lets you work with them directly.</p>
+  </section>
+
+  <!-- 4. WHAT IS A POINTER + FIGURE -->
+  <section class="slide">
+    <div class="kicker">03 · The Picture</div>
+    <h2>What a Pointer Looks Like</h2>
+    <p class="lead">A pointer is a box that stores the <b>address</b> of another box. Here <code class="inline">p</code> holds the address of <code class="inline">x</code>, so we say "<code class="inline">p</code> points to <code class="inline">x</code>".</p>
+    <svg class="fig" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" aria-label="Pointer p stores the address of variable x">
+      <defs>
+        <marker id="ap" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <!-- pointer box -->
+      <text class="name" x="170" y="58">int *p</text>
+      <rect class="box" x="70" y="74" width="200" height="68"/>
+      <text class="val" x="170" y="116">1000</text>
+      <text class="addr" x="170" y="166">p lives at address 2000</text>
+      <!-- variable box -->
+      <text class="name" x="640" y="58">int x</text>
+      <rect class="box-hi" x="540" y="74" width="200" height="68"/>
+      <text class="val" x="640" y="116">42</text>
+      <text class="addr" x="640" y="166">x lives at address 1000</text>
+      <!-- arrow -->
+      <path class="edge" d="M270,108 C380,108 430,108 540,108" marker-end="url(#ap)"/>
+      <text class="tag" x="405" y="96">p holds the address of x</text>
+    </svg>
+    <p style="margin-top:6px;"><code class="inline">p</code> does not hold 42 — it holds <span class="hl">1000</span>, the address where 42 is stored.</p>
+  </section>
+
+  <!-- 5. ADDRESS-OF + DECLARE -->
+  <section class="slide">
+    <div class="kicker">04 · Two Operators</div>
+    <h2>Address-of <code class="inline" style="font-size:.8em;">&amp;</code> and Declaring a Pointer</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int x = 42;
+
+    // &amp;x is "the address of x"
+    int *p = &amp;x;        // p points to x
+
+    cout &lt;&lt; x  &lt;&lt; endl;  // 42       (the value)
+    cout &lt;&lt; &amp;x &lt;&lt; endl;  // address  (e.g. 0x...)
+    cout &lt;&lt; p  &lt;&lt; endl;  // same address
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">int *p;</code> declares <code class="inline">p</code> as a <b>pointer to an int</b>. The <code class="inline">*</code> marks it as a pointer.</li>
+          <li><code class="inline">&amp;x</code> gives the <b>address</b> of <code class="inline">x</code>.</li>
+          <li>So <code class="inline">p = &amp;x</code> stores x's address in p.</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Read it as:</b> "p is a pointer that holds the address of x."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. DEREFERENCE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">05 · Following the Pointer</div>
+    <h2>Dereference with <code class="inline" style="font-size:.8em;">*</code></h2>
+    <p class="lead">Putting <code class="inline">*</code> before a pointer means "go to that address and use the value there". This is called <b>dereferencing</b>.</p>
+    <svg class="fig" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" aria-label="Dereferencing p reaches the value of x">
+      <defs>
+        <marker id="ad" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="box" x="70" y="60" width="180" height="64"/>
+      <text class="name" x="160" y="48">p</text>
+      <text class="val" x="160" y="100">1000</text>
+      <rect class="box-hi" x="560" y="60" width="180" height="64"/>
+      <text class="name" x="650" y="48">x</text>
+      <text class="val" x="650" y="100">42</text>
+      <path class="edge" d="M250,92 C380,92 440,92 560,92" marker-end="url(#ad)"/>
+      <text class="tag" x="405" y="80">*p follows the arrow</text>
+      <text class="cap" x="650" y="150">*p is 42 · writing *p = 100 changes x to 100</text>
+    </svg>
+    <p style="margin-top:6px;"><code class="inline">p</code> is the address; <code class="inline">*p</code> is the value at that address.</p>
+  </section>
+
+  <!-- 7. WORKED 1 BASICS -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Reading and Changing Through a Pointer</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int x = 42;
+    int *p = &amp;x;        // p points to x
+
+    cout &lt;&lt; *p &lt;&lt; endl;  // 42  (value via pointer)
+
+    *p = 100;           // change x THROUGH the pointer
+    cout &lt;&lt; x &lt;&lt; endl;   // 100 (x itself changed)
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">42
+100</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">*p</code> reads the value of <code class="inline">x</code>. Then <code class="inline">*p = 100</code> writes through the pointer, so <code class="inline">x</code> itself becomes 100.</p>
+        <p><b>Key:</b> the pointer and the variable share the same box.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. NULL POINTERS -->
+  <section class="slide">
+    <div class="kicker">06 · Pointing at Nothing</div>
+    <h2>Null Pointers</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int *p = nullptr;   // points to nothing (safe value)
+
+    if (p != nullptr) {
+        cout &lt;&lt; *p &lt;&lt; endl;   // only use it if valid
+    } else {
+        cout &lt;&lt; "p points to nothing" &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">p points to nothing</div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">nullptr</code> is a special "points to nothing" value.</li>
+          <li>Use it to mark a pointer that is not ready yet.</li>
+          <li><b>Never</b> dereference a null pointer — it crashes the program.</li>
+        </ul>
+        <p><b>Habit:</b> check <code class="inline">if (p != nullptr)</code> before using <code class="inline">*p</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. POINTERS AND FUNCTIONS -->
+  <section class="slide">
+    <div class="kicker">07 · Pointers Into Functions</div>
+    <h2>Changing a Caller's Variable</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+// receives the ADDRESS of a number
+void addOne(int *p) {
+    *p = *p + 1;     // change the original
+}
+
+int main() {
+    int n = 5;
+    addOne(&amp;n);      // pass the address of n
+    cout &lt;&lt; n &lt;&lt; endl;  // 6
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">6</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the function gets the <i>address</i> of <code class="inline">n</code>, so changing <code class="inline">*p</code> changes <code class="inline">n</code> back in <code class="inline">main</code>.</p>
+        <p><b>Compare:</b> this does the same job as a <span class="hl">reference</span> (Lecture 7). References are simpler; pointers are more flexible.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. WORKED 2 SWAP -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Swap Using Pointers</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+void swap(int *a, int *b) {
+    int temp = *a;   // save the value a points to
+    *a = *b;         // a's box gets b's value
+    *b = temp;       // b's box gets the saved value
+}
+
+int main() {
+    int x = 1, y = 2;
+    swap(&amp;x, &amp;y);    // pass both addresses
+    cout &lt;&lt; x &lt;&lt; " " &lt;&lt; y &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">2 1</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the function swaps the values <i>through</i> the two pointers, so the change is seen in <code class="inline">main</code>.</p>
+        <p><b>Notice:</b> we pass <code class="inline">&amp;x</code> and <code class="inline">&amp;y</code>, and inside we work with <code class="inline">*a</code> and <code class="inline">*b</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. POINTERS AND ARRAYS + FIGURE -->
+  <section class="slide">
+    <div class="kicker">08 · A Close Relationship</div>
+    <h2>Pointers and Arrays</h2>
+    <p class="lead">An array's name is really the <b>address of its first element</b>. So a pointer can step through an array.</p>
+    <svg class="fig" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg" aria-label="Pointer p points to first array element">
+      <defs>
+        <marker id="aa" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="box-hi" x="240" y="60" width="150" height="64"/>
+      <rect class="box"    x="410" y="60" width="150" height="64"/>
+      <rect class="box"    x="580" y="60" width="150" height="64"/>
+      <text class="val" x="315" y="102">10</text>
+      <text class="val" x="485" y="102">20</text>
+      <text class="val" x="655" y="102">30</text>
+      <text class="idx" x="315" y="146">arr[0]</text>
+      <text class="idx" x="485" y="146">arr[1]</text>
+      <text class="idx" x="655" y="146">arr[2]</text>
+      <text class="addr" x="315" y="172">1000</text>
+      <text class="addr" x="485" y="172">1004</text>
+      <text class="addr" x="655" y="172">1008</text>
+      <rect class="box" x="60" y="60" width="130" height="64"/>
+      <text class="name" x="125" y="48">p</text>
+      <text class="val" x="125" y="102">1000</text>
+      <path class="edge" d="M190,92 L240,92" marker-end="url(#aa)"/>
+      <text class="cap" x="410" y="214">p = arr · *p is 10 · *(p+1) is 20 · *(p+2) is 30</text>
+    </svg>
+  </section>
+
+  <!-- 12. WORKED 3 WALK ARRAY -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Walking an Array With a Pointer</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[3] = {10, 20, 30};
+    int *p = arr;        // points to arr[0]
+
+    for (int i = 0; i &lt; 3; i++) {
+        cout &lt;&lt; *(p + i) &lt;&lt; " ";  // value at p + i
+    }
+    cout &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10 20 30</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">p + i</code> moves to the i-th element, and <code class="inline">*(p + i)</code> reads its value.</p>
+        <p><b>Note:</b> <code class="inline">p[i]</code> means the same as <code class="inline">*(p + i)</code> — array indexing is pointer math underneath.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. NEW / DELETE -->
+  <section class="slide">
+    <div class="kicker">09 · Dynamic Memory (a First Look)</div>
+    <h2><code class="inline" style="font-size:.8em;">new</code> and <code class="inline" style="font-size:.8em;">delete</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    // ask for one int while the program runs
+    int *p = new int;
+
+    *p = 50;                 // use it through the pointer
+    cout &lt;&lt; *p &lt;&lt; endl;       // 50
+
+    delete p;                // give the memory back
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">50</div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">new</code> reserves memory and returns its address.</li>
+          <li><code class="inline">delete</code> frees that memory when you are done.</li>
+          <li><b>Rule:</b> every <code class="inline">new</code> needs a matching <code class="inline">delete</code>.</li>
+        </ul>
+        <p><b>Why:</b> forgetting <code class="inline">delete</code> wastes memory (a "memory leak").</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. POINTERS VS REFERENCES -->
+  <section class="slide">
+    <div class="kicker">10 · Two Similar Tools</div>
+    <h2>Pointers vs. References</h2>
+    <table class="cmp">
+      <tr><th>Feature</th><th>Reference (&amp;)</th><th>Pointer (*)</th></tr>
+      <tr><td>What it is</td><td>another name for a variable</td><td>a variable holding an address</td></tr>
+      <tr><td>Must be set at start</td><td>yes, always</td><td>no (but should be)</td></tr>
+      <tr><td>Can be null</td><td>no</td><td>yes (<code class="inline">nullptr</code>)</td></tr>
+      <tr><td>Can point elsewhere later</td><td>no</td><td>yes</td></tr>
+      <tr><td>Need <code class="inline">*</code> to read value</td><td>no</td><td>yes (<code class="inline">*p</code>)</td></tr>
+    </table>
+    <p style="margin-top:12px;"><b>Guideline:</b> prefer references when you simply need to share a variable; use pointers when you need to repoint, allow "nothing", or manage dynamic memory.</p>
+  </section>
+
+  <!-- 15. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">11 · Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Uninitialized (wild) pointer</b><br><code class="inline">int *p; *p = 5;</code> writes to a random place</li>
+          <li><b>Dereferencing null</b><br><code class="inline">*p</code> when <code class="inline">p</code> is <code class="inline">nullptr</code> crashes</li>
+          <li><b>Forgetting <code class="inline">&amp;</code></b><br><code class="inline">int *p = x;</code> needs <code class="inline">&amp;x</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Confusing <code class="inline">*</code></b><br>in a declaration it marks a pointer; in code it dereferences</li>
+          <li><b>Dangling pointer</b><br>pointing to a local variable that has ended</li>
+          <li><b>Leak</b><br>using <code class="inline">new</code> without a matching <code class="inline">delete</code></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Safe habit:</b> start a pointer at <code class="inline">nullptr</code>, and check before you dereference.</p>
+  </section>
+
+  <!-- 16. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">12 · Side by Side</div>
+    <h2>Python vs. C++</h2>
+    <table class="cmp">
+      <tr><th>Idea</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Address of a variable</td><td class="py">hidden from you</td><td class="cpp">&amp;x</td></tr>
+      <tr><td>Hold an address</td><td class="py">not available</td><td class="cpp">int *p = &amp;x;</td></tr>
+      <tr><td>Value at an address</td><td class="py">automatic</td><td class="cpp">*p</td></tr>
+      <tr><td>Change caller's variable</td><td class="py">return a new value</td><td class="cpp">pass a pointer or reference</td></tr>
+      <tr><td>Manage memory</td><td class="py">automatic</td><td class="cpp">new / delete</td></tr>
+    </table>
+    <p style="margin-top:12px;"><b>Takeaway:</b> Python manages memory and addresses for you. C++ gives you direct control — powerful, but you must be careful.</p>
+  </section>
+
+  <!-- 17. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">13 · Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Declare <code class="inline">int x = 7;</code> and a pointer <code class="inline">p</code> to it. Print <code class="inline">x</code>, the address <code class="inline">&amp;x</code>, and the value <code class="inline">*p</code>.</li>
+      <li>Use a pointer to change <code class="inline">x</code> to 99. Print <code class="inline">x</code> before and after the change.</li>
+      <li>Write a function <code class="inline">void doubleIt(int *p)</code> that doubles the value the pointer points to. Test it in <code class="inline">main</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 18. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">13 · Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Given <code class="inline">int a[5]</code>, use a pointer to print all five elements.</li>
+      <li>Write a function <code class="inline">void swap(int *a, int *b)</code> that swaps two integers using pointers.</li>
+      <li>Use <code class="inline">new</code> to create one <code class="inline">int</code>, store 50 in it, print it, then <code class="inline">delete</code> it.</li>
+    </ul>
+    <p style="margin-top:12px;"><b>Tip:</b> for exercise 4, set <code class="inline">int *p = a;</code> then use <code class="inline">*(p + i)</code>.</p>
+  </section>
+
+  <!-- 19. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">14 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Print value, address, *p</h3>
+<pre><code>int x = 7;
+int *p = &amp;x;
+cout &lt;&lt; x  &lt;&lt; endl;   // 7
+cout &lt;&lt; &amp;x &lt;&lt; endl;   // address
+cout &lt;&lt; *p &lt;&lt; endl;   // 7</code></pre>
+        <h3>2 · Change through pointer</h3>
+<pre><code>int x = 10;
+int *p = &amp;x;
+cout &lt;&lt; x &lt;&lt; endl;   // 10
+*p = 99;
+cout &lt;&lt; x &lt;&lt; endl;   // 99</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · doubleIt function</h3>
+<pre><code>void doubleIt(int *p) {
+    *p = *p * 2;
+}
+
+int main() {
+    int n = 8;
+    doubleIt(&amp;n);
+    cout &lt;&lt; n &lt;&lt; endl;   // 16
+}</code></pre>
+        <div class="out-label">Output</div>
+        <div class="output">16</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">14 · Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Print array via pointer</h3>
+<pre><code>int a[5] = {1, 2, 3, 4, 5};
+int *p = a;
+for (int i = 0; i &lt; 5; i++) {
+    cout &lt;&lt; *(p + i) &lt;&lt; " ";
+}
+cout &lt;&lt; endl;   // 1 2 3 4 5</code></pre>
+        <h3>5 · Swap with pointers</h3>
+<pre><code>void swap(int *a, int *b) {
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+// swap(&amp;x, &amp;y);</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · new and delete</h3>
+<pre><code>int *p = new int;   // reserve memory
+*p = 50;
+cout &lt;&lt; *p &lt;&lt; endl;  // 50
+delete p;           // free memory</code></pre>
+        <div class="out-label">Output</div>
+        <div class="output">50</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">15 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>pointer</b> is a variable that stores the <b>address</b> of another variable.</li>
+      <li><code class="inline">&amp;x</code> gives an address; <code class="inline">*p</code> gives the value at an address (dereferencing).</li>
+      <li><code class="inline">int *p = &amp;x;</code> makes <code class="inline">p</code> point to <code class="inline">x</code>; <code class="inline">*p = 100;</code> changes <code class="inline">x</code>.</li>
+      <li>Pass a pointer to let a function change the caller's variable.</li>
+      <li>An array name is the address of its first element, so pointers can walk arrays.</li>
+      <li>Start pointers at <code class="inline">nullptr</code>, never dereference null, and match every <code class="inline">new</code> with a <code class="inline">delete</code>.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Pointers are the foundation for dynamic data structures you will meet next.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.xXa-fA-F]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>

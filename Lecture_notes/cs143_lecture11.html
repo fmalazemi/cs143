@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Multidimensional Arrays — Lecture 11</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .py { color: var(--accent); font-family: var(--font-mono); }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .cell-hi { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 3; }
+  .fig .val { fill: var(--text); font-family: var(--font-mono); font-size: 25px; font-weight: 700; text-anchor: middle; }
+  .fig .idx { fill: var(--muted); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .addr { fill: var(--accent); font-family: var(--font-mono); font-size: 14px; text-anchor: middle; }
+  .fig .name { fill: var(--primary); font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .grp { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .fig .grpT { fill: var(--accent); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 62px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 44px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Multidimensional Arrays</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 11</div>
+    <h1>Multidimensional Arrays</h1>
+    <div class="sub">Storing data in rows and columns — a grid</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 5 (nested loops) &amp; Lecture 6 (arrays)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">01 · Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what a 2D array is: a grid of rows and columns.</li>
+      <li>Declare and initialize a two-dimensional array.</li>
+      <li>Access any element with <code class="inline">a[row][col]</code>.</li>
+      <li>Fill, read, and print a 2D array with nested loops.</li>
+      <li>Describe how a 2D array is stored in memory.</li>
+      <li>Pass a 2D array to a function correctly.</li>
+    </ul>
+  </section>
+
+  <!-- 3. NEW CONCEPT / BRIDGE -->
+  <section class="slide">
+    <div class="kicker">02 · A New Idea — Built From Old Ones</div>
+    <h2>From 1D to 2D</h2>
+    <p class="lead">This topic was <b>not</b> in your Python course, so it is new. The good news: it is built from two things you already know in C++.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>You know: a 1D array</h3>
+        <p>A single row of boxes (Lecture 6).</p>
+<pre><code>int row[4];   // one line of 4 boxes</code></pre>
+      </div>
+      <div class="card">
+        <h3>You know: nested loops</h3>
+        <p>A loop inside a loop (Lecture 5).</p>
+<pre><code>for (rows)
+    for (cols)  // visit each cell</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Put them together:</b> a <span class="hl">2D array</span> is a grid of rows and columns, and <span class="hl">nested loops</span> are how we move through it.</p>
+  </section>
+
+  <!-- 4. WHAT IS A 2D ARRAY + FIGURE -->
+  <section class="slide">
+    <div class="kicker">03 · The Picture</div>
+    <h2>A 2D Array Is a Grid</h2>
+    <p class="lead">A two-dimensional array has <b>rows</b> and <b>columns</b>. Each cell is found by two indices: first the row, then the column. Both start at 0.</p>
+    <svg class="fig" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" aria-label="2D array grid with row and column indices">
+      <text class="name" x="40" y="40">int m[2][3]</text>
+      <!-- column headers -->
+      <text class="idx" x="240" y="58">col [0]</text>
+      <text class="idx" x="360" y="58">col [1]</text>
+      <text class="idx" x="480" y="58">col [2]</text>
+      <!-- row headers -->
+      <text class="idx" x="150" y="125">row [0]</text>
+      <text class="idx" x="150" y="205">row [1]</text>
+      <!-- grid cells -->
+      <rect class="cell" x="180" y="70"  width="120" height="80"/>
+      <rect class="cell" x="300" y="70"  width="120" height="80"/>
+      <rect class="cell" x="420" y="70"  width="120" height="80"/>
+      <rect class="cell" x="180" y="150" width="120" height="80"/>
+      <rect class="cell" x="300" y="150" width="120" height="80"/>
+      <rect class="cell-hi" x="420" y="150" width="120" height="80"/>
+      <text class="val" x="240" y="120">1</text>
+      <text class="val" x="360" y="120">2</text>
+      <text class="val" x="480" y="120">3</text>
+      <text class="val" x="240" y="200">4</text>
+      <text class="val" x="360" y="200">5</text>
+      <text class="val" x="480" y="200">6</text>
+      <text class="cap" x="360" y="270">m[row][col] — for example, m[1][2] is the highlighted 6</text>
+    </svg>
+  </section>
+
+  <!-- 5. DECLARE + INIT -->
+  <section class="slide">
+    <div class="kicker">04 · The Syntax</div>
+    <h2>Declaring and Filling a Grid</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// 1. declare: 2 rows, 3 columns (empty)
+int grid[2][3];
+
+// 2. declare AND give values, row by row
+int m[2][3] = {
+    {1, 2, 3},   // row 0
+    {4, 5, 6}    // row 1
+};
+
+// put a value into one cell
+grid[0][1] = 9;   // row 0, column 1</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>The first number is the <b>row</b> count, the second is the <b>column</b> count.</li>
+          <li>Each inner <code class="inline">{ }</code> fills one row.</li>
+          <li>Both counts must be known in advance (fixed size).</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Read it as:</b> "m is 2 rows of 3 integers each — 6 cells in total."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. ACCESS -->
+  <section class="slide">
+    <div class="kicker">05 · Reaching a Cell</div>
+    <h2>Accessing Elements</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int m[2][3] = {
+        {1, 2, 3},
+        {4, 5, 6}
+    };
+
+    cout &lt;&lt; m[0][0] &lt;&lt; endl;  // 1  (row 0, col 0)
+    cout &lt;&lt; m[1][2] &lt;&lt; endl;  // 6  (row 1, col 2)
+
+    m[0][2] = 99;            // change one cell
+    cout &lt;&lt; m[0][2] &lt;&lt; endl;  // 99
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1
+6
+99</div>
+        <ul style="margin-top:12px;">
+          <li>Always write the <b>row first</b>, then the column.</li>
+          <li>Valid rows are 0 to (rows − 1); valid columns are 0 to (cols − 1).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. NESTED LOOPS FILL/PRINT -->
+  <section class="slide">
+    <div class="kicker">06 · The Main Skill</div>
+    <h2>Looping Over a Grid</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int m[2][3] = {{1,2,3},{4,5,6}};
+
+// outer loop = rows, inner loop = columns
+for (int r = 0; r &lt; 2; r++) {
+    for (int c = 0; c &lt; 3; c++) {
+        cout &lt;&lt; m[r][c] &lt;&lt; " ";
+    }
+    cout &lt;&lt; endl;   // new line after each row
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 3 
+4 5 6 </div>
+        <p style="margin-top:12px;"><b>The pattern:</b> the outer loop picks a row; the inner loop visits every column in that row.</p>
+        <p><b>Key:</b> the <code class="inline">endl</code> goes after the inner loop, so each row prints on its own line.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Read and Print a Grid</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int g[2][2];
+
+    // read 4 numbers into the grid
+    for (int r = 0; r &lt; 2; r++)
+        for (int c = 0; c &lt; 2; c++)
+            cin &gt;&gt; g[r][c];
+
+    // print as a grid
+    for (int r = 0; r &lt; 2; r++) {
+        for (int c = 0; c &lt; 2; c++)
+            cout &lt;&lt; g[r][c] &lt;&lt; " ";
+        cout &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If user types 1 2 3 4</div>
+        <div class="output">1 2 
+3 4 </div>
+        <p style="margin-top:14px;"><b>What it does:</b> the first nested loop fills the grid in row order; the second prints it back as a neat table.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. MEMORY ROW-MAJOR + FIGURE -->
+  <section class="slide">
+    <div class="kicker">07 · Under the Hood</div>
+    <h2>How a 2D Array Lives in Memory</h2>
+    <p class="lead">Memory is really one long line. C++ stores a 2D array <b>row by row</b> — all of row 0, then all of row 1. This is called <span class="hl">row-major</span> order.</p>
+    <svg class="fig" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" aria-label="2D array stored row by row in memory">
+      <!-- group labels -->
+      <text class="grpT" x="220" y="44">row 0</text>
+      <line class="grp" x1="60" y1="54" x2="380" y2="54"/>
+      <text class="grpT" x="540" y="44">row 1</text>
+      <line class="grp" x1="380" y1="54" x2="700" y2="54"/>
+      <!-- boxes -->
+      <rect class="cell" x="60"  y="66" width="100" height="64"/>
+      <rect class="cell" x="160" y="66" width="100" height="64"/>
+      <rect class="cell" x="260" y="66" width="100" height="64"/>
+      <rect class="cell" x="380" y="66" width="100" height="64"/>
+      <rect class="cell" x="480" y="66" width="100" height="64"/>
+      <rect class="cell" x="580" y="66" width="100" height="64"/>
+      <text class="val" x="110" y="106">1</text>
+      <text class="val" x="210" y="106">2</text>
+      <text class="val" x="310" y="106">3</text>
+      <text class="val" x="430" y="106">4</text>
+      <text class="val" x="530" y="106">5</text>
+      <text class="val" x="630" y="106">6</text>
+      <text class="idx" x="110" y="150">[0][0]</text>
+      <text class="idx" x="210" y="150">[0][1]</text>
+      <text class="idx" x="310" y="150">[0][2]</text>
+      <text class="idx" x="430" y="150">[1][0]</text>
+      <text class="idx" x="530" y="150">[1][1]</text>
+      <text class="idx" x="630" y="150">[1][2]</text>
+      <text class="addr" x="110" y="174">1000</text>
+      <text class="addr" x="210" y="174">1004</text>
+      <text class="addr" x="310" y="174">1008</text>
+      <text class="addr" x="430" y="174">1012</text>
+      <text class="addr" x="530" y="174">1016</text>
+      <text class="addr" x="630" y="174">1020</text>
+      <text class="cap" x="380" y="206" style="font-family:var(--font-mono); fill:var(--primary);">address of m[r][c] = base + (r × cols + c) × 4</text>
+    </svg>
+  </section>
+
+  <!-- 10. WORKED 2 SUMS -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Total and Row Sums</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int m[2][3] = {{1,2,3},{4,5,6}};
+    int total = 0;
+
+    for (int r = 0; r &lt; 2; r++) {
+        int rowSum = 0;
+        for (int c = 0; c &lt; 3; c++) {
+            rowSum += m[r][c];   // add this row
+        }
+        cout &lt;&lt; "Row " &lt;&lt; r &lt;&lt; " sum: " &lt;&lt; rowSum &lt;&lt; endl;
+        total += rowSum;
+    }
+    cout &lt;&lt; "Total: " &lt;&lt; total &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Row 0 sum: 6
+Row 1 sum: 15
+Total: 21</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the inner loop adds one row; the outer loop adds each row's total into the grand total.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. WORKED 3 LARGEST -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Find the Largest Value</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int m[2][3] = {{4, 9, 2},{7, 1, 8}};
+    int biggest = m[0][0];   // start with the first cell
+
+    for (int r = 0; r &lt; 2; r++)
+        for (int c = 0; c &lt; 3; c++)
+            if (m[r][c] &gt; biggest)
+                biggest = m[r][c];
+
+    cout &lt;&lt; "Largest = " &lt;&lt; biggest &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Largest = 9</div>
+        <p style="margin-top:14px;"><b>What it does:</b> it assumes the first cell is the largest, then checks every cell and updates when it finds a bigger one.</p>
+        <p><b>Reuse:</b> the same idea as the 1D "find the largest" — just with two loops.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. PASSING TO FUNCTIONS -->
+  <section class="slide">
+    <div class="kicker">08 · An Important Rule</div>
+    <h2>Passing a 2D Array to a Function</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+// the COLUMN count must be given; rows can be passed in
+void printGrid(int g[][3], int rows) {
+    for (int r = 0; r &lt; rows; r++) {
+        for (int c = 0; c &lt; 3; c++)
+            cout &lt;&lt; g[r][c] &lt;&lt; " ";
+        cout &lt;&lt; endl;
+    }
+}
+
+int main() {
+    int m[2][3] = {{1,2,3},{4,5,6}};
+    printGrid(m, 2);
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 3 
+4 5 6 </div>
+        <p style="margin-top:12px;"><b>The rule:</b> you may leave the row count empty, but you <span class="hl">must</span> give the column count: <code class="inline">int g[][3]</code>.</p>
+        <p><b>Why:</b> C++ needs the column count to find each cell in memory (row-major).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. HIGHER DIMENSIONS -->
+  <section class="slide">
+    <div class="kicker">09 · Beyond Two</div>
+    <h2>Three Dimensions and More</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>A 3D array</h3>
+<pre><code>// 2 layers, 3 rows, 4 columns
+int cube[2][3][4];
+
+cube[0][1][2] = 5;   // three indices
+</code></pre>
+      </div>
+      <div>
+        <p class="lead">You can add more dimensions. A 3D array is like a stack of grids (layers).</p>
+        <ul>
+          <li>2D needs <b>two</b> loops; 3D needs <b>three</b> nested loops.</li>
+          <li>Each extra dimension adds one index and one loop.</li>
+        </ul>
+        <p><b>Advice:</b> 2D covers most needs. Use 3D only when the data is truly three-dimensional (for example, layers of a grid).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">10 · Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Swapping the indices</b><br><code class="inline">m[col][row]</code> instead of <code class="inline">m[row][col]</code></li>
+          <li><b>Out of range</b><br>for <code class="inline">m[2][3]</code>, rows are 0–1 and columns are 0–2</li>
+          <li><b>endl in the wrong place</b><br>inside the inner loop it breaks the line too often</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Mismatched braces</b><br>each row needs its own <code class="inline">{ }</code> in the initializer</li>
+          <li><b>Missing column count</b><br>a function parameter needs <code class="inline">int g[][cols]</code></li>
+          <li><b>Mixing up the counts</b><br>the first size is rows, the second is columns</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">11 · A Familiar Comparison</div>
+    <h2>Like a Python List of Lists</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--accent);">Python (list of lists)</h3>
+<pre><code>m = [[1, 2, 3],
+     [4, 5, 6]]
+print(m[1][2])   # 6</code></pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--primary);">C++ (2D array)</h3>
+<pre><code>int m[2][3] = {{1,2,3},
+               {4,5,6}};
+cout &lt;&lt; m[1][2];  // 6</code></pre>
+      </div>
+    </div>
+    <p style="margin-top:10px;">The access <code class="inline">m[row][col]</code> is the <b>same</b> in both. The difference: a C++ 2D array is a <span class="hl">fixed rectangle</span> of one type, while a Python list of lists can grow and can have rows of different lengths.</p>
+  </section>
+
+  <!-- 16. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">12 · Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Declare a <b>3×3</b> array, read 9 numbers into it, and print it as a grid.</li>
+      <li>Read a <b>2×3</b> array and print the <b>sum of all</b> elements.</li>
+      <li>Read a <b>3×3</b> array and print the <b>sum of each row</b>.</li>
+    </ul>
+  </section>
+
+  <!-- 17. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">12 · Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Read a <b>3×3</b> array and print the <b>largest</b> element.</li>
+      <li>Build a <b>4×4</b> array where each cell equals <code class="inline">(row + 1) × (col + 1)</code>, and print it (a multiplication table).</li>
+      <li>Read two <b>2×2</b> matrices and print their <b>sum</b> (add matching cells).</li>
+    </ul>
+    <p style="margin-top:12px;"><b>Tip:</b> for exercise 6, add <code class="inline">a[r][c] + b[r][c]</code> for every cell.</p>
+  </section>
+
+  <!-- 18. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">13 · Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Read and print 3×3</h3>
+<pre><code>int g[3][3];
+for (int r = 0; r &lt; 3; r++)
+    for (int c = 0; c &lt; 3; c++)
+        cin &gt;&gt; g[r][c];
+
+for (int r = 0; r &lt; 3; r++) {
+    for (int c = 0; c &lt; 3; c++)
+        cout &lt;&lt; g[r][c] &lt;&lt; " ";
+    cout &lt;&lt; endl;
+}</code></pre>
+        <h3>2 · Sum of all (2×3)</h3>
+<pre><code>int m[2][3], sum = 0;
+for (int r = 0; r &lt; 2; r++)
+    for (int c = 0; c &lt; 3; c++) {
+        cin &gt;&gt; m[r][c];
+        sum += m[r][c];
+    }
+cout &lt;&lt; "Sum = " &lt;&lt; sum &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Sum of each row (3×3)</h3>
+<pre><code>int m[3][3];
+for (int r = 0; r &lt; 3; r++)
+    for (int c = 0; c &lt; 3; c++)
+        cin &gt;&gt; m[r][c];
+
+for (int r = 0; r &lt; 3; r++) {
+    int rowSum = 0;
+    for (int c = 0; c &lt; 3; c++)
+        rowSum += m[r][c];
+    cout &lt;&lt; "Row " &lt;&lt; r &lt;&lt; ": " &lt;&lt; rowSum &lt;&lt; endl;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">13 · Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Largest in 3×3</h3>
+<pre><code>int m[3][3];
+for (int r = 0; r &lt; 3; r++)
+    for (int c = 0; c &lt; 3; c++)
+        cin &gt;&gt; m[r][c];
+
+int big = m[0][0];
+for (int r = 0; r &lt; 3; r++)
+    for (int c = 0; c &lt; 3; c++)
+        if (m[r][c] &gt; big) big = m[r][c];
+cout &lt;&lt; "Largest = " &lt;&lt; big &lt;&lt; endl;</code></pre>
+        <h3>5 · Multiplication table (4×4)</h3>
+<pre><code>int t[4][4];
+for (int r = 0; r &lt; 4; r++) {
+    for (int c = 0; c &lt; 4; c++) {
+        t[r][c] = (r + 1) * (c + 1);
+        cout &lt;&lt; t[r][c] &lt;&lt; "\t";
+    }
+    cout &lt;&lt; endl;
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · Add two 2×2 matrices</h3>
+<pre><code>int a[2][2], b[2][2];
+for (int r = 0; r &lt; 2; r++)
+    for (int c = 0; c &lt; 2; c++) cin &gt;&gt; a[r][c];
+for (int r = 0; r &lt; 2; r++)
+    for (int c = 0; c &lt; 2; c++) cin &gt;&gt; b[r][c];
+
+for (int r = 0; r &lt; 2; r++) {
+    for (int c = 0; c &lt; 2; c++)
+        cout &lt;&lt; a[r][c] + b[r][c] &lt;&lt; " ";
+    cout &lt;&lt; endl;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">14 · Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>2D array</b> is a grid with rows and columns: <code class="inline">int m[rows][cols]</code>.</li>
+      <li>Access a cell with <code class="inline">m[row][col]</code> — row first, both starting at 0.</li>
+      <li>Use <b>nested loops</b> (outer = rows, inner = columns) to fill, read, and print.</li>
+      <li>In memory, a 2D array is stored <b>row by row</b> (row-major order).</li>
+      <li>When passing to a function, the <b>column count is required</b>: <code class="inline">int g[][cols]</code>.</li>
+      <li>More dimensions add one index and one loop each — but 2D covers most needs.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Grids are everywhere:</b> tables, images, game boards, and spreadsheets all use 2D arrays.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
