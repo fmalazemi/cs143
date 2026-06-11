@@ -60,12 +60,14 @@ int grid[2][3];     // 2 rows, 3 columns (empty)
 
 You can fill it at the same time using nested braces — one inner `{ }` per row.
 
+{% raw %}
 ```cpp
 int m[2][3] = {
     {1, 2, 3},   // row 0
     {4, 5, 6}    // row 1
 };
 ```
+{% endraw %}
 
 The first number is the row count and the second is the column count, so `m` has 2 × 3 = 6 cells in total. Both counts must be known when you write the code.
 
@@ -75,6 +77,7 @@ The first number is the row count and the second is the column count, so `m` has
 
 Reach any cell with `a[row][col]` — always the row first, then the column.
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -93,6 +96,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -109,6 +113,7 @@ Valid rows run from 0 to (rows − 1), and valid columns run from 0 to (cols −
 
 To visit every cell, use **nested loops**: the outer loop chooses a row, and the inner loop visits each column in that row.
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -125,6 +130,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -143,6 +149,7 @@ for (int r = 0; r < 2; r++)
 
 Here is a complete program that totals each row and the whole grid:
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -163,6 +170,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -200,6 +208,7 @@ This is also **why** a function needs to know the number of columns (see the nex
 
 When you pass a 2D array to a function, you may leave the **row** count empty, but you **must** give the **column** count.
 
+{% raw %}
 ```cpp
 #include <iostream>
 using namespace std;
@@ -219,6 +228,7 @@ int main() {
     return 0;
 }
 ```
+{% endraw %}
 
 **Output:**
 ```
@@ -234,11 +244,13 @@ The column count is required because C++ stores the array in row-major order and
 
 You can add more dimensions. A **3D array** is like a stack of grids (layers).
 
+{% raw %}
 ```cpp
 int cube[2][3][4];     // 2 layers, 3 rows, 4 columns
 
 cube[0][1][2] = 5;     // three indices now
 ```
+{% endraw %}
 
 Each extra dimension adds one index and one nested loop: 2D needs two loops, 3D needs three. In practice, 2D covers most needs; use 3D only when the data is truly three-dimensional.
 
@@ -336,12 +348,14 @@ int m[2][3] = {1, 2, 3, 4, 5, 6, 7};   // too many values
 ```
 
 **Correct:**
+{% raw %}
 ```cpp
 int m[2][3] = {
     {1, 2, 3},
     {4, 5, 6}
 };
 ```
+{% endraw %}
 
 **Explanation:** a 2×3 array holds exactly 6 values, grouped one row per inner `{ }`. Giving the wrong number of values is an error.
 
@@ -356,6 +370,7 @@ Try each one before opening the solution.
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 int g[3][3];
 for (int r = 0; r < 3; r++)
@@ -368,6 +383,7 @@ for (int r = 0; r < 3; r++) {
     cout << endl;
 }
 ```
+{% endraw %}
 </details>
 
 **Exercise 2.** Read a 2×3 array and print the sum of all elements.
@@ -375,6 +391,7 @@ for (int r = 0; r < 3; r++) {
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 int m[2][3], sum = 0;
 for (int r = 0; r < 2; r++)
@@ -384,6 +401,7 @@ for (int r = 0; r < 2; r++)
     }
 cout << "Sum = " << sum << endl;
 ```
+{% endraw %}
 </details>
 
 **Exercise 3.** Read a 3×3 array and print the sum of each row.
@@ -391,6 +409,7 @@ cout << "Sum = " << sum << endl;
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 int m[3][3];
 for (int r = 0; r < 3; r++)
@@ -404,6 +423,7 @@ for (int r = 0; r < 3; r++) {
     cout << "Row " << r << ": " << rowSum << endl;
 }
 ```
+{% endraw %}
 </details>
 
 **Exercise 4.** Read a 3×3 array and print the largest element.
@@ -411,6 +431,7 @@ for (int r = 0; r < 3; r++) {
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 int m[3][3];
 for (int r = 0; r < 3; r++)
@@ -423,6 +444,7 @@ for (int r = 0; r < 3; r++)
         if (m[r][c] > big) big = m[r][c];
 cout << "Largest = " << big << endl;
 ```
+{% endraw %}
 </details>
 
 **Exercise 5.** Build a 4×4 array where each cell equals `(row + 1) * (col + 1)`, and print it (a multiplication table).
@@ -430,6 +452,7 @@ cout << "Largest = " << big << endl;
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 int t[4][4];
 for (int r = 0; r < 4; r++) {
@@ -440,6 +463,7 @@ for (int r = 0; r < 4; r++) {
     cout << endl;
 }
 ```
+{% endraw %}
 **Output (first rows):**
 ```
 1	2	3	4
@@ -454,6 +478,7 @@ for (int r = 0; r < 4; r++) {
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 int a[2][2], b[2][2];
 for (int r = 0; r < 2; r++)
@@ -467,6 +492,7 @@ for (int r = 0; r < 2; r++) {
     cout << endl;
 }
 ```
+{% endraw %}
 </details>
 
 ---
@@ -491,6 +517,7 @@ for (int r = 0; r < 2; r++) {
 
 ### Quick Reference
 
+{% raw %}
 ```cpp
 int m[2][3] = {{1,2,3},{4,5,6}};   // declare + fill
 int x = m[1][2];                   // read a cell (row, col) -> 6
@@ -504,6 +531,7 @@ for (int r = 0; r < 2; r++) {      // visit every cell
 
 void f(int g[][3], int rows);      // column count required
 ```
+{% endraw %}
 
 ### Next Steps
 
