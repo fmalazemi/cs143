@@ -103,6 +103,10 @@ ___
 | 6 | [Arrays and Strings](Lecture_notes/lecture_6_Arrays_and_Strings.md) | [🔗](Lecture_notes/lecture6.html) |
 | 7 | [Functions](Lecture_notes/lecture_7_Functions.md) | [🔗](Lecture_notes/lecture7.html) |
 | 8 | [Recursion](Lecture_notes/lecture_8_Recursion.md) | [🔗](Lecture_notes/lecture8.html) |
+| 9 | [Scope, Casting, Types](Lecture_notes/lecture_9_Types_Scope_Casting.md) | [🔗](Lecture_notes/lecture9.html) |
+| 10 | [Pointers](Lecture_notes/lecture_10_Pointers.md) | [🔗](Lecture_notes/lecture10.html) |
+| 11 | [MultiDimensioanl Arrays](Lecture_notes/lecture_11_Multidimensional_Arrays.md) | [🔗](Lecture_notes/lecture11.html) |
+
 
 
 ## 📝 Grading
