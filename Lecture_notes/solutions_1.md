@@ -1,13 +1,5 @@
 # C++ Practice Problems — Solutions
 
-Matches `problems.md` problem-for-problem (Problems 1–36). All solutions follow the same rules as the problem set: `std::string` is allowed for text, but no other STL containers, no explicit pointers, and no `<cmath>`.
-
-```cpp
-#include <iostream>
-using namespace std;
-```
-is assumed at the top of every program below. Solutions that work with text also add `#include <string>`.
-
 A few solutions include a **Note** flagging a deliberate teaching tradeoff or a bonus extension.
 
 ---
@@ -576,7 +568,7 @@ int main() {
 }
 ```
 
-**Note:** this implementation assumes `n` is non-negative (see Constraints) — both loops terminate immediately on a negative `n` and silently return 0, so negative input is out of scope rather than handled.
+**:** this implementation assumes `n` is non-negative (see Constraints) — both loops terminate immediately on a negative `n` and silently return 0, so negative input is out of scope rather than handled.
 
 ---
 
