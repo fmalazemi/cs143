@@ -106,7 +106,8 @@ ___
 | 9 | [Scope, Casting, Types](Lecture_notes/lecture_9_Types_Scope_Casting.md) | [🔗](Lecture_notes/lecture9.html) |
 | 10 | [Exercise set 1](Lecture_notes/Exercises_1.md) --- [Solutions](Lecture_notes/solutions_1) | |
 | 11 | [Pointers & Memory](Lecture_notes/lecture_10_pointers_and_memory.md) | [🔗](Lecture_notes/lecture10.html) |
-| 12 | [MultiDimensioanl Arrays](Lecture_notes/lecture_11_Multidimensional_Arrays.md) | [🔗](Lecture_notes/lecture11.html) |
+| 12 | [Passing Variables to functions in C++](Lecture_notes/passingVariables.png) | | 
+| 13 | [MultiDimensioanl Arrays](Lecture_notes/lecture_11_Multidimensional_Arrays.md) | [🔗](Lecture_notes/lecture11.html) |
 
 
 
