@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Encapsulation &amp; Access — Lecture 14</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 54vh; display: block; }
+  .fig .shell { fill: var(--surface); stroke: var(--primary); stroke-width: 2.5; }
+  .fig .core { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .chip { fill: var(--surface-2); stroke: var(--accent); stroke-width: 1.5; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .head { fill: var(--primary); font-family: var(--font-sans); font-size: 17px; font-weight: 800; text-anchor: middle; letter-spacing: .06em; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-sans); font-size: 17px; text-anchor: middle; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .ok { stroke: var(--green); stroke-width: 2.5; fill: none; }
+  .fig .blocked { stroke: var(--red); stroke-width: 2.5; fill: none; stroke-dasharray: 7 5; }
+  .fig .okT { fill: var(--green); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .blockedT { fill: var(--red); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .xmark { stroke: var(--red); stroke-width: 3.5; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 64px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Encapsulation &amp; Access</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 14</div>
+    <h1>Encapsulation &amp; Access Levels</h1>
+    <div class="sub">Bundling data with methods — and protecting it</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 13 (introduction to OOP)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what <span class="hl">encapsulation</span> means.</li>
+      <li>Use the access levels <code class="inline">public</code>, <code class="inline">private</code>, and <code class="inline">protected</code>.</li>
+      <li>Hide an object's data so it cannot be changed carelessly.</li>
+      <li>Write <span class="hl">getter</span> and <span class="hl">setter</span> methods to read and change data safely.</li>
+      <li>Add <span class="hl">validation</span> so an object never holds an invalid value.</li>
+    </ul>
+  </section>
+
+  <!-- 3. RECAP -->
+  <section class="slide">
+    <div class="kicker">Where This Fits</div>
+    <h2>The First of the Four Big Ideas</h2>
+    <p class="lead">Last lecture we named four big ideas in OOP. Today we study the first one in detail: <span class="hl">encapsulation</span>.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Encapsulation (today)</h3>
+        <p style="margin:0;">Keep an object's data and methods together, and protect the data from outside interference.</p>
+      </div>
+      <div class="card">
+        <h3>Still to come</h3>
+        <p style="margin:0;">Abstraction, inheritance, and polymorphism — each in its own lecture.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Recall:</b> an object holds <b>attributes</b> (data) and <b>methods</b> (behaviour). Encapsulation decides who is allowed to touch them.</p>
+  </section>
+
+  <!-- 4. WHAT IS ENCAPSULATION + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Idea</div>
+    <h2>What Is Encapsulation?</h2>
+    <p class="lead"><b>Encapsulation</b> means wrapping the data and the methods together, and <b>hiding the data</b> inside. Outside code uses the object only through its public methods.</p>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="Encapsulation: private data inside a public interface">
+      <rect class="shell" x="150" y="30" width="460" height="240" rx="18"/>
+      <text class="head" x="380" y="58">PUBLIC — the interface (methods)</text>
+      <rect class="chip" x="180" y="74" width="150" height="40" rx="8"/>
+      <text class="mono" x="255" y="100" style="font-size:15px;">deposit()</text>
+      <rect class="chip" x="345" y="74" width="150" height="40" rx="8"/>
+      <text class="mono" x="420" y="100" style="font-size:15px;">withdraw()</text>
+      <rect class="chip" x="510" y="74" width="80" height="40" rx="8"/>
+      <text class="mono" x="550" y="100" style="font-size:14px;">get()</text>
+      <rect class="core" x="240" y="140" width="280" height="100" rx="12"/>
+      <text class="head" x="380" y="170" style="fill:var(--accent);">PRIVATE — the data</text>
+      <text class="mono" x="380" y="205">balance = 100</text>
+      <text class="cap" x="380" y="262">Outside code uses the public methods; the private data is sealed inside.</text>
+    </svg>
+  </section>
+
+  <!-- 5. ACCESS LEVELS TABLE -->
+  <section class="slide">
+    <div class="kicker">The Three Keywords</div>
+    <h2>Access Levels</h2>
+    <table class="cmp">
+      <tr><th>Keyword</th><th>Who can use it</th><th>Typical use</th></tr>
+      <tr><td class="cpp">public</td><td>any code, inside or outside the class</td><td>the methods others call (the interface)</td></tr>
+      <tr><td class="cpp">private</td><td>only the class's own methods</td><td>the data you want to protect</td></tr>
+      <tr><td class="cpp">protected</td><td>the class and classes built from it</td><td>for inheritance (covered later)</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>Common pattern:</b> make the <span class="hl">data private</span> and the <span class="hl">methods public</span>. This is the heart of encapsulation.</p>
+  </section>
+
+  <!-- 6. PRIVATE BY DEFAULT + SIMPLE EXAMPLE -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>Marking Members Private and Public</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class BankAccount {
+private:
+    double balance = 0;     // hidden data
+
+public:
+    void deposit(double amount) {
+        balance = balance + amount;
+    }
+    double getBalance() {
+        return balance;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>Everything under <code class="inline">private:</code> is hidden from outside.</li>
+          <li>Everything under <code class="inline">public:</code> can be used from outside.</li>
+          <li>In a <code class="inline">class</code>, members are <b>private by default</b> until you write <code class="inline">public:</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">We set <code class="inline">balance = 0</code> here to give it a starting value; constructors (a cleaner way) come later.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. WHY HIDE DATA -->
+  <section class="slide">
+    <div class="kicker">The Motivation</div>
+    <h2>Why Hide the Data?</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--red);">If data were public…</h3>
+<pre><code>account.balance = -9999;  // anyone can break it</code></pre>
+        <p style="margin:0;">Outside code could set a meaningless or illegal value, leaving the object in a broken state.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--green);">With data private…</h3>
+<pre><code>account.deposit(50);      // only safe paths
+// account.balance = -9999;  // ERROR: private</code></pre>
+        <p style="margin:0;">Changes must go through methods that can <b>check</b> the value first.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Encapsulation protects an object</b> by controlling exactly how its data can change.</p>
+  </section>
+
+  <!-- 8. ACCESS FROM OUTSIDE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Who Can Reach What</div>
+    <h2>Allowed vs. Blocked</h2>
+    <p class="lead">From outside, code may call the <b>public</b> methods, but it cannot touch the <b>private</b> data directly.</p>
+    <svg class="fig" viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" aria-label="Outside code can call public methods but is blocked from private data">
+      <defs>
+        <marker id="aok" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--green)"/>
+        </marker>
+      </defs>
+      <rect class="box" x="40" y="95" width="200" height="70" rx="8"/>
+      <text class="lbl" x="140" y="137">outside code (main)</text>
+      <rect class="shell" x="430" y="40" width="290" height="180" rx="12"/>
+      <text class="head" x="575" y="68">BankAccount</text>
+      <rect class="chip" x="455" y="84" width="240" height="46" rx="8"/>
+      <text class="mono" x="575" y="112" style="font-size:16px;">public: deposit()</text>
+      <rect class="core" x="455" y="150" width="240" height="50" rx="8"/>
+      <text class="mono" x="575" y="181" style="font-size:16px;">private: balance</text>
+      <path class="ok" d="M240,110 L455,107" marker-end="url(#aok)"/>
+      <text class="okT" x="345" y="96">calls — allowed</text>
+      <path class="blocked" d="M240,150 L440,172"/>
+      <line class="xmark" x1="415" y1="160" x2="437" y2="182"/>
+      <line class="xmark" x1="437" y1="160" x2="415" y2="182"/>
+      <text class="blockedT" x="330" y="195">direct access — blocked</text>
+    </svg>
+  </section>
+
+  <!-- 9. GETTERS AND SETTERS -->
+  <section class="slide">
+    <div class="kicker">The Safe Doorways</div>
+    <h2>Getters and Setters</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Student {
+private:
+    int age = 0;
+
+public:
+    int getAge() {          // getter: read the data
+        return age;
+    }
+    void setAge(int a) {    // setter: change the data
+        age = a;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>A <b>getter</b> lets outside code <i>read</i> a private value.</li>
+          <li>A <b>setter</b> lets outside code <i>change</i> it — through a controlled door.</li>
+          <li>The class decides what is allowed; the data stays private.</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Next:</b> the real power of a setter is that it can <span class="hl">check</span> the value first.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. VALIDATION -->
+  <section class="slide">
+    <div class="kicker">The Real Payoff</div>
+    <h2>Validation in a Setter</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Student {
+private:
+    int age = 0;
+public:
+    void setAge(int a) {
+        if (a &gt;= 0 &amp;&amp; a &lt;= 120)   // check first
+            age = a;              // only set if valid
+        // otherwise ignore the bad value
+    }
+    int getAge() { return age; }
+};</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Effect</div>
+        <div class="output">setAge(20)  -> age is 20
+setAge(-5)  -> ignored, age stays</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the setter rejects an impossible age. The object can <i>never</i> hold an invalid value.</p>
+        <p><b>This is the point of encapsulation:</b> the class guards its own data.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. WORKED 1 BANKACCOUNT -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>A Safe Bank Account</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class BankAccount {
+private:
+    double balance = 0;
+
+public:
+    void deposit(double amount) {
+        if (amount &gt; 0) balance += amount;
+    }
+    void withdraw(double amount) {
+        if (amount &gt; 0 &amp;&amp; amount &lt;= balance)
+            balance -= amount;     // no overdraw
+    }
+    double getBalance() { return balance; }
+};
+
+int main() {
+    BankAccount a;
+    a.deposit(100);
+    a.withdraw(30);
+    cout &lt;&lt; a.getBalance() &lt;&lt; endl;  // 70
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">70</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the balance is private. Deposits must be positive, and withdrawals cannot take more than is there.</p>
+        <p><b>Result:</b> the account can never reach an impossible state from outside.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 2 TEMPERATURE -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>A Validated Setting</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Thermostat {
+private:
+    int temp = 20;     // a safe default
+
+public:
+    void setTemp(int t) {
+        if (t &gt;= 10 &amp;&amp; t &lt;= 30)   // allowed range
+            temp = t;
+    }
+    int getTemp() { return temp; }
+};
+
+int main() {
+    Thermostat th;
+    th.setTemp(25);   cout &lt;&lt; th.getTemp() &lt;&lt; endl; // 25
+    th.setTemp(99);   cout &lt;&lt; th.getTemp() &lt;&lt; endl; // 25
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">25
+25</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the thermostat only accepts a temperature between 10 and 30. The value 99 is rejected, so it stays at 25.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED 3 COUNTER -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>A Counter That Cannot Go Wrong</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Counter {
+private:
+    int count = 0;        // only this class can change it
+
+public:
+    void increment() { count++; }
+    void reset()     { count = 0; }
+    int getCount()   { return count; }
+};
+
+int main() {
+    Counter c;
+    c.increment();
+    c.increment();
+    cout &lt;&lt; c.getCount() &lt;&lt; endl;  // 2
+    // c.count = 999;  // ERROR: count is private
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">2</div>
+        <p style="margin-top:12px;"><b>What it does:</b> <code class="inline">count</code> can only go up by one or reset to zero. Outside code cannot set it to a random value.</p>
+        <p><b>Idea:</b> the class controls every way its data can change.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Making data public</b><br>it can then be changed to anything from outside</li>
+          <li><b>Forgetting the colon</b><br>write <code class="inline">public:</code>, not <code class="inline">public</code></li>
+          <li><b>Touching private data outside</b><br><code class="inline">obj.balance</code> from <code class="inline">main</code> is an error</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Setter with no check</b><br>a setter that just assigns gives no protection</li>
+          <li><b>Everything public</b><br>then there is no encapsulation at all</li>
+          <li><b>Missing the semicolon</b><br>a class ends with <code class="inline">};</code></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Rule of thumb:</b> data <span class="hl">private</span>, methods <span class="hl">public</span>, and validate in setters.</p>
+  </section>
+
+  <!-- 15. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write a <code class="inline">Circle</code> class with a <b>private</b> <code class="inline">radius</code> and public <code class="inline">setRadius</code>, <code class="inline">getRadius</code>, and <code class="inline">area()</code> (use <code class="inline">3.14159 * radius * radius</code>).</li>
+      <li>Write a <code class="inline">BankAccount</code> with a private <code class="inline">balance</code>; add <code class="inline">deposit(amount)</code> that rejects values that are not positive, and <code class="inline">getBalance()</code>.</li>
+      <li>Add a <code class="inline">withdraw(amount)</code> to that account that refuses to let the balance go below 0.</li>
+    </ul>
+  </section>
+
+  <!-- 16. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write a <code class="inline">Student</code> with private <code class="inline">name</code> and <code class="inline">gpa</code>; add getters and setters, where <code class="inline">setGpa</code> only accepts values from 0.0 to 4.0.</li>
+      <li>Write a <code class="inline">Counter</code> with a private <code class="inline">count</code> and public <code class="inline">increment()</code>, <code class="inline">reset()</code>, and <code class="inline">getCount()</code>.</li>
+      <li>In a comment, explain why making <code class="inline">balance</code> public would be unsafe, then show the safe private version.</li>
+    </ul>
+  </section>
+
+  <!-- 17. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–2)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Circle</h3>
+<pre><code>class Circle {
+private:
+    double radius = 0;
+public:
+    void setRadius(double r) {
+        if (r &gt;= 0) radius = r;
+    }
+    double getRadius() { return radius; }
+    double area() {
+        return 3.14159 * radius * radius;
+    }
+};</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>2 · BankAccount deposit</h3>
+<pre><code>class BankAccount {
+private:
+    double balance = 0;
+public:
+    void deposit(double amount) {
+        if (amount &gt; 0)
+            balance += amount;
+    }
+    double getBalance() { return balance; }
+};</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (3–4)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>3 · Safe withdraw</h3>
+<pre><code>void withdraw(double amount) {
+    if (amount &gt; 0 &amp;&amp; amount &lt;= balance)
+        balance -= amount;   // never below 0
+}</code></pre>
+        <h3>5 · Counter</h3>
+<pre><code>class Counter {
+private:
+    int count = 0;
+public:
+    void increment() { count++; }
+    void reset()     { count = 0; }
+    int getCount()   { return count; }
+};</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>4 · Student with gpa check</h3>
+<pre><code>class Student {
+private:
+    string name;
+    double gpa = 0;
+public:
+    void setName(string n) { name = n; }
+    string getName() { return name; }
+    void setGpa(double g) {
+        if (g &gt;= 0.0 &amp;&amp; g &lt;= 4.0)
+            gpa = g;
+    }
+    double getGpa() { return gpa; }
+};</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. ANSWERS 3 -->
+  <section class="slide">
+    <div class="kicker">Solution (6)</div>
+    <h2>Exercise Answer</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>6 · Why private matters</h3>
+<pre><code>// If balance were public:
+//   account.balance = -9999;   // anyone could break it.
+// There would be no way to stop bad values.
+
+// Safe version: keep it private and
+// change it only through checked methods.
+class BankAccount {
+private:
+    double balance = 0;      // hidden
+public:
+    void deposit(double a) {
+        if (a &gt; 0) balance += a;
+    }
+    double getBalance() { return balance; }
+};</code></pre>
+      </div>
+      <div>
+        <p class="lead"><b>The point:</b> private data plus checked methods means the object stays valid no matter what outside code tries.</p>
+        <p>Outside code can deposit through a safe path, but it cannot reach in and set the balance to an illegal value.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><b>Encapsulation</b> bundles data with methods and hides the data inside the object.</li>
+      <li><code class="inline">public</code> members are usable anywhere; <code class="inline">private</code> members only inside the class.</li>
+      <li><code class="inline">protected</code> is for inheritance — covered later.</li>
+      <li>The common pattern is <b>private data, public methods</b>.</li>
+      <li><b>Getters</b> read data and <b>setters</b> change it through a controlled door.</li>
+      <li><b>Validation</b> in setters keeps an object from ever holding an invalid value.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Next lecture:</b> constructors — setting up an object's data the moment it is created.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Introduction to OOP — Lecture 13</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 26px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 7px 0 7px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 7px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 56vh; display: block; }
+  .fig .capsule { fill: var(--surface); stroke: var(--primary); stroke-width: 2.5; }
+  .fig .sect { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+  .fig .secthi { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .fig .blueprint { fill: var(--surface); stroke: var(--primary); stroke-width: 2.5; stroke-dasharray: 7 5; }
+  .fig .objcard { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+  .fig .head { fill: var(--primary); font-family: var(--font-sans); font-size: 18px; font-weight: 800; text-anchor: middle; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 17px; }
+  .fig .monoC { fill: var(--text); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .secLbl { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; letter-spacing: .08em; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .fig .tag { fill: var(--accent); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Introduction to OOP</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 13</div>
+    <h1>Introduction to Object-Oriented Programming</h1>
+    <div class="sub">A new way to organise programs — around objects</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>This lecture:</b> the idea only — the details come later</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">This lecture introduces the <b>concept</b> of object-oriented programming. By the end, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what an <span class="hl">object</span> is: data and behaviour bundled together.</li>
+      <li>Tell the difference between a <span class="hl">class</span> and an <span class="hl">object</span>.</li>
+      <li>Identify the <span class="hl">attributes</span> (data) and <span class="hl">methods</span> (behaviour) of a thing.</li>
+      <li>Recognise why OOP helps us organise larger programs.</li>
+      <li>Name the four big ideas we will study in future lectures.</li>
+    </ul>
+    <p class="note" style="margin-top:10px;">We focus on the idea today. Syntax and mechanics follow in the coming lectures.</p>
+  </section>
+
+  <!-- 3. MOTIVATION -->
+  <section class="slide">
+    <div class="kicker">The Story So Far</div>
+    <h2>How We Have Programmed Until Now</h2>
+    <p class="lead">So far, our programs kept <b>data</b> and <b>functions</b> apart: variables held the data, and separate functions acted on them.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>This works for small programs</h3>
+        <ul class="check">
+          <li>A few variables and functions are easy to follow.</li>
+          <li>You pass data into functions and get results back.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>But large programs get messy</h3>
+        <ul class="cross">
+          <li>Many loose variables are hard to track.</li>
+          <li>It is unclear which function belongs to which data.</li>
+          <li>Changing one part can break another.</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>OOP offers a tidier way:</b> keep related data and the actions on it <span class="hl">together</span>.</p>
+  </section>
+
+  <!-- 4. BIG IDEA + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Big Idea</div>
+    <h2>An Object Bundles Data and Behaviour</h2>
+    <p class="lead">In OOP, we build programs from <b>objects</b>. An object keeps its own <b>data</b> and the <b>actions</b> that work on that data in one place.</p>
+    <svg class="fig" viewBox="0 0 700 270" xmlns="http://www.w3.org/2000/svg" aria-label="An object bundles data and behaviour">
+      <rect class="capsule" x="190" y="20" width="320" height="220" rx="16"/>
+      <text class="head" x="350" y="50">Dog object</text>
+      <rect class="secthi" x="215" y="66" width="270" height="74" rx="8"/>
+      <text class="secLbl" x="230" y="88">DATA (attributes)</text>
+      <text class="mono" x="230" y="116">name = "Rex"</text>
+      <text class="mono" x="230" y="135">age = 3</text>
+      <rect class="sect" x="215" y="150" width="270" height="74" rx="8"/>
+      <text class="secLbl" x="230" y="172">BEHAVIOUR (methods)</text>
+      <text class="mono" x="230" y="200">bark()</text>
+      <text class="mono" x="230" y="219">eat()</text>
+      <text class="cap" x="350" y="262">one object = its own data + the actions that use it</text>
+    </svg>
+  </section>
+
+  <!-- 5. ANALOGY -->
+  <section class="slide">
+    <div class="kicker">A Familiar Picture</div>
+    <h2>Objects Are All Around Us</h2>
+    <p class="lead">Think of everyday things. Each one <b>has</b> properties and <b>can do</b> actions — that is exactly an object.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>A car</h3>
+        <p><b>Has:</b> colour, speed, fuel.</p>
+        <p style="margin:0;"><b>Can:</b> drive, brake, refuel.</p>
+      </div>
+      <div class="card">
+        <h3>A bank account</h3>
+        <p><b>Has:</b> owner, balance.</p>
+        <p style="margin:0;"><b>Can:</b> deposit, withdraw.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Properties</b> are the data; <b>actions</b> are the behaviour. OOP lets us model things this way in code.</p>
+  </section>
+
+  <!-- 6. CLASS VS OBJECT + FIGURE -->
+  <section class="slide">
+    <div class="kicker">A Key Distinction</div>
+    <h2>Class vs. Object</h2>
+    <p class="lead">A <b>class</b> is a blueprint that describes a kind of thing. An <b>object</b> is one real example made from that blueprint.</p>
+    <svg class="fig" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" aria-label="A class is a blueprint that creates objects">
+      <defs>
+        <marker id="ac" markerWidth="11" markerHeight="11" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="blueprint" x="40" y="70" width="250" height="170" rx="12"/>
+      <text class="head" x="165" y="100">class Car (blueprint)</text>
+      <text class="secLbl" x="62" y="130">has: colour, speed</text>
+      <text class="secLbl" x="62" y="156">can: drive(), brake()</text>
+      <text class="cap" x="165" y="210" style="font-size:15px;">describes every car,</text>
+      <text class="cap" x="165" y="230" style="font-size:15px;">but is not a car itself</text>
+      <path class="edge" d="M290,155 L470,155" marker-end="url(#ac)"/>
+      <text class="tag" x="380" y="142">creates objects</text>
+      <rect class="objcard" x="500" y="60"  width="280" height="62" rx="8"/>
+      <text class="monoC" x="640" y="97">car1 · red · speed 0</text>
+      <rect class="objcard" x="500" y="134" width="280" height="62" rx="8"/>
+      <text class="monoC" x="640" y="171">car2 · blue · speed 20</text>
+      <rect class="objcard" x="500" y="208" width="280" height="62" rx="8"/>
+      <text class="monoC" x="640" y="245">car3 · black · speed 5</text>
+    </svg>
+  </section>
+
+  <!-- 7. ATTRIBUTES AND METHODS -->
+  <section class="slide">
+    <div class="kicker">The Two Parts</div>
+    <h2>Attributes and Methods</h2>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Attributes — the data</h3>
+        <ul class="check">
+          <li>The values an object holds.</li>
+          <li>Describe its current state.</li>
+          <li>Example: a car's <code class="inline">colour</code> and <code class="inline">speed</code>.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Methods — the behaviour</h3>
+        <ul class="check">
+          <li>The actions an object can perform.</li>
+          <li>Often read or change its attributes.</li>
+          <li>Example: a car's <code class="inline">drive()</code> and <code class="inline">brake()</code>.</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Together</b> they make an object self-contained: it carries its own data and knows how to act on it.</p>
+  </section>
+
+  <!-- 8. FIRST TASTE: A CLASS -->
+  <section class="slide">
+    <div class="kicker">A First Taste</div>
+    <h2>What a Class Looks Like</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// a blueprint for a Car
+class Car {
+public:
+    string colour;     // attribute (data)
+    int speed;         // attribute (data)
+
+    void drive() {     // method (behaviour)
+        speed = speed + 10;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">class Car { ... };</code> defines the blueprint.</li>
+          <li>Inside, the <b>attributes</b> are the data fields.</li>
+          <li>The <b>method</b> <code class="inline">drive()</code> is an action that uses the data.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">Do not worry about every keyword yet (like <code class="inline">public</code>). We are only seeing the shape today — the rules come next.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. CREATING AN OBJECT -->
+  <section class="slide">
+    <div class="kicker">A First Taste</div>
+    <h2>Making and Using an Object</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int main() {
+    Car myCar;          // create an object from the blueprint
+    myCar.colour = "red";
+    myCar.speed = 0;
+
+    myCar.drive();      // call its method
+
+    cout &lt;&lt; myCar.speed; // 10
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10</div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">Car myCar;</code> creates one object.</li>
+          <li>We reach its parts with a dot: <code class="inline">myCar.speed</code>.</li>
+          <li>Calling <code class="inline">myCar.drive()</code> changes that object's own data.</li>
+        </ul>
+        <p class="note">Each object has its own copy of the data.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. WHY OOP -->
+  <section class="slide">
+    <div class="kicker">Why It Helps</div>
+    <h2>Why Use OOP?</h2>
+    <ul class="check">
+      <li><b>Organisation:</b> related data and actions stay together in one place.</li>
+      <li><b>Modelling:</b> code mirrors real things — a <code class="inline">Student</code>, an <code class="inline">Account</code>, a <code class="inline">Car</code>.</li>
+      <li><b>Reuse:</b> one class can create many objects, and classes can build on others.</li>
+      <li><b>Safety:</b> an object can protect its data, allowing changes only through its own methods.</li>
+      <li><b>Teamwork:</b> large programs split neatly into classes people can work on separately.</li>
+    </ul>
+    <p style="margin-top:12px;"><b>In short:</b> OOP helps us manage <span class="hl">complexity</span> as programs grow.</p>
+  </section>
+
+  <!-- 11. FOUR PILLARS PREVIEW -->
+  <section class="slide">
+    <div class="kicker">The Road Ahead</div>
+    <h2>Four Big Ideas (Coming Later)</h2>
+    <p class="lead">OOP rests on four key ideas. We only name them today; each gets its own lecture.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Encapsulation</h3>
+        <p style="margin:0;">Keep data and methods together, and protect the data.</p>
+      </div>
+      <div class="card">
+        <h3>Abstraction</h3>
+        <p style="margin:0;">Show only what matters; hide the inner details.</p>
+      </div>
+      <div class="card">
+        <h3>Inheritance</h3>
+        <p style="margin:0;">Build new classes based on existing ones.</p>
+      </div>
+      <div class="card">
+        <h3>Polymorphism</h3>
+        <p style="margin:0;">Let one action behave correctly for different objects.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. EXERCISES -->
+  <section class="slide">
+    <div class="kicker">Your Turn (Think, Don't Code)</div>
+    <h2>Concept Exercises</h2>
+    <ul class="num">
+      <li>For a <code class="inline">BankAccount</code>, list two <b>attributes</b> and two <b>methods</b>.</li>
+      <li>"Sara's red Toyota and Ali's blue Honda are both cars." What is the <b>class</b>, and what are the <b>objects</b>?</li>
+      <li>For a <code class="inline">Student</code>, give three attributes and two methods.</li>
+      <li>Is <b>Dog</b> a class or an object? Is <b>Rex the dog</b> a class or an object?</li>
+      <li>Sort these into data or behaviour: <code class="inline">name</code>, <code class="inline">bark()</code>, <code class="inline">age</code>, <code class="inline">eat()</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 13. ANSWERS -->
+  <section class="slide">
+    <div class="kicker">Concept Answers</div>
+    <h2>Exercise Answers</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul>
+          <li><b>1 · BankAccount:</b> attributes — <code class="inline">owner</code>, <code class="inline">balance</code>; methods — <code class="inline">deposit()</code>, <code class="inline">withdraw()</code>.</li>
+          <li><b>2 · Class</b> = Car; <b>objects</b> = Sara's Toyota and Ali's Honda (two real cars).</li>
+          <li><b>3 · Student:</b> attributes — <code class="inline">name</code>, <code class="inline">id</code>, <code class="inline">gpa</code>; methods — <code class="inline">study()</code>, <code class="inline">enrol()</code>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul>
+          <li><b>4 · Dog</b> is a class (a kind of thing); <b>Rex the dog</b> is an object (one real dog).</li>
+          <li><b>5 · Data:</b> <code class="inline">name</code>, <code class="inline">age</code>. <b>Behaviour:</b> <code class="inline">bark()</code>, <code class="inline">eat()</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">There can be more than one good answer — the idea is what matters.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>OOP organises programs around <b>objects</b> instead of loose data and functions.</li>
+      <li>An <b>object</b> bundles its own <b>data</b> (attributes) and <b>behaviour</b> (methods).</li>
+      <li>A <b>class</b> is the blueprint; an <b>object</b> is a real example made from it.</li>
+      <li>OOP helps us model real things and manage complexity as programs grow.</li>
+      <li>The four big ideas — <b>encapsulation, abstraction, inheritance, polymorphism</b> — are coming next.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Next lecture:</b> defining classes properly — attributes, methods, and how to protect data.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
