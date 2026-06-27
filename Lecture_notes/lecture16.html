@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Overloading &amp; Default Arguments</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .call { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .func { fill: var(--surface); stroke: var(--green); stroke-width: 2.5; }
+  .fig .grey { fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 4; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 19px; text-anchor: middle; }
+  .fig .monoL { fill: var(--text); font-family: var(--font-mono); font-size: 18px; }
+  .fig .monoG { fill: var(--muted); font-family: var(--font-mono); font-size: 19px; text-anchor: middle; }
+  .fig .big { fill: var(--text); font-family: var(--font-mono); font-size: 26px; font-weight: 700; }
+  .fig .bigA { fill: var(--accent); font-family: var(--font-mono); font-size: 26px; font-weight: 700; }
+  .fig .bigP { fill: var(--primary); font-family: var(--font-mono); font-size: 26px; font-weight: 700; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .redT { fill: var(--red); font-family: var(--font-sans); font-size: 15px; font-weight: 700; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 15px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .fig .brace { stroke: var(--accent); stroke-width: 2; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 60px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Overloading &amp; Defaults</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Overloading &amp; Default Arguments</div>
+    <h1>Function Overloading &amp; Default Arguments</h1>
+    <div class="sub">One name for many cases, and parameters with built-in values</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 7 (functions) &amp; constructors</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what <span class="hl">function overloading</span> is.</li>
+      <li>Write overloads that differ by the <b>type</b> or <b>number</b> of parameters.</li>
+      <li>Know that the <b>return type alone</b> cannot tell two versions apart.</li>
+      <li>Overload <b>methods inside a class</b>.</li>
+      <li>Give a parameter a <span class="hl">default value</span>, and follow the trailing rule.</li>
+      <li>Choose between overloading and default arguments.</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHAT IS OVERLOADING -->
+  <section class="slide">
+    <div class="kicker">Part A · The Idea</div>
+    <h2>One Name, Several Versions</h2>
+    <p class="lead"><b>Function overloading</b> means giving several functions the <b>same name</b>, as long as their <b>parameters</b> are different. The compiler chooses the right one from the arguments you pass.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--red);">Without overloading</h3>
+<pre><code>printInt(5);
+printDouble(3.14);
+printString("hi");</code></pre>
+        <p style="margin:0;">A different name for each type — harder to remember.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--green);">With overloading</h3>
+<pre><code>print(5);
+print(3.14);
+print("hi");</code></pre>
+        <p style="margin:0;">One simple name; the right version is chosen for you.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The benefit:</b> simpler, more natural names for related tasks.</p>
+  </section>
+
+  <!-- 4. HOW THE COMPILER CHOOSES + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part A · How It Works</div>
+    <h2>The Compiler Matches by Arguments</h2>
+    <p class="lead">Each call is matched to the version whose parameters fit the arguments — by their <b>number</b> and <b>types</b>.</p>
+    <svg class="fig" viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" aria-label="Calls are matched to the matching overload">
+      <defs>
+        <marker id="am" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="call" x="40" y="55" width="220" height="52" rx="8"/>
+      <text class="mono" x="150" y="87">add(2, 3)</text>
+      <rect class="call" x="40" y="140" width="220" height="52" rx="8"/>
+      <text class="mono" x="150" y="172">add(2, 3, 4)</text>
+      <rect class="func" x="470" y="50" width="250" height="52" rx="8"/>
+      <text class="mono" x="595" y="82">add(int, int)</text>
+      <rect class="func" x="470" y="140" width="250" height="52" rx="8"/>
+      <text class="mono" x="595" y="172">add(int, int, int)</text>
+      <path class="edge" d="M260,81 L470,76" marker-end="url(#am)"/>
+      <path class="edge" d="M260,166 L470,166" marker-end="url(#am)"/>
+      <text class="cap" x="380" y="222">the number and types of arguments decide the match</text>
+    </svg>
+  </section>
+
+  <!-- 5. OVERLOAD BY TYPE -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Overloading by Parameter Type</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>void print(int x)    { cout &lt;&lt; "int: " &lt;&lt; x &lt;&lt; endl; }
+void print(double x) { cout &lt;&lt; "double: " &lt;&lt; x &lt;&lt; endl; }
+void print(string x) { cout &lt;&lt; "string: " &lt;&lt; x &lt;&lt; endl; }
+
+int main() {
+    print(5);        // matches print(int)
+    print(3.14);     // matches print(double)
+    print("hi");     // matches print(string)
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">int: 5
+double: 3.14
+string: hi</div>
+        <p style="margin-top:14px;"><b>What it does:</b> three functions share the name <code class="inline">print</code> but differ by parameter <b>type</b>. The argument's type decides which runs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. OVERLOAD BY NUMBER -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Overloading by Number of Parameters</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int add(int a, int b)        { return a + b; }
+int add(int a, int b, int c) { return a + b + c; }
+
+int main() {
+    cout &lt;&lt; add(2, 3) &lt;&lt; endl;      // 5
+    cout &lt;&lt; add(2, 3, 4) &lt;&lt; endl;   // 9
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5
+9</div>
+        <p style="margin-top:14px;"><b>What it does:</b> both functions are named <code class="inline">add</code>. The <b>count</b> of arguments decides which one runs.</p>
+        <p class="note">Overloads may differ by type, by number, or by both.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. SIGNATURE RULE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part A · An Important Rule</div>
+    <h2>Return Type Does Not Count</h2>
+    <p class="lead">Overloads must differ in their <b>parameters</b>. The return type alone is <b>not</b> enough.</p>
+    <svg class="fig" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" aria-label="The signature is the name plus parameters, not the return type">
+      <rect class="grey" x="40" y="58" width="120" height="56" rx="8"/>
+      <text class="monoG" x="100" y="93">int</text>
+      <text class="redT" x="100" y="138">return type</text>
+      <text class="redT" x="100" y="158">ignored ✗</text>
+      <text class="bigP" x="190" y="96">add</text>
+      <text class="bigA" x="270" y="96">(int, int)</text>
+      <path class="brace" d="M185,116 C185,133 455,133 455,116"/>
+      <text class="accT" x="320" y="160">the signature — overloads must differ here</text>
+    </svg>
+    <p style="margin-top:6px;"><code class="inline">int f();</code> and <code class="inline">double f();</code> clash — same name, same (empty) parameters.</p>
+  </section>
+
+  <!-- 8. OVERLOADING IN CLASSES -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Overloading Methods in a Class</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class Calculator {
+public:
+    int add(int a, int b) {
+        return a + b;
+    }
+    double add(double a, double b) {
+        return a + b;
+    }
+};
+
+int main() {
+    Calculator c;
+    cout &lt;&lt; c.add(2, 3) &lt;&lt; endl;       // 5
+    cout &lt;&lt; c.add(2.5, 1.5) &lt;&lt; endl;   // 4
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5
+4</div>
+        <p style="margin-top:12px;"><b>What it does:</b> methods can be overloaded just like free functions. The integer call uses the <code class="inline">int</code> version; the decimal call uses the <code class="inline">double</code> one.</p>
+        <p class="note"><code class="inline">Box()</code> and <code class="inline">Box(int,int)</code> were constructor overloading — the same idea.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. DEFAULT ARGS INTRO + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part B · Default Arguments</div>
+    <h2>Parameters With a Built-in Value</h2>
+    <p class="lead">A <b>default argument</b> gives a parameter a value to use when the caller leaves it out. One function then serves several call forms.</p>
+    <svg class="fig" viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" aria-label="A default value fills in when the argument is omitted">
+      <defs>
+        <marker id="ad" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <text class="monoL" x="40" y="40">void greet(string name = "friend")</text>
+      <rect class="call" x="60" y="70" width="190" height="46" rx="8"/>
+      <text class="mono" x="155" y="99">greet()</text>
+      <path class="edge" d="M250,93 L430,93" marker-end="url(#ad)"/>
+      <text class="grnT" x="450" y="99">name = "friend"</text>
+      <text class="accT" x="520" y="122" style="text-anchor:start;">default used</text>
+      <rect class="call" x="60" y="150" width="190" height="46" rx="8"/>
+      <text class="mono" x="155" y="179">greet("Sara")</text>
+      <path class="edge" d="M250,173 L430,173" marker-end="url(#ad)"/>
+      <text class="grnT" x="450" y="179">name = "Sara"</text>
+      <text class="accT" x="520" y="202" style="text-anchor:start;">given value used</text>
+    </svg>
+  </section>
+
+  <!-- 10. DEFAULT ARGS WORKED -->
+  <section class="slide">
+    <div class="pill">Worked Example 4</div>
+    <h2>Using Default Arguments</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+void greet(string name = "friend",
+           string word = "Hello") {
+    cout &lt;&lt; word &lt;&lt; ", " &lt;&lt; name &lt;&lt; "!" &lt;&lt; endl;
+}
+
+int main() {
+    greet();                 // both defaults
+    greet("Sara");           // name given
+    greet("Ali", "Welcome"); // both given
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Hello, friend!
+Hello, Sara!
+Welcome, Ali!</div>
+        <p style="margin-top:12px;"><b>What it does:</b> one function handles three call styles. Any argument you leave out uses its default value.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. DEFAULT ARGS RULE -->
+  <section class="slide">
+    <div class="kicker">Part B · The Rule</div>
+    <h2>Defaults Must Be on the Right</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// OK: the default is the last parameter
+void f(int a, int b = 10);
+
+// OK: the last two have defaults
+void g(int a, int b = 2, int c = 3);
+
+// ERROR: a default cannot come
+// before a normal parameter
+void h(int a = 1, int b);   // wrong</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>Default arguments must be the <b>trailing</b> (right-most) parameters.</li>
+          <li>Once one parameter has a default, every parameter to its right must too.</li>
+          <li>Give the default <b>once</b> (normally in the declaration).</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">Why? When you skip arguments, C++ fills in from the right.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. OVERLOAD VS DEFAULT -->
+  <section class="slide">
+    <div class="kicker">Part B · Choosing</div>
+    <h2>Overloading vs. Default Arguments</h2>
+    <table class="cmp">
+      <tr><th></th><th>Overloading</th><th>Default arguments</th></tr>
+      <tr><td>How many functions</td><td>several, one per case</td><td>just one</td></tr>
+      <tr><td>Bodies can differ</td><td>yes, fully</td><td>no, one shared body</td></tr>
+      <tr><td>Best when</td><td>cases need different code</td><td>cases differ only by a value</td></tr>
+    </table>
+    <div class="card" style="margin-top:14px; border-color: var(--red);">
+      <h3 style="color:var(--red);">Caution — do not let them clash</h3>
+<pre><code>void f(int a);
+void f(int a, int b = 0);
+f(5);   // ERROR: ambiguous — matches both</code></pre>
+    </div>
+  </section>
+
+  <!-- 13. DEFAULTS IN CLASSES -->
+  <section class="slide">
+    <div class="kicker">Part B · In Classes</div>
+    <h2>Defaults in Methods and Constructors</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Box {
+private:
+    int w, h;
+public:
+    // one constructor, three ways to call it
+    Box(int width = 1, int height = 1) {
+        w = width;
+        h = height;
+    }
+    int area() { return w * h; }
+};
+
+int main() {
+    Box a;          // 1 x 1
+    Box b(5);       // 5 x 1
+    Box c(5, 3);    // 5 x 3
+    cout &lt;&lt; a.area() &lt;&lt; " " &lt;&lt; b.area()
+         &lt;&lt; " " &lt;&lt; c.area();   // 1 5 15
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 5 15</div>
+        <p style="margin-top:12px;"><b>What it does:</b> a single constructor with defaults replaces several overloaded constructors. Missing arguments fall back to <code class="inline">1</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Overloading</h3>
+        <ul class="cross">
+          <li><b>Only the return type differs</b><br><code class="inline">int f();</code> vs <code class="inline">double f();</code> clash</li>
+          <li><b>Identical parameter lists</b><br>same parameters is not allowed</li>
+          <li><b>Renaming a parameter only</b><br><code class="inline">f(int a)</code> vs <code class="inline">f(int b)</code> is the same</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Default arguments</h3>
+        <ul class="cross">
+          <li><b>Default not on the right</b><br>defaults must be the trailing parameters</li>
+          <li><b>Giving the default twice</b><br>state it once, not in both places</li>
+          <li><b>Clashing with an overload</b><br>a call may then match two versions</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Remember:</b> overloads differ by <span class="hl">parameters</span>; defaults fill in <span class="hl">from the right</span>.</p>
+  </section>
+
+  <!-- 15. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write two functions named <code class="inline">maxOf</code>: one for <code class="inline">(int, int)</code> and one for <code class="inline">(double, double)</code>. Call both.</li>
+      <li>Write <code class="inline">greet(string name = "friend")</code> that prints a greeting. Call it with and without an argument.</li>
+      <li>Overload <code class="inline">area</code>: <code class="inline">area(int side)</code> for a square and <code class="inline">area(int w, int h)</code> for a rectangle.</li>
+    </ul>
+  </section>
+
+  <!-- 16. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write <code class="inline">power(int base, int exp = 2)</code> that returns <code class="inline">base</code> to the power <code class="inline">exp</code>. Call <code class="inline">power(5)</code> and <code class="inline">power(2, 3)</code>.</li>
+      <li>Explain why <code class="inline">void h(int a = 1, int b)</code> is an error.</li>
+      <li>Write a class <code class="inline">Box</code> with a constructor <code class="inline">Box(int w = 1, int h = 1)</code>; create <code class="inline">Box()</code>, <code class="inline">Box(4)</code>, and <code class="inline">Box(4, 3)</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 17. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · maxOf (overloaded)</h3>
+<pre><code>int maxOf(int a, int b) {
+    return (a &gt; b) ? a : b;
+}
+double maxOf(double a, double b) {
+    return (a &gt; b) ? a : b;
+}
+// maxOf(3, 7) -&gt; 7 ; maxOf(2.5, 1.1) -&gt; 2.5</code></pre>
+        <h3>2 · greet (default)</h3>
+<pre><code>void greet(string name = "friend") {
+    cout &lt;&lt; "Hello, " &lt;&lt; name &lt;&lt; endl;
+}
+// greet();       -&gt; Hello, friend
+// greet("Sara"); -&gt; Hello, Sara</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · area (overloaded)</h3>
+<pre><code>int area(int side) {       // square
+    return side * side;
+}
+int area(int w, int h) {   // rectangle
+    return w * h;
+}
+// area(4) -&gt; 16 ; area(4, 3) -&gt; 12</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · power (default exp)</h3>
+<pre><code>int power(int base, int exp = 2) {
+    int result = 1;
+    for (int i = 0; i &lt; exp; i++)
+        result *= base;
+    return result;
+}
+// power(5)    -&gt; 25  (exp = 2)
+// power(2, 3) -&gt; 8</code></pre>
+        <h3>5 · Why it fails</h3>
+        <p>A default argument must be a <b>trailing</b> parameter. In <code class="inline">h(int a = 1, int b)</code>, <code class="inline">b</code> has no default but comes after one that does, so C++ could not fill arguments from the right.</p>
+      </div>
+      <div class="scroll">
+        <h3>6 · Box with defaults</h3>
+<pre><code>class Box {
+private:
+    int w, h;
+public:
+    Box(int width = 1, int height = 1) {
+        w = width; h = height;
+    }
+    int area() { return w * h; }
+};
+
+int main() {
+    Box a;       // 1 x 1  -&gt; 1
+    Box b(4);    // 4 x 1  -&gt; 4
+    Box c(4, 3); // 4 x 3  -&gt; 12
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><b>Overloading:</b> several functions share one name, differing by the <b>number or types</b> of parameters.</li>
+      <li>The compiler picks the version that fits the arguments; the <b>return type</b> alone does not count.</li>
+      <li>Methods and constructors can be overloaded in the same way.</li>
+      <li><b>Default arguments</b> give a parameter a built-in value used when the caller omits it.</li>
+      <li>Defaults must be the <b>trailing</b> parameters, and stated once.</li>
+      <li>Use overloading when cases need different code; use defaults when they differ only by a value.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Both let one clear name serve many related calls.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
