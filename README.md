@@ -113,6 +113,8 @@ ___
 | 14 | [Class Constructor & Destructor](Lecture_notes/lecture_14.md) | [🔗](Lecture_notes/lecture15.html) |
 | 15 | [Function overloading & default arguments](Lecture_notes/lecture16.md) | [🔗](Lecture_notes/lecture16.html) |
 | 16 | [Struct vs Classes](Lecture_notes/Lecture_16.md) | [🔗](Lecture_notes/lecture17.html)
+| 17 | [Struct vs Classes](Lecture_notes/Lecture_18_stl.md) | [🔗](Lecture_notes/lecture18.html)
+| 18 | [Files I/O & advanced string](Lecture_notes/Lecture_19_files.md) | [🔗](Lecture_notes/lecture19.html)
 
 
 ## 📝 Grading
