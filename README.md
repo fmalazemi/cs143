@@ -108,8 +108,10 @@ ___
 | 10 | [Pointers & Memory](Lecture_notes/lecture_10_pointers_and_memory.md) | [🔗](Lecture_notes/lecture10.html) |
 |    | [Passing Variables to functions in C++](Lecture_notes/passingVariables.png) | | 
 | 11 | [MultiDimensioanl Arrays](Lecture_notes/lecture_11_Multidimensional_Arrays.md) | [🔗](Lecture_notes/lecture11.html) |
+
 | Obejct Oriented Programming (OOP) |
 |:------:|
+
 |:-------:|:-----:|:------:|
 | 12 | [Introduction to OOP](Lecture_notes/lecture_13_OOP_Introduction.md) | [🔗](Lecture_notes/lecture13.html) |
 | 13 | [Encapsulation in OOP](Lecture_notes/lecture_14_Encapsulation.md) | [🔗](Lecture_notes/lecture14.html) |
