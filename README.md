@@ -114,7 +114,7 @@ ___
 | 15 | [Function overloading & default arguments](Lecture_notes/lecture_16_Overloading_and_Defaults.md) | [🔗](Lecture_notes/lecture16.html) |
 | 16 | [Struct vs Classes](Lecture_notes/lecture_17_Structs_vs_Classes.md) | [🔗](Lecture_notes/lecture17.html)
 | 17 | [STL: Standard Template Library](Lecture_notes/Lecture_18_stl.md) | [🔗](Lecture_notes/lecture18.html)
-| 18 | [Files I/O & advanced string](Lecture_notes/lecture_18_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html)
+| 18 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html)
 
 
 ## 📝 Grading
