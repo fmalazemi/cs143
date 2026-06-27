@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Structs vs Classes — Lecture 15</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 54vh; display: block; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2.5; }
+  .fig .frow { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+  .fig .head { fill: var(--primary); font-family: var(--font-mono); font-size: 18px; font-weight: 800; text-anchor: middle; }
+  .fig .field { fill: var(--text); font-family: var(--font-mono); font-size: 18px; }
+  .fig .cardL { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .cardR { fill: var(--surface); stroke: var(--primary); stroke-width: 2.5; }
+  .fig .pub { fill: var(--green); font-family: var(--font-mono); font-size: 17px; }
+  .fig .priv { fill: var(--red); font-family: var(--font-mono); font-size: 17px; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 17px; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .okT { fill: var(--green); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .blockedT { fill: var(--red); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 64px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Structs vs Classes</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 15</div>
+    <h1>Structs &amp; How They Differ From Classes</h1>
+    <div class="sub">Grouping related data under one name</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 14 (encapsulation &amp; access levels)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Define a <span class="hl">struct</span> to group related data together.</li>
+      <li>Create struct variables and read or change their fields.</li>
+      <li>Add methods to a struct in C++.</li>
+      <li>State the <span class="hl">one real difference</span> between a struct and a class.</li>
+      <li>Choose the right one for a given task.</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHAT IS A STRUCT + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Idea</div>
+    <h2>What Is a Struct?</h2>
+    <p class="lead">A <b>struct</b> groups several related values under one name. Instead of many loose variables, you keep them together as one record.</p>
+    <svg class="fig" viewBox="0 0 600 270" xmlns="http://www.w3.org/2000/svg" aria-label="A struct groups related fields under one name">
+      <rect class="box" x="170" y="30" width="260" height="200" rx="10"/>
+      <text class="head" x="300" y="60">struct Student</text>
+      <rect class="frow" x="190" y="78" width="220" height="42" rx="6"/>
+      <text class="field" x="206" y="105">name = "Sara"</text>
+      <rect class="frow" x="190" y="126" width="220" height="42" rx="6"/>
+      <text class="field" x="206" y="153">id = 101</text>
+      <rect class="frow" x="190" y="174" width="220" height="42" rx="6"/>
+      <text class="field" x="206" y="201">gpa = 3.8</text>
+      <text class="cap" x="300" y="256">one name groups several related fields</text>
+    </svg>
+  </section>
+
+  <!-- 4. SYNTAX + ACCESS -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>Defining and Using a Struct</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// define the struct (a blueprint)
+struct Point {
+    int x;
+    int y;
+};
+
+int main() {
+    Point p;          // create one
+    p.x = 3;          // set a field with a dot
+    p.y = 5;
+    cout &lt;&lt; p.x &lt;&lt; ", " &lt;&lt; p.y;  // 3, 5
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">struct Point { ... };</code> defines the record.</li>
+          <li>The values inside are called <b>fields</b> (or members).</li>
+          <li>Reach a field with a dot: <code class="inline">p.x</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">Like a class, a struct definition ends with a semicolon: <code class="inline">};</code></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. INITIALIZATION -->
+  <section class="slide">
+    <div class="kicker">A Handy Shortcut</div>
+    <h2>Initializing a Struct</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>struct Point {
+    int x;
+    int y;
+};
+
+int main() {
+    // fill the fields in order, in one line
+    Point p = {3, 5};
+
+    cout &lt;&lt; p.x &lt;&lt; endl;   // 3
+    cout &lt;&lt; p.y &lt;&lt; endl;   // 5
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">3
+5</div>
+        <p style="margin-top:12px;"><b>What it does:</b> <code class="inline">{3, 5}</code> fills the fields in the order they were declared — <code class="inline">x</code> first, then <code class="inline">y</code>.</p>
+        <p>This is a quick way to set up a simple record.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>A Point Record</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+struct Point {
+    int x;
+    int y;
+};
+
+int main() {
+    Point a = {1, 2};
+    Point b;
+    b.x = 10;
+    b.y = 20;
+
+    cout &lt;&lt; a.x &lt;&lt; "," &lt;&lt; a.y &lt;&lt; endl;  // 1,2
+    cout &lt;&lt; b.x &lt;&lt; "," &lt;&lt; b.y &lt;&lt; endl;  // 10,20
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1,2
+10,20</div>
+        <p style="margin-top:14px;"><b>What it does:</b> two separate <code class="inline">Point</code> records, each with its own <code class="inline">x</code> and <code class="inline">y</code>. Changing <code class="inline">b</code> does not affect <code class="inline">a</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. STRUCTS CAN HAVE METHODS -->
+  <section class="slide">
+    <div class="kicker">More Than Data</div>
+    <h2>Structs Can Have Methods Too</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>struct Rectangle {
+    int width;
+    int height;
+
+    int area() {              // a method inside a struct
+        return width * height;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>In C++, a struct can hold <b>methods</b>, not just data.</li>
+          <li>This makes a struct very close to a class.</li>
+          <li>The method uses the struct's own fields directly.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">Note: in the older C language, a struct could only hold data. C++ extended it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. WORKED 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>A Struct With Behaviour</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+struct Rectangle {
+    int width;
+    int height;
+    int area() {
+        return width * height;
+    }
+};
+
+int main() {
+    Rectangle r = {4, 3};
+    cout &lt;&lt; r.area() &lt;&lt; endl;   // 12
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">12</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the struct stores a width and height, and its <code class="inline">area()</code> method multiplies them. We call it with a dot: <code class="inline">r.area()</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. ARRAYS OF STRUCTS -->
+  <section class="slide">
+    <div class="kicker">Many Records</div>
+    <h2>Arrays of Structs</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>struct Student {
+    string name;
+    int id;
+};
+
+int main() {
+    Student list[2];
+    list[0].name = "Sara"; list[0].id = 101;
+    list[1].name = "Ali";  list[1].id = 102;
+
+    for (int i = 0; i &lt; 2; i++)
+        cout &lt;&lt; list[i].name &lt;&lt; " " &lt;&lt; list[i].id &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Sara 101
+Ali 102</div>
+        <p style="margin-top:12px;"><b>What it does:</b> an array where each slot is a whole <code class="inline">Student</code> record. We reach a field with <code class="inline">list[i].name</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. WORKED 3 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>A Function Using a Struct</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+struct Rectangle {
+    int width;
+    int height;
+};
+
+int area(Rectangle r) {        // takes a whole struct
+    return r.width * r.height;
+}
+
+int main() {
+    Rectangle box = {5, 2};
+    cout &lt;&lt; area(box) &lt;&lt; endl;   // 10
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10</div>
+        <p style="margin-top:14px;"><b>What it does:</b> a whole struct is passed into a function as one value. Inside, we read its fields with a dot.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. THE KEY DIFFERENCE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Important Part</div>
+    <h2>The One Real Difference</h2>
+    <p class="lead">In C++, struct and class are almost the same. The only difference is the <b>default access level</b>: struct members are <span class="hl">public</span> by default; class members are <span class="hl">private</span> by default.</p>
+    <svg class="fig" viewBox="0 0 760 270" xmlns="http://www.w3.org/2000/svg" aria-label="struct is public by default, class is private by default">
+      <rect class="cardL" x="40" y="40" width="320" height="200" rx="12"/>
+      <text class="head" x="200" y="72" style="fill:var(--accent);">struct Point</text>
+      <text class="mono" x="65" y="112">int x;</text>
+      <text class="pub" x="210" y="112">public</text>
+      <text class="mono" x="65" y="142">int y;</text>
+      <text class="pub" x="210" y="142">public</text>
+      <text class="okT" x="200" y="200">usable from outside ✓</text>
+      <rect class="cardR" x="400" y="40" width="320" height="200" rx="12"/>
+      <text class="head" x="560" y="72">class Point</text>
+      <text class="mono" x="425" y="112">int x;</text>
+      <text class="priv" x="565" y="112">private</text>
+      <text class="mono" x="425" y="142">int y;</text>
+      <text class="priv" x="565" y="142">private</text>
+      <text class="blockedT" x="560" y="200">hidden from outside ✗</text>
+    </svg>
+  </section>
+
+  <!-- 12. COMPARISON TABLE -->
+  <section class="slide">
+    <div class="kicker">Side by Side</div>
+    <h2>Struct vs. Class</h2>
+    <table class="cmp">
+      <tr><th>Feature</th><th>struct</th><th>class</th></tr>
+      <tr><td>Default access</td><td>public</td><td>private</td></tr>
+      <tr><td>Can hold data</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Can hold methods</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Can use public / private</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Constructors, inheritance</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Usual purpose</td><td>plain data records</td><td>full objects with hidden data</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>In short:</b> everything a struct can do, a class can do. The only language difference is the default access.</p>
+  </section>
+
+  <!-- 13. WHEN TO USE -->
+  <section class="slide">
+    <div class="kicker">A Practical Guide</div>
+    <h2>Which One Should You Use?</h2>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Use a struct when…</h3>
+        <ul class="check">
+          <li>You just want to group a few related values.</li>
+          <li>The data is simple and meant to be open.</li>
+          <li>Example: a <code class="inline">Point</code>, a <code class="inline">Date</code>, a <code class="inline">Colour</code>.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Use a class when…</h3>
+        <ul class="check">
+          <li>You want to <b>protect</b> the data (encapsulation).</li>
+          <li>The object has real behaviour and rules.</li>
+          <li>Example: a <code class="inline">BankAccount</code>, a <code class="inline">Student</code>.</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>This is a convention, not a rule.</b> The compiler treats them the same apart from the default access.</p>
+  </section>
+
+  <!-- 14. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Missing the semicolon</b><br>a struct ends with <code class="inline">};</code></li>
+          <li><b>Wrong initializer order</b><br><code class="inline">{3, 5}</code> fills fields in declared order</li>
+          <li><b>Forgetting the dot</b><br>use <code class="inline">p.x</code>, not <code class="inline">px</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Expecting privacy by default</b><br>struct fields are public unless you say otherwise</li>
+          <li><b>Thinking structs hold only data</b><br>in C++ they can have methods too</li>
+          <li><b>Too many braces</b><br><code class="inline">{ {..}, {..} }</code> only for nested data</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Remember:</b> struct and class differ only in the <span class="hl">default access level</span>.</p>
+  </section>
+
+  <!-- 15. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Define a struct <code class="inline">Point</code> with <code class="inline">x</code> and <code class="inline">y</code>. Create one, set its values, and print them.</li>
+      <li>Define a struct <code class="inline">Book</code> with <code class="inline">title</code>, <code class="inline">author</code>, and <code class="inline">pages</code>. Create one and print its fields.</li>
+      <li>Add an <code class="inline">area()</code> method to a struct <code class="inline">Circle</code> (use <code class="inline">3.14159 * radius * radius</code>).</li>
+    </ul>
+  </section>
+
+  <!-- 16. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Make an array of three <code class="inline">Point</code> structs and print all of them with a loop.</li>
+      <li>Write a function that takes a <code class="inline">Rectangle</code> struct and returns its area.</li>
+      <li>Given a struct and a class with the same fields, say which fields are usable from outside <b>by default</b>, and why.</li>
+    </ul>
+  </section>
+
+  <!-- 17. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–2)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Point</h3>
+<pre><code>struct Point { int x; int y; };
+
+int main() {
+    Point p;
+    p.x = 4; p.y = 7;
+    cout &lt;&lt; p.x &lt;&lt; "," &lt;&lt; p.y &lt;&lt; endl;  // 4,7
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>2 · Book</h3>
+<pre><code>struct Book {
+    string title;
+    string author;
+    int pages;
+};
+
+int main() {
+    Book b = {"C++", "Alazemi", 300};
+    cout &lt;&lt; b.title &lt;&lt; " by " &lt;&lt; b.author
+         &lt;&lt; ", " &lt;&lt; b.pages &lt;&lt; " pages" &lt;&lt; endl;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (3–5)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>3 · Circle with area()</h3>
+<pre><code>struct Circle {
+    double radius;
+    double area() {
+        return 3.14159 * radius * radius;
+    }
+};</code></pre>
+        <h3>4 · Array of Points</h3>
+<pre><code>Point pts[3] = {{0,0},{1,2},{3,4}};
+for (int i = 0; i &lt; 3; i++)
+    cout &lt;&lt; pts[i].x &lt;&lt; "," &lt;&lt; pts[i].y &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>5 · Function with a struct</h3>
+<pre><code>struct Rectangle { int width; int height; };
+
+int area(Rectangle r) {
+    return r.width * r.height;
+}
+
+int main() {
+    Rectangle box = {5, 2};
+    cout &lt;&lt; area(box) &lt;&lt; endl;   // 10
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. ANSWERS 3 -->
+  <section class="slide">
+    <div class="kicker">Solution (6)</div>
+    <h2>Exercise Answer</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>struct S { int a; };   // a is PUBLIC by default
+class  C { int a; };   // a is PRIVATE by default
+
+int main() {
+    S s; s.a = 1;      // OK: public
+    C c;
+    // c.a = 1;        // ERROR: a is private
+}</code></pre>
+      </div>
+      <div>
+        <p class="lead"><b>Answer:</b> the struct's field <code class="inline">a</code> is usable from outside, but the class's field <code class="inline">a</code> is not.</p>
+        <p><b>Why:</b> struct members are public by default, while class members are private by default. That single rule is the only difference between them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>struct</b> groups related values (fields) under one name.</li>
+      <li>Create a struct variable and reach its fields with a dot: <code class="inline">p.x</code>.</li>
+      <li><code class="inline">{a, b}</code> fills the fields in their declared order.</li>
+      <li>In C++, a struct can have <b>methods</b> too — almost like a class.</li>
+      <li>The <b>only</b> difference: struct is <span class="hl">public</span> by default, class is <span class="hl">private</span> by default.</li>
+      <li>Use a struct for plain data records; use a class when you want to protect the data.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Next lecture:</b> constructors — setting up an object's data the moment it is created.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
