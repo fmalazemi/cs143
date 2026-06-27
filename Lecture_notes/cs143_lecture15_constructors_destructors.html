@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Constructors &amp; Destructors — Lecture 15</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 54vh; display: block; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .chip { fill: var(--surface-2); stroke: var(--accent); stroke-width: 1.5; }
+  .fig .ctor { fill: var(--surface); stroke: var(--green); stroke-width: 2.5; }
+  .fig .dtor { fill: var(--surface); stroke: var(--red); stroke-width: 2.5; }
+  .fig .life { stroke: var(--muted); stroke-width: 2.5; fill: none; }
+  .fig .head { fill: var(--primary); font-family: var(--font-mono); font-size: 17px; font-weight: 800; text-anchor: middle; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 17px; }
+  .fig .monoC { fill: var(--text); font-family: var(--font-mono); font-size: 18px; text-anchor: middle; }
+  .fig .ctorT { fill: var(--green); font-family: var(--font-sans); font-size: 17px; font-weight: 800; text-anchor: middle; }
+  .fig .dtorT { fill: var(--red); font-family: var(--font-sans); font-size: 17px; font-weight: 800; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .fig .tag { fill: var(--accent); font-family: var(--font-sans); font-size: 15px; font-weight: 700; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 64px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Constructors &amp; Destructors</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 15</div>
+    <h1>Constructors &amp; Destructors</h1>
+    <div class="sub">Setting up an object at birth, and cleaning up at the end</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 14 (encapsulation &amp; access levels)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what a <span class="hl">constructor</span> is and when it runs.</li>
+      <li>Write a constructor that sets up an object's data at creation.</li>
+      <li>Provide a default constructor and more than one constructor.</li>
+      <li>Explain what a <span class="hl">destructor</span> is and when it runs.</li>
+      <li>Use a destructor to free resources the object owns.</li>
+    </ul>
+  </section>
+
+  <!-- 3. MOTIVATION -->
+  <section class="slide">
+    <div class="kicker">The Problem</div>
+    <h2>Setting Data by Hand Is Risky</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--red);">Without a constructor</h3>
+<pre><code>Student s;
+s.setName("Sara");
+s.setId(101);
+// easy to forget one of these!</code></pre>
+        <p style="margin:0;">You must set every field after creating the object. Forgetting one leaves it half-ready.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--green);">With a constructor</h3>
+<pre><code>Student s("Sara", 101);
+// fully ready in one step</code></pre>
+        <p style="margin:0;">The object is set up the moment it is created — nothing is forgotten.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>A constructor</b> makes sure an object always starts in a valid, complete state.</p>
+  </section>
+
+  <!-- 4. WHAT IS A CONSTRUCTOR + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Idea</div>
+    <h2>What Is a Constructor?</h2>
+    <p class="lead">A <b>constructor</b> is a special method that runs <b>automatically</b> when an object is created. It usually copies the given values into the object's attributes.</p>
+    <svg class="fig" viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg" aria-label="A constructor copies arguments into the object's attributes">
+      <defs>
+        <marker id="ac" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <text class="mono" x="40" y="48" style="font-size:18px;">Student s("Sara", 101);</text>
+      <rect class="chip" x="60" y="78" width="130" height="44" rx="8"/>
+      <text class="monoC" x="125" y="106">"Sara"</text>
+      <rect class="chip" x="60" y="140" width="130" height="44" rx="8"/>
+      <text class="monoC" x="125" y="168">101</text>
+      <rect class="box" x="450" y="64" width="270" height="130" rx="10"/>
+      <text class="head" x="585" y="92">Student object</text>
+      <text class="mono" x="475" y="128">name = "Sara"</text>
+      <text class="mono" x="475" y="160">id   = 101</text>
+      <path class="edge" d="M190,100 C320,100 330,124 450,124" marker-end="url(#ac)"/>
+      <path class="edge" d="M190,162 C320,162 330,156 450,156" marker-end="url(#ac)"/>
+      <text class="tag" x="320" y="200">the constructor copies arguments into attributes</text>
+    </svg>
+  </section>
+
+  <!-- 5. WRITING A CONSTRUCTOR -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>Writing a Constructor</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Point {
+private:
+    int x, y;
+
+public:
+    // constructor: same name as the class, NO return type
+    Point(int a, int b) {
+        x = a;
+        y = b;
+    }
+    void print() { cout &lt;&lt; x &lt;&lt; "," &lt;&lt; y; }
+};
+
+int main() {
+    Point p(3, 5);   // the constructor runs here
+    p.print();        // 3,5
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>A constructor has the <b>same name</b> as the class.</li>
+          <li>It has <b>no return type</b> — not even <code class="inline">void</code>.</li>
+          <li>It runs automatically when you write <code class="inline">Point p(3, 5);</code></li>
+        </ul>
+        <p class="note" style="margin-top:8px;">A cleaner form exists: <code class="inline">Point(int a, int b) : x(a), y(b) {}</code> — an initializer list.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>A Student With a Constructor</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class Student {
+private:
+    string name;
+    int id;
+public:
+    Student(string n, int i) {   // constructor
+        name = n;
+        id = i;
+    }
+    void print() {
+        cout &lt;&lt; name &lt;&lt; " " &lt;&lt; id &lt;&lt; endl;
+    }
+};
+
+int main() {
+    Student s("Sara", 101);
+    s.print();   // Sara 101
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Sara 101</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the constructor copies <code class="inline">"Sara"</code> and <code class="inline">101</code> into the private attributes the moment the object is created.</p>
+        <p>The object is complete and valid right away.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. DEFAULT CONSTRUCTOR -->
+  <section class="slide">
+    <div class="kicker">No Arguments</div>
+    <h2>The Default Constructor</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Point {
+private:
+    int x, y;
+public:
+    Point() {        // default: takes no arguments
+        x = 0;
+        y = 0;
+    }
+    void print() { cout &lt;&lt; x &lt;&lt; "," &lt;&lt; y; }
+};
+
+int main() {
+    Point p;     // no parentheses needed
+    p.print();   // 0,0
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>A <b>default constructor</b> takes no arguments.</li>
+          <li>It gives the object sensible starting values.</li>
+          <li>Create the object with just <code class="inline">Point p;</code> — no values.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">If you write no constructor at all, C++ supplies a simple empty one for you.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. MULTIPLE CONSTRUCTORS -->
+  <section class="slide">
+    <div class="kicker">More Than One</div>
+    <h2>Several Constructors</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Box {
+private:
+    int w, h;
+public:
+    Box() {              // default
+        w = 1; h = 1;
+    }
+    Box(int a, int b) {  // parameterized
+        w = a; h = b;
+    }
+    int area() { return w * h; }
+};
+
+int main() {
+    Box b1;          // uses Box()
+    Box b2(4, 3);    // uses Box(int,int)
+    cout &lt;&lt; b1.area() &lt;&lt; " " &lt;&lt; b2.area();  // 1 12
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>A class can have <b>more than one</b> constructor.</li>
+          <li>They differ by their <b>parameters</b>.</li>
+          <li>C++ picks the one that matches how you create the object.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">This is the same idea as overloaded functions, applied to constructors.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. WHAT IS A DESTRUCTOR -->
+  <section class="slide">
+    <div class="kicker">The Other Half</div>
+    <h2>What Is a Destructor?</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Demo {
+public:
+    Demo() {           // constructor
+        cout &lt;&lt; "created" &lt;&lt; endl;
+    }
+    ~Demo() {          // destructor (note the ~)
+        cout &lt;&lt; "destroyed" &lt;&lt; endl;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>A <b>destructor</b> runs automatically when an object is destroyed.</li>
+          <li>Its name is the class name with a <code class="inline">~</code> in front.</li>
+          <li>It takes <b>no arguments</b> and has <b>no return type</b>.</li>
+          <li>There is only <b>one</b> destructor per class.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">Its job: clean up anything the object set up.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. LIFECYCLE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Whole Life</div>
+    <h2>An Object's Lifecycle</h2>
+    <p class="lead">The constructor runs at the <b>start</b> of an object's life; the destructor runs at the <b>end</b>, when it goes out of scope.</p>
+    <svg class="fig" viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg" aria-label="Object lifecycle: constructor at creation, destructor at destruction">
+      <defs>
+        <marker id="al" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+      <line class="life" x1="60" y1="120" x2="760" y2="120" marker-end="url(#al)"/>
+      <rect class="ctor" x="90" y="78" width="180" height="56" rx="10"/>
+      <text class="ctorT" x="180" y="112">Constructor</text>
+      <text class="cap" x="180" y="158">object is created</text>
+      <text class="monoC" x="410" y="112" style="fill:var(--text-soft);">object is used …</text>
+      <rect class="dtor" x="560" y="78" width="180" height="56" rx="10"/>
+      <text class="dtorT" x="650" y="112">Destructor</text>
+      <text class="cap" x="650" y="158">object goes out of scope</text>
+    </svg>
+  </section>
+
+  <!-- 11. WORKED 2 LIFECYCLE -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Watching Both Run</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class Demo {
+public:
+    Demo()  { cout &lt;&lt; "created" &lt;&lt; endl; }
+    ~Demo() { cout &lt;&lt; "destroyed" &lt;&lt; endl; }
+};
+
+int main() {
+    Demo d;                       // constructor runs
+    cout &lt;&lt; "using d" &lt;&lt; endl;
+    return 0;
+}   // d goes out of scope -&gt; destructor runs</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">created
+using d
+destroyed</div>
+        <p style="margin-top:12px;"><b>What it does:</b> "created" prints when <code class="inline">d</code> is made, and "destroyed" prints automatically when <code class="inline">main</code> ends and <code class="inline">d</code> goes out of scope.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WHY DESTRUCTORS MATTER -->
+  <section class="slide">
+    <div class="kicker">The Real Use</div>
+    <h2>Why Destructors Matter</h2>
+    <p class="lead">Recall dynamic memory: every <code class="inline">new</code> needs a <code class="inline">delete</code>. If an object reserves memory with <code class="inline">new</code>, its <b>destructor</b> is the perfect place to free it.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Constructor</h3>
+        <p style="margin:0;">Reserves the resource — for example, <code class="inline">new int[n]</code>.</p>
+      </div>
+      <div class="card card--featured">
+        <h3>Destructor</h3>
+        <p style="margin:0;">Frees the resource — the matching <code class="inline">delete[]</code>.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>The benefit:</b> the cleanup happens <span class="hl">automatically</span>, so you cannot forget it.</p>
+  </section>
+
+  <!-- 13. WORKED 3 MEMORY -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>A Class That Owns Memory</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class IntArray {
+private:
+    int *data;
+    int size;
+public:
+    IntArray(int n) {          // constructor
+        size = n;
+        data = new int[n];     // reserve memory
+    }
+    ~IntArray() {              // destructor
+        delete[] data;         // free memory
+        cout &lt;&lt; "freed" &lt;&lt; endl;
+    }
+    void set(int i, int v) { data[i] = v; }
+    int  get(int i) { return data[i]; }
+};
+
+int main() {
+    IntArray a(3);
+    a.set(0, 10);
+    cout &lt;&lt; a.get(0) &lt;&lt; endl;   // 10
+    return 0;
+}   // destructor frees the memory here</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10
+freed</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the constructor reserves an array with <code class="inline">new[]</code>; the destructor frees it with <code class="inline">delete[]</code> automatically when the object ends.</p>
+        <p><b>No leaks:</b> you never have to remember the <code class="inline">delete</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Giving a return type</b><br>a constructor has none — not even <code class="inline">void</code></li>
+          <li><b>Wrong name</b><br>it must match the class name exactly</li>
+          <li><b>Forgetting the <code class="inline">~</code></b><br>a destructor is <code class="inline">~ClassName()</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Arguments on a destructor</b><br>it always takes none</li>
+          <li><b>new without delete</b><br>if the constructor uses <code class="inline">new</code>, the destructor must <code class="inline">delete</code></li>
+          <li><b>Calling them by hand</b><br>they run automatically; you do not call them</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Remember:</b> construct at birth, destruct at the end — both happen on their own.</p>
+  </section>
+
+  <!-- 15. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write a <code class="inline">Point</code> class with a constructor <code class="inline">Point(int x, int y)</code> that sets the fields. Create one and print it.</li>
+      <li>Add a <b>default constructor</b> <code class="inline">Point()</code> that sets both fields to 0.</li>
+      <li>Write a <code class="inline">Student</code> class with private <code class="inline">name</code> and <code class="inline">id</code>, a constructor, and a <code class="inline">print()</code> method.</li>
+    </ul>
+  </section>
+
+  <!-- 16. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write a <code class="inline">Rectangle</code> class with a constructor <code class="inline">(width, height)</code> and an <code class="inline">area()</code> method.</li>
+      <li>Write a class whose constructor and destructor each print a message, and show the order of the output.</li>
+      <li>Write a class that reserves an <code class="inline">int</code> array with <code class="inline">new[]</code> in its constructor and frees it with <code class="inline">delete[]</code> in its destructor.</li>
+    </ul>
+  </section>
+
+  <!-- 17. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 &amp; 2 · Point with both constructors</h3>
+<pre><code>class Point {
+private:
+    int x, y;
+public:
+    Point() { x = 0; y = 0; }          // default
+    Point(int a, int b) { x = a; y = b; }
+    void print() { cout &lt;&lt; x &lt;&lt; "," &lt;&lt; y &lt;&lt; endl; }
+};
+
+int main() {
+    Point p(3, 5);  p.print();  // 3,5
+    Point q;        q.print();  // 0,0
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Student</h3>
+<pre><code>class Student {
+private:
+    string name;
+    int id;
+public:
+    Student(string n, int i) {
+        name = n; id = i;
+    }
+    void print() {
+        cout &lt;&lt; name &lt;&lt; " " &lt;&lt; id &lt;&lt; endl;
+    }
+};</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Rectangle</h3>
+<pre><code>class Rectangle {
+private:
+    int w, h;
+public:
+    Rectangle(int a, int b) { w = a; h = b; }
+    int area() { return w * h; }
+};</code></pre>
+        <h3>5 · Construct/destruct order</h3>
+<pre><code>class Note {
+public:
+    Note()  { cout &lt;&lt; "made" &lt;&lt; endl; }
+    ~Note() { cout &lt;&lt; "gone" &lt;&lt; endl; }
+};
+// int main(){ Note n; }  -&gt; made, then gone</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · Owns memory</h3>
+<pre><code>class Buffer {
+private:
+    int *data;
+public:
+    Buffer(int n) {
+        data = new int[n];   // reserve
+    }
+    ~Buffer() {
+        delete[] data;       // free
+    }
+};</code></pre>
+        <div class="out-label">Idea</div>
+        <div class="output">new in ctor → delete[] in dtor</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>constructor</b> runs automatically when an object is created and sets up its data.</li>
+      <li>It has the class's name and <b>no return type</b>.</li>
+      <li>A <b>default constructor</b> takes no arguments; a class can have several constructors.</li>
+      <li>A <b>destructor</b> (<code class="inline">~ClassName</code>) runs automatically when the object is destroyed.</li>
+      <li>The destructor cleans up — for example, it frees memory the constructor reserved.</li>
+      <li>You never call them by hand; C++ runs them at the right time.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Constructors and destructors bookend an object's life — set up at the start, clean up at the end.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
