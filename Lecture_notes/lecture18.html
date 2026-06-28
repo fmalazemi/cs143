@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — The STL — Lecture 16</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s ease, color .3s ease; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s ease; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .cpp { color: var(--primary); font-family: var(--font-mono); }
+  .pyt { color: var(--accent); font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 56vh; display: block; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .box-hi { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .dash { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 4; }
+  .fig .blob { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .val { fill: var(--text); font-family: var(--font-mono); font-size: 22px; font-weight: 700; text-anchor: middle; }
+  .fig .lbl { fill: var(--primary); font-family: var(--font-sans); font-size: 18px; font-weight: 800; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 19px; text-anchor: middle; }
+  .fig .cap { fill: var(--muted); font-family: var(--font-sans); font-size: 14px; }
+  .fig .capC { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+  .fig .tag { fill: var(--accent); font-family: var(--font-sans); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .ptr { fill: var(--accent); font-family: var(--font-mono); font-size: 16px; font-weight: 700; text-anchor: middle; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 56px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s ease; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s ease; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 44px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · The STL</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Lecture 16</div>
+    <h1>The Standard Template Library</h1>
+    <div class="sub">Ready-made containers and algorithms</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lecture 6 (arrays) &amp; Lecture 15 (structs)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Say what the <span class="hl">STL</span> is and why it saves work.</li>
+      <li>Use the containers <code class="inline">vector</code>, <code class="inline">array</code>, <code class="inline">set</code>, and <code class="inline">map</code>.</li>
+      <li>Choose the right container for a task.</li>
+      <li>Use the algorithms <code class="inline">sort</code>, <code class="inline">reverse</code>, and <code class="inline">find</code>.</li>
+      <li>Understand the <code class="inline">begin()</code> … <code class="inline">end()</code> range that algorithms work on.</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHAT IS THE STL -->
+  <section class="slide">
+    <div class="kicker">The Big Picture</div>
+    <h2>What Is the STL?</h2>
+    <p class="lead">The <b>Standard Template Library</b> is a part of standard C++. It gives you ready-made tools, so you do not have to build them yourself.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Containers</h3>
+        <p style="margin:0;">Ready-made ways to store collections of data — like a resizable array, a set, or a dictionary.</p>
+      </div>
+      <div class="card card--featured">
+        <h3>Algorithms</h3>
+        <p style="margin:0;">Ready-made operations that work on those collections — like sorting, reversing, and searching.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Today:</b> first the containers (Part A), then the algorithms (Part B). Each tool needs its own <code class="inline">#include</code>.</p>
+  </section>
+
+  <!-- 4. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>Containers</h1>
+    <p class="lead">Ways to store a collection of values: <b>vector</b>, <b>array</b>, <b>set</b>, and <b>map</b>.</p>
+  </section>
+
+  <!-- 5. CONTAINERS OVERVIEW + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part A · Containers</div>
+    <h2>Four Containers at a Glance</h2>
+    <svg class="fig" viewBox="0 0 820 380" xmlns="http://www.w3.org/2000/svg" aria-label="Overview of vector, array, set, and map">
+      <defs>
+        <marker id="am" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <!-- vector -->
+      <text class="lbl" x="40" y="42">vector — resizable</text>
+      <rect class="box" x="40" y="56" width="58" height="46"/><text class="val" x="69" y="86">10</text>
+      <rect class="box" x="100" y="56" width="58" height="46"/><text class="val" x="129" y="86">20</text>
+      <rect class="box" x="160" y="56" width="58" height="46"/><text class="val" x="189" y="86">30</text>
+      <rect class="dash" x="220" y="56" width="58" height="46"/><text class="val" x="249" y="86" style="fill:var(--muted);">＋</text>
+      <text class="cap" x="40" y="128">grows with push_back</text>
+      <!-- array -->
+      <text class="lbl" x="440" y="42">array — fixed size (5)</text>
+      <rect class="box" x="440" y="56" width="46" height="46"/><text class="val" x="463" y="86">1</text>
+      <rect class="box" x="488" y="56" width="46" height="46"/><text class="val" x="511" y="86">2</text>
+      <rect class="box" x="536" y="56" width="46" height="46"/><text class="val" x="559" y="86">3</text>
+      <rect class="box" x="584" y="56" width="46" height="46"/><text class="val" x="607" y="86">4</text>
+      <rect class="box" x="632" y="56" width="46" height="46"/><text class="val" x="655" y="86">5</text>
+      <text class="cap" x="440" y="128">size set at compile time</text>
+      <!-- set -->
+      <text class="lbl" x="40" y="218">set — unique &amp; sorted</text>
+      <rect class="blob" x="40" y="232" width="300" height="62" rx="30"/>
+      <text class="mono" x="190" y="270">{ 1, 3, 7 }</text>
+      <text class="cap" x="40" y="320">duplicates are removed</text>
+      <!-- map -->
+      <text class="lbl" x="440" y="218">map — key → value</text>
+      <rect class="box" x="440" y="232" width="120" height="40"/><text class="mono" x="500" y="259" style="font-size:17px;">"Sara"</text>
+      <rect class="box-hi" x="620" y="232" width="70" height="40"/><text class="val" x="655" y="260">20</text>
+      <path class="edge" d="M560,252 L620,252" marker-end="url(#am)"/>
+      <rect class="box" x="440" y="284" width="120" height="40"/><text class="mono" x="500" y="311" style="font-size:17px;">"Ali"</text>
+      <rect class="box-hi" x="620" y="284" width="70" height="40"/><text class="val" x="655" y="312">22</text>
+      <path class="edge" d="M560,304 L620,304" marker-end="url(#am)"/>
+    </svg>
+  </section>
+
+  <!-- 6. VECTOR -->
+  <section class="slide">
+    <div class="pill">Worked Example 1 · vector</div>
+    <h2>vector — a Resizable Array</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v;       // empty, can grow
+    v.push_back(10);     // add to the end
+    v.push_back(20);
+    v.push_back(30);
+
+    cout &lt;&lt; v[0] &lt;&lt; endl;       // 10
+    cout &lt;&lt; v.size() &lt;&lt; endl;    // 3
+    for (int x : v) cout &lt;&lt; x &lt;&lt; " ";  // 10 20 30
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10
+3
+10 20 30 </div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">push_back</code> adds an item to the end.</li>
+          <li><code class="inline">v[i]</code> reads an item; <code class="inline">v.size()</code> gives the count.</li>
+          <li>Unlike a plain array, a vector <b>grows</b> as needed.</li>
+        </ul>
+        <p class="note">Coming from Python? A vector is like a list.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ARRAY -->
+  <section class="slide">
+    <div class="kicker">Part A · Containers</div>
+    <h2>array — a Fixed-Size Array</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;array&gt;
+using namespace std;
+
+int main() {
+    array&lt;int, 5&gt; a = {1, 2, 3, 4, 5};
+
+    cout &lt;&lt; a[2] &lt;&lt; endl;     // 3
+    cout &lt;&lt; a.size() &lt;&lt; endl;  // 5
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">array&lt;int, 5&gt;</code> holds exactly 5 ints — a fixed size.</li>
+          <li>It knows its own length: <code class="inline">a.size()</code>.</li>
+          <li>Safer and tidier than a plain C-style array.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">Use <code class="inline">array</code> when the size never changes; use <code class="inline">vector</code> when it might grow.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. SET -->
+  <section class="slide">
+    <div class="kicker">Part A · Containers</div>
+    <h2>set — Unique, Sorted Values</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;set&gt;
+using namespace std;
+
+int main() {
+    set&lt;int&gt; s;
+    s.insert(3);
+    s.insert(1);
+    s.insert(3);   // duplicate is ignored
+
+    for (int x : s) cout &lt;&lt; x &lt;&lt; " ";  // 1 3
+    cout &lt;&lt; endl;
+    cout &lt;&lt; s.count(2);  // 0  (not present)
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 3 
+0</div>
+        <ul style="margin-top:10px;">
+          <li>A set keeps only <b>unique</b> values, always <b>sorted</b>.</li>
+          <li><code class="inline">insert</code> adds; a repeat is ignored.</li>
+          <li><code class="inline">count(x)</code> is 1 if present, 0 if not.</li>
+        </ul>
+        <p class="note">Coming from Python? A set is like a set.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. MAP -->
+  <section class="slide">
+    <div class="pill">Worked Example 2 · map</div>
+    <h2>map — Key to Value</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;map&gt;
+using namespace std;
+
+int main() {
+    map&lt;string, int&gt; age;
+    age["Sara"] = 20;     // key -&gt; value
+    age["Ali"]  = 22;
+
+    cout &lt;&lt; age["Sara"] &lt;&lt; endl;   // 20
+
+    for (auto p : age)            // each pair
+        cout &lt;&lt; p.first &lt;&lt; ": " &lt;&lt; p.second &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">20
+Ali: 22
+Sara: 20</div>
+        <ul style="margin-top:10px;">
+          <li>A map stores <b>key → value</b> pairs.</li>
+          <li><code class="inline">p.first</code> is the key, <code class="inline">p.second</code> is the value.</li>
+          <li>Keys are unique and kept in sorted order.</li>
+        </ul>
+        <p class="note">Coming from Python? A map is like a dict.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. CONTAINER COMPARISON -->
+  <section class="slide">
+    <div class="kicker">Part A · Choosing</div>
+    <h2>Which Container?</h2>
+    <table class="cmp">
+      <tr><th>Container</th><th>Holds</th><th>Use when…</th></tr>
+      <tr><td class="cpp">vector</td><td>an ordered list that can grow</td><td>you add or remove items over time</td></tr>
+      <tr><td class="cpp">array</td><td>a fixed number of items</td><td>the size is known and never changes</td></tr>
+      <tr><td class="cpp">set</td><td>unique values, sorted</td><td>you need no duplicates</td></tr>
+      <tr><td class="cpp">map</td><td>key → value pairs</td><td>you look things up by a key</td></tr>
+    </table>
+    <p class="note" style="margin-top:12px;">Rough Python guide: <span class="pyt">vector</span> ≈ list, <span class="pyt">set</span> ≈ set, <span class="pyt">map</span> ≈ dict.</p>
+  </section>
+
+  <!-- 11. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>Algorithms</h1>
+    <p class="lead">Ready-made operations that work on a container: <b>sort</b>, <b>reverse</b>, and <b>find</b>.</p>
+  </section>
+
+  <!-- 12. ALGORITHMS INTRO + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part B · Algorithms</div>
+    <h2>Algorithms Work on a Range</h2>
+    <p class="lead">Algorithms live in <code class="inline">&lt;algorithm&gt;</code>. They act on a <b>range</b> given by <code class="inline">begin()</code> (the first item) and <code class="inline">end()</code> (just past the last).</p>
+    <svg class="fig" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" aria-label="An algorithm works on the range from begin to end">
+      <defs>
+        <marker id="ab" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="box" x="60" y="70" width="74" height="58"/><text class="val" x="97" y="106">3</text>
+      <rect class="box" x="134" y="70" width="74" height="58"/><text class="val" x="171" y="106">1</text>
+      <rect class="box" x="208" y="70" width="74" height="58"/><text class="val" x="245" y="106">2</text>
+      <text class="ptr" x="97" y="56">begin()</text>
+      <path class="edge" d="M97,58 L97,68" marker-end="url(#ab)"/>
+      <text class="ptr" x="300" y="56">end()</text>
+      <path class="edge" d="M300,58 L290,68" marker-end="url(#ab)"/>
+      <path class="edge" d="M320,99 L430,99" marker-end="url(#ab)"/>
+      <text class="tag" x="375" y="88">sort</text>
+      <rect class="box-hi" x="470" y="70" width="74" height="58"/><text class="val" x="507" y="106">1</text>
+      <rect class="box-hi" x="544" y="70" width="74" height="58"/><text class="val" x="581" y="106">2</text>
+      <rect class="box-hi" x="618" y="70" width="74" height="58"/><text class="val" x="655" y="106">3</text>
+      <text class="capC" x="410" y="170">an algorithm works on the range begin() … end()</text>
+    </svg>
+  </section>
+
+  <!-- 13. SORT -->
+  <section class="slide">
+    <div class="kicker">Part B · Algorithms</div>
+    <h2>sort — Put Items in Order</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v = {3, 1, 2};
+
+    sort(v.begin(), v.end());   // ascending
+
+    for (int x : v) cout &lt;&lt; x &lt;&lt; " ";  // 1 2 3
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 3 </div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">sort</code> arranges the range in increasing order.</li>
+          <li>It changes the container in place.</li>
+          <li>For largest-first, use <code class="inline">sort(v.begin(), v.end(), greater&lt;int&gt;())</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. REVERSE -->
+  <section class="slide">
+    <div class="kicker">Part B · Algorithms</div>
+    <h2>reverse — Flip the Order</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v = {1, 2, 3};
+
+    reverse(v.begin(), v.end());
+
+    for (int x : v) cout &lt;&lt; x &lt;&lt; " ";  // 3 2 1
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">3 2 1 </div>
+        <p style="margin-top:12px;"><b>What it does:</b> <code class="inline">reverse</code> turns the range back to front. The first item becomes the last.</p>
+        <p>Like <code class="inline">sort</code>, it changes the container in place.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. FIND -->
+  <section class="slide">
+    <div class="kicker">Part B · Algorithms</div>
+    <h2>find — Search for a Value</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v = {10, 20, 30};
+
+    auto it = find(v.begin(), v.end(), 20);
+
+    if (it != v.end())
+        cout &lt;&lt; "found";
+    else
+        cout &lt;&lt; "not found";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">found</div>
+        <ul style="margin-top:10px;">
+          <li><code class="inline">find</code> returns a marker (an <i>iterator</i>) to the item.</li>
+          <li>If the value is missing, it returns <code class="inline">end()</code>.</li>
+          <li>So compare with <code class="inline">end()</code> to test "found or not".</li>
+        </ul>
+        <p class="note"><code class="inline">auto</code> lets the compiler work out the type for you.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. WORKED 3 COMBINED -->
+  <section class="slide">
+    <div class="pill">Worked Example 3 · together</div>
+    <h2>Sort, Then Search</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;algorithm&gt;
+using namespace std;
+
+int main() {
+    vector&lt;int&gt; v = {40, 10, 30, 20};
+
+    sort(v.begin(), v.end());        // 10 20 30 40
+    for (int x : v) cout &lt;&lt; x &lt;&lt; " ";
+    cout &lt;&lt; endl;
+
+    auto it = find(v.begin(), v.end(), 30);
+    cout &lt;&lt; (it != v.end() ? "30 is here" : "no 30");
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10 20 30 40 
+30 is here</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the same vector is first sorted, then searched. The container and the algorithms work together smoothly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Missing the include</b><br>each tool needs its header (<code class="inline">&lt;vector&gt;</code>, <code class="inline">&lt;algorithm&gt;</code>, …)</li>
+          <li><b>Forgetting begin/end</b><br><code class="inline">sort(v)</code> is wrong; use <code class="inline">sort(v.begin(), v.end())</code></li>
+          <li><b>Expecting find to return an index</b><br>it returns an iterator, not a number</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>push_back on an array</b><br><code class="inline">array</code> has a fixed size; only <code class="inline">vector</code> grows</li>
+          <li><b>Expecting duplicates in a set</b><br>repeats are silently ignored</li>
+          <li><b>Reading a vector out of range</b><br><code class="inline">v[i]</code> beyond <code class="inline">size()</code> is unsafe</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Tip:</b> remember algorithms take a <span class="hl">range</span>, written as <code class="inline">v.begin(), v.end()</code>.</p>
+  </section>
+
+  <!-- 18. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn · Containers</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Make a <code class="inline">vector&lt;int&gt;</code>, add the numbers 5, 8, and 2 with <code class="inline">push_back</code>, then print them and the size.</li>
+      <li>Make a <code class="inline">set&lt;int&gt;</code>, insert 4, 4, 1, and 7, then print it. (What happens to the repeat?)</li>
+      <li>Make a <code class="inline">map&lt;string, int&gt;</code> of three fruit prices, then print the price of one fruit.</li>
+    </ul>
+  </section>
+
+  <!-- 19. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn · Algorithms</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Put <code class="inline">{9, 3, 7, 1}</code> in a vector and <code class="inline">sort</code> it into increasing order; print the result.</li>
+      <li><code class="inline">reverse</code> the vector from Exercise 4 and print it.</li>
+      <li>Use <code class="inline">find</code> to check whether the value 7 is in the vector, and print "yes" or "no".</li>
+    </ul>
+  </section>
+
+  <!-- 20. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · vector</h3>
+<pre><code>vector&lt;int&gt; v;
+v.push_back(5);
+v.push_back(8);
+v.push_back(2);
+for (int x : v) cout &lt;&lt; x &lt;&lt; " ";  // 5 8 2
+cout &lt;&lt; endl &lt;&lt; v.size();          // 3</code></pre>
+        <h3>2 · set</h3>
+<pre><code>set&lt;int&gt; s;
+s.insert(4); s.insert(4);
+s.insert(1); s.insert(7);
+for (int x : s) cout &lt;&lt; x &lt;&lt; " ";  // 1 4 7
+// the repeated 4 is ignored</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · map</h3>
+<pre><code>map&lt;string, int&gt; price;
+price["apple"]  = 3;
+price["banana"] = 2;
+price["cherry"] = 5;
+
+cout &lt;&lt; price["banana"];   // 2</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · sort</h3>
+<pre><code>vector&lt;int&gt; v = {9, 3, 7, 1};
+sort(v.begin(), v.end());
+for (int x : v) cout &lt;&lt; x &lt;&lt; " ";  // 1 3 7 9</code></pre>
+        <h3>5 · reverse</h3>
+<pre><code>reverse(v.begin(), v.end());
+for (int x : v) cout &lt;&lt; x &lt;&lt; " ";  // 9 7 3 1</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · find</h3>
+<pre><code>auto it = find(v.begin(), v.end(), 7);
+if (it != v.end())
+    cout &lt;&lt; "yes";
+else
+    cout &lt;&lt; "no";
+// yes</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 22. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>The <b>STL</b> gives ready-made <b>containers</b> and <b>algorithms</b> in standard C++.</li>
+      <li><code class="inline">vector</code> — a resizable array; <code class="inline">array</code> — a fixed-size array.</li>
+      <li><code class="inline">set</code> — unique, sorted values; <code class="inline">map</code> — key → value pairs.</li>
+      <li>Algorithms in <code class="inline">&lt;algorithm&gt;</code> work on the range <code class="inline">begin()</code> … <code class="inline">end()</code>.</li>
+      <li><code class="inline">sort</code> orders items, <code class="inline">reverse</code> flips them, <code class="inline">find</code> searches for a value.</li>
+      <li><code class="inline">find</code> returns <code class="inline">end()</code> when the value is not present.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>The STL lets you do more with less code — and fewer mistakes.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto)$/;
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i + 1; while (j < n && src[j] !== '"') { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i + 1; while (j < n && src[j] !== "'") { if (src[j] === '\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i, j);
+        out += KW.test(w) ? '<span class="tok-kw">' + esc(w) + '</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">' + esc(src.slice(i, j)) + '</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+
+  show(0);
+</script>
+</body>
+</html>
