@@ -411,11 +411,14 @@ struct Circle {
 <details>
 <summary>Click to see solution</summary>
 
+{% raw %}
 ```cpp
 Point pts[3] = {{0,0},{1,2},{3,4}};
 for (int i = 0; i < 3; i++)
     cout << pts[i].x << "," << pts[i].y << endl;
 ```
+{% endraw %}
+
 </details>
 
 **Exercise 5.** Write a function that takes a `Rectangle` struct and returns its area.
@@ -453,7 +456,7 @@ int main() {
 }
 ```
 
-The struct's field is usable from outside; the class's field is not. **Why:** struct members are public by default, while class members are private by default — the only difference between them.
+The struct's field is usable from outside; the class's field is not. **Why:** struct members are public by default, while class members are private by default — the only difference between them[...]
 </details>
 
 ---
@@ -477,6 +480,7 @@ The struct's field is usable from outside; the class's field is not. **Why:** st
 
 ### Quick Reference
 
+{% raw %}
 ```cpp
 struct Point {        // struct: members public by default
     int x;
@@ -491,6 +495,7 @@ cout << p.sum();      // call a method
 // struct S { int a; };  -> a is public
 // class  C { int a; };  -> a is private
 ```
+{% endraw %}
 
 ### Next Steps
 
