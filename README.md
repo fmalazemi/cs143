@@ -117,7 +117,7 @@ ___
 | 17 | [STL: Standard Template Library](Lecture_notes/lecture_18_stl.md) | [🔗](Lecture_notes/lecture18.html) |
 | 19 | [Class Inheritance](Lecture_notes/lecture_20_inheritance.md) | [🔗](Lecture_notes/lecture20.html) |
 | | **Files and Advanced Strings** | |
-| 18 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
+| 20 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
 
 
 ## 📝 Grading
