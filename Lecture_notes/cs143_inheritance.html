@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — OOP Inheritance</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 54vh; display: block; }
+  .fig .parent  { fill: var(--surface); stroke: var(--primary); stroke-width: 2.5; }
+  .fig .child   { fill: var(--surface); stroke: var(--accent);  stroke-width: 2.5; }
+  .fig .grandchild { fill: var(--surface); stroke: var(--green); stroke-width: 2.5; }
+  .fig .inh  { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 1.5; }
+  .fig .own  { fill: var(--surface-2);    stroke: var(--accent);  stroke-width: 1.5; }
+  .fig .chain { fill: var(--surface); stroke: var(--green); stroke-width: 2.5; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-sans); font-size: 17px; font-weight: 800; text-anchor: middle; }
+  .fig .sub { fill: var(--text-soft); font-family: var(--font-mono); font-size: 14px; text-anchor: middle; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .parT { fill: var(--primary); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .chdT { fill: var(--accent);  font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green);   font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .edge  { stroke: var(--primary); stroke-width: 2.5; fill: none; }
+  .fig .edgeA { stroke: var(--accent);  stroke-width: 2.5; fill: none; }
+  .fig .edgeG { stroke: var(--green);   stroke-width: 2.5; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 66px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · OOP Inheritance</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · OOP Pillar 3</div>
+    <h1>Inheritance</h1>
+    <div class="sub">Building new classes from existing ones</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> Lectures 13–15 (OOP intro, encapsulation, constructors)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what <span class="hl">inheritance</span> is and why it saves work.</li>
+      <li>Write a <b>derived</b> class that extends a <b>base</b> class.</li>
+      <li>Understand what a child class inherits and what it adds.</li>
+      <li>Use <code class="inline">protected</code> to share data with child classes.</li>
+      <li>Call the parent constructor from the child using the <b>initializer list</b>.</li>
+      <li><b>Override</b> a parent method in a child class.</li>
+    </ul>
+  </section>
+
+  <!-- 3. PILLAR RECAP -->
+  <section class="slide">
+    <div class="kicker">Where This Fits</div>
+    <h2>The Third OOP Pillar</h2>
+    <p class="lead">We have studied encapsulation and the mechanics of classes. Today is the third of four big ideas.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Done ✓</h3>
+        <ul class="check">
+          <li>Encapsulation — bundle and protect data.</li>
+          <li>Abstraction — show the interface, hide details.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Today</h3>
+        <p style="margin:0;"><b>Inheritance</b> — build new classes based on existing ones, reusing their code without rewriting it.</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Still to come:</b> Polymorphism — the same call, different behaviour, chosen at run time.</p>
+  </section>
+
+  <!-- 4. THE IDEA -->
+  <section class="slide">
+    <div class="kicker">The Concept</div>
+    <h2>What Is Inheritance?</h2>
+    <p class="lead"><b>Inheritance</b> lets a new class receive the attributes and methods of an existing class for free, and then add or change what it needs.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--red);">Without inheritance</h3>
+        <ul class="cross">
+          <li>Copy the same data and methods into every new class.</li>
+          <li>Fix a bug once — it stays broken in all the copies.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">With inheritance</h3>
+        <ul class="check">
+          <li>Write shared code once in the <b>parent</b> (base) class.</li>
+          <li>Each <b>child</b> (derived) class adds only what is different.</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The is-a test:</b> a child class should be an <span class="hl">is-a</span> version of the parent. A <code class="inline">Rectangle</code> <i>is-a</i> <code class="inline">Shape</code>.</p>
+  </section>
+
+  <!-- 5. HIERARCHY FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Picture</div>
+    <h2>A Class Hierarchy</h2>
+    <p class="lead">The <b>parent</b> (base) class sits at the top. Each <b>child</b> (derived) class inherits everything and adds its own details.</p>
+    <svg class="fig" viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" aria-label="Class hierarchy: Shape at top, Rectangle and Circle below">
+      <defs>
+        <marker id="ah" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L0,10 L10,5 Z" fill="var(--primary)"/>
+        </marker>
+      </defs>
+      <!-- parent -->
+      <rect class="parent" x="230" y="20" width="260" height="78" rx="12"/>
+      <text class="lbl" x="360" y="55" style="fill:var(--primary);">Shape</text>
+      <text class="sub" x="360" y="78">colour, area(), describe()</text>
+      <!-- children -->
+      <rect class="child" x="60" y="188" width="220" height="78" rx="12"/>
+      <text class="lbl" x="170" y="222" style="fill:var(--accent);">Rectangle</text>
+      <text class="sub" x="170" y="248">width, height, area()</text>
+      <rect class="child" x="440" y="188" width="220" height="78" rx="12"/>
+      <text class="lbl" x="550" y="222" style="fill:var(--accent);">Circle</text>
+      <text class="sub" x="550" y="248">radius, area()</text>
+      <!-- edges with hollow arrow -->
+      <path class="edge" d="M360,98 L170,188" marker-end="url(#ah)"/>
+      <path class="edge" d="M360,98 L550,188" marker-end="url(#ah)"/>
+      <text class="parT" x="360" y="158">inherits from Shape</text>
+    </svg>
+  </section>
+
+  <!-- 6. SYNTAX -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>Declaring a Derived Class</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// parent class
+class Shape {
+public:
+    string colour;
+    void describe() {
+        cout &lt;&lt; "Colour: " &lt;&lt; colour &lt;&lt; endl;
+    }
+};
+
+// child class — inherits from Shape
+class Rectangle : public Shape {
+public:
+    double width;
+    double height;
+    double area() { return width * height; }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">class Rectangle : public Shape</code> means Rectangle inherits from Shape.</li>
+          <li>The word <code class="inline">public</code> keeps the parent's public members public in the child.</li>
+          <li><code class="inline">Rectangle</code> gets <code class="inline">colour</code> and <code class="inline">describe()</code> for free.</li>
+          <li><code class="inline">Rectangle</code> adds its own <code class="inline">width</code>, <code class="inline">height</code>, and <code class="inline">area()</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. WHAT IS INHERITED FIGURE -->
+  <section class="slide">
+    <div class="kicker">What the Child Gets</div>
+    <h2>Inherited vs. Own Members</h2>
+    <svg class="fig" viewBox="0 0 740 270" xmlns="http://www.w3.org/2000/svg" aria-label="Rectangle object showing inherited Shape members and its own members">
+      <rect class="child" x="170" y="20" width="400" height="230" rx="14"/>
+      <text class="lbl" x="370" y="52" style="fill:var(--accent);">Rectangle object</text>
+      <rect class="inh" x="200" y="68" width="340" height="68" rx="8"/>
+      <text class="parT" x="370" y="91">Inherited from Shape</text>
+      <text class="mono" x="370" y="120">colour · describe()</text>
+      <rect class="own" x="200" y="150" width="340" height="68" rx="8"/>
+      <text class="chdT" x="370" y="173">Rectangle's own</text>
+      <text class="mono" x="370" y="202">width · height · area()</text>
+      <text class="cap" x="370" y="260">a Rectangle object carries both sets of members</text>
+    </svg>
+  </section>
+
+  <!-- 8. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Using Inherited Members</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class Shape {
+public:
+    string colour;
+    void describe() {
+        cout &lt;&lt; "Colour: " &lt;&lt; colour &lt;&lt; endl;
+    }
+};
+
+class Rectangle : public Shape {
+public:
+    double width, height;
+    double area() { return width * height; }
+};
+
+int main() {
+    Rectangle r;
+    r.colour = "blue";        // inherited from Shape
+    r.width  = 5;
+    r.height = 3;
+    r.describe();             // inherited method
+    cout &lt;&lt; r.area() &lt;&lt; endl; // 15
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Colour: blue
+15</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">Rectangle</code> uses <code class="inline">colour</code> and <code class="inline">describe()</code> even though they are defined only in <code class="inline">Shape</code>. We wrote the colour logic once — every shape subclass gets it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. PROTECTED -->
+  <section class="slide">
+    <div class="kicker">Access in Inheritance</div>
+    <h2><code class="inline" style="font-size:.8em;">protected</code> — Shared With Children</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Shape {
+protected:               // accessible in children
+    string colour;
+public:
+    Shape(string c) : colour(c) { }
+    void describe() {
+        cout &lt;&lt; "Colour: " &lt;&lt; colour &lt;&lt; endl;
+    }
+};
+
+class Circle : public Shape {
+private:
+    double radius;
+public:
+    Circle(string c, double r)
+        : Shape(c), radius(r) { }
+    double area() {
+        return 3.14159 * radius * radius;
+    }
+    void info() {
+        // can use colour because it is protected
+        cout &lt;&lt; colour &lt;&lt; " circle, area = "
+             &lt;&lt; area() &lt;&lt; endl;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <table class="cmp" style="font-size:18px;">
+          <tr><th>Level</th><th>Own methods</th><th>Child class</th><th>Outside code</th></tr>
+          <tr><td><code class="inline">public</code></td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td><code class="inline">protected</code></td><td>✓</td><td>✓</td><td>✗</td></tr>
+          <tr><td><code class="inline">private</code></td><td>✓</td><td>✗</td><td>✗</td></tr>
+        </table>
+        <p class="note" style="margin-top:10px;">Use <code class="inline">protected</code> when children need direct access, but outside code should not.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. CONSTRUCTOR CHAIN FIGURE -->
+  <section class="slide">
+    <div class="kicker">Setting Up</div>
+    <h2>Calling the Parent Constructor</h2>
+    <p class="lead">When a child object is created, the <b>parent constructor runs first</b>. Call it by name in the child's initializer list.</p>
+    <svg class="fig" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" aria-label="Shape constructor runs before Rectangle constructor">
+      <defs>
+        <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--green)"/>
+        </marker>
+      </defs>
+      <rect class="chain" x="50"  y="64" width="250" height="72" rx="12"/>
+      <text class="lbl"  x="175" y="96"  style="fill:var(--green);">Shape("blue")</text>
+      <text class="sub"  x="175" y="120">sets colour</text>
+      <rect class="chain" x="420" y="64" width="250" height="72" rx="12"/>
+      <text class="lbl"  x="545" y="96"  style="fill:var(--green);">Rectangle("blue",5,3)</text>
+      <text class="sub"  x="545" y="120">sets width, height</text>
+      <path class="edgeG" d="M300,100 L420,100" marker-end="url(#ag)"/>
+      <text class="grnT"  x="360" y="88">runs first</text>
+      <text class="cap" x="360" y="180">Rectangle("blue",5,3) : Shape("blue") { ... }</text>
+    </svg>
+  </section>
+
+  <!-- 11. WORKED 2 CONSTRUCTOR CHAIN -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Constructors in a Hierarchy</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class Shape {
+protected:
+    string colour;
+public:
+    Shape(string c) : colour(c) { }
+    void describe() {
+        cout &lt;&lt; "Colour: " &lt;&lt; colour &lt;&lt; endl;
+    }
+};
+
+class Rectangle : public Shape {
+private:
+    double width, height;
+public:
+    Rectangle(string c, double w, double h)
+        : Shape(c), width(w), height(h) { }
+    double area() { return width * height; }
+    void info() {
+        describe();
+        cout &lt;&lt; "Area: " &lt;&lt; area() &lt;&lt; endl;
+    }
+};
+
+int main() {
+    Rectangle r("red", 4, 5);
+    r.info();
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Colour: red
+Area: 20</div>
+        <p style="margin-top:12px;"><b>What it does:</b> <code class="inline">Rectangle</code>'s constructor passes <code class="inline">"red"</code> up to <code class="inline">Shape</code>'s constructor, which sets <code class="inline">colour</code>. The child then handles its own <code class="inline">width</code> and <code class="inline">height</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. OVERRIDING -->
+  <section class="slide">
+    <div class="kicker">Changing Behaviour</div>
+    <h2>Overriding a Parent Method</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Shape {
+public:
+    string colour;
+    Shape(string c) : colour(c) { }
+    double area() { return 0; }         // base version
+};
+
+class Rectangle : public Shape {
+    double w, h;
+public:
+    Rectangle(string c, double w, double h)
+        : Shape(c), w(w), h(h) { }
+    double area() { return w * h; }     // overrides Shape::area
+};
+
+class Circle : public Shape {
+    double r;
+public:
+    Circle(string c, double r)
+        : Shape(c), r(r) { }
+    double area() {                     // overrides Shape::area
+        return 3.14159 * r * r;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>If the child defines a method with the <b>same name and parameters</b>, it <b>overrides</b> the parent's version.</li>
+          <li>Each shape gives its own correct formula for <code class="inline">area()</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">This is a stepping stone to polymorphism — the next lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED 3 OVERRIDE -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Each Shape Computes Its Own Area</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class Shape {
+public:
+    string colour;
+    Shape(string c) : colour(c) { }
+    double area() { return 0; }
+};
+
+class Rectangle : public Shape {
+    double w, h;
+public:
+    Rectangle(string c, double w, double h)
+        : Shape(c), w(w), h(h) { }
+    double area() { return w * h; }
+};
+
+class Circle : public Shape {
+    double r;
+public:
+    Circle(string c, double r)
+        : Shape(c), r(r) { }
+    double area() { return 3.14159 * r * r; }
+};
+
+int main() {
+    Rectangle rect("blue", 4, 5);
+    Circle    circ("red",  3);
+    cout &lt;&lt; rect.colour &lt;&lt; " rect area = " &lt;&lt; rect.area() &lt;&lt; endl;
+    cout &lt;&lt; circ.colour &lt;&lt; " circle area = " &lt;&lt; circ.area() &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">blue rect area = 20
+red circle area = 28.2743</div>
+        <p style="margin-top:12px;"><b>What it does:</b> both shapes inherit <code class="inline">colour</code> from <code class="inline">Shape</code>, but each overrides <code class="inline">area()</code> with its own correct formula.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. CALLING PARENT METHOD -->
+  <section class="slide">
+    <div class="kicker">Using Both Versions</div>
+    <h2>Calling the Parent's Method Explicitly</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Shape {
+public:
+    string colour;
+    Shape(string c) : colour(c) { }
+    void describe() {
+        cout &lt;&lt; "Colour: " &lt;&lt; colour &lt;&lt; endl;
+    }
+};
+
+class Rectangle : public Shape {
+    double w, h;
+public:
+    Rectangle(string c, double w, double h)
+        : Shape(c), w(w), h(h) { }
+    void describe() {
+        Shape::describe();       // call the parent version first
+        cout &lt;&lt; "Size: " &lt;&lt; w &lt;&lt; " x " &lt;&lt; h &lt;&lt; endl;
+    }
+};</code></pre>
+      </div>
+      <div>
+        <div class="out-label">If we call r.describe()</div>
+        <div class="output">Colour: green
+Size: 5 x 3</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">Shape::describe()</code> calls the parent's version explicitly. The child <b>extends</b> the parent's behaviour rather than replacing it entirely.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. MULTI-LEVEL -->
+  <section class="slide">
+    <div class="kicker">Going Deeper</div>
+    <h2>Multi-Level Inheritance</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Vehicle → Car → ElectricCar</h3>
+<pre><code>class Vehicle {
+public:
+    int speed;
+};
+class Car : public Vehicle {
+public:
+    string brand;
+};
+class ElectricCar : public Car {
+public:
+    int batteryKm;
+};</code></pre>
+      </div>
+      <div class="card">
+        <h3>The is-a chain</h3>
+        <ul class="check">
+          <li>An ElectricCar <i>is-a</i> Car.</li>
+          <li>A Car <i>is-a</i> Vehicle.</li>
+          <li>An ElectricCar <i>is-a</i> Vehicle too.</li>
+          <li>An <code class="inline">ElectricCar</code> object has <code class="inline">speed</code>, <code class="inline">brand</code>, and <code class="inline">batteryKm</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:6px;">Each level adds more specific detail.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Accessing private parent data</b><br>a child cannot touch <code class="inline">private</code> members — use <code class="inline">protected</code></li>
+          <li><b>Forgetting to call the parent constructor</b><br>the parent's fields need the parent's constructor to set them</li>
+          <li><b>Missing <code class="inline">public</code> in the colon</b><br><code class="inline">class Rect : Shape</code> defaults to private, breaking access</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Confusing override with overload</b><br>override keeps the same signature; overload changes it</li>
+          <li><b>Using is-a when it should be has-a</b><br>a <code class="inline">Car</code> has-a <code class="inline">Engine</code> — not is-a</li>
+          <li><b>Very deep hierarchies</b><br>three or more levels quickly become hard to follow</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Quick test:</b> say "A [child] is a [parent]." If it sounds natural, inheritance is the right tool.</p>
+  </section>
+
+  <!-- 17. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write a <code class="inline">Shape</code> class with <code class="inline">colour</code> and <code class="inline">describe()</code>. Derive a <code class="inline">Triangle</code> that adds a <code class="inline">base</code> and <code class="inline">height</code> and overrides <code class="inline">area()</code> (½ × base × height).</li>
+      <li>Write a <code class="inline">Person</code> class with <code class="inline">name</code> and <code class="inline">age</code>. Derive an <code class="inline">Employee</code> that adds <code class="inline">salary</code>. Use constructors at both levels.</li>
+      <li>In <code class="inline">Employee</code>, override <code class="inline">introduce()</code> to print the employee's name <i>and</i> salary, calling the parent version first.</li>
+    </ul>
+  </section>
+
+  <!-- 18. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write a <code class="inline">Vehicle</code> → <code class="inline">Car</code> hierarchy. <code class="inline">Vehicle</code> has <code class="inline">speed</code>; <code class="inline">Car</code> adds <code class="inline">brand</code>. Print both from a <code class="inline">Car</code> object.</li>
+      <li>Extend it: add <code class="inline">ElectricCar</code> that inherits from <code class="inline">Car</code> and adds <code class="inline">batteryKm</code>. Create one and print all three attributes.</li>
+      <li>Explain in one sentence why <code class="inline">class Rectangle : Shape</code> (without <code class="inline">public</code>) could cause access problems.</li>
+    </ul>
+  </section>
+
+  <!-- 19. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Shape → Triangle</h3>
+<pre><code>class Shape {
+public:
+    string colour;
+    void describe() {
+        cout &lt;&lt; "Colour: " &lt;&lt; colour &lt;&lt; endl;
+    }
+};
+class Triangle : public Shape {
+public:
+    double base, height;
+    double area() { return 0.5 * base * height; }
+};</code></pre>
+        <h3>2 · Person → Employee</h3>
+<pre><code>class Person {
+protected:
+    string name; int age;
+public:
+    Person(string n, int a) : name(n), age(a) { }
+    void introduce() { cout &lt;&lt; name &lt;&lt; endl; }
+};
+class Employee : public Person {
+    double salary;
+public:
+    Employee(string n, int a, double s)
+        : Person(n, a), salary(s) { }
+};</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Override introduce()</h3>
+<pre><code>class Employee : public Person {
+    double salary;
+public:
+    Employee(string n, int a, double s)
+        : Person(n, a), salary(s) { }
+    void introduce() {
+        Person::introduce();           // parent first
+        cout &lt;&lt; "Salary: " &lt;&lt; salary &lt;&lt; endl;
+    }
+};
+// Output when called:
+// Sara
+// Salary: 5000</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Vehicle → Car</h3>
+<pre><code>class Vehicle {
+protected: int speed;
+public:
+    Vehicle(int s) : speed(s) { }
+};
+class Car : public Vehicle {
+    string brand;
+public:
+    Car(int s, string b) : Vehicle(s), brand(b) { }
+    void print() {
+        cout &lt;&lt; brand &lt;&lt; " " &lt;&lt; speed &lt;&lt; endl;
+    }
+};</code></pre>
+        <h3>5 · Car → ElectricCar</h3>
+<pre><code>class ElectricCar : public Car {
+    int batteryKm;
+public:
+    ElectricCar(int s, string b, int km)
+        : Car(s, b), batteryKm(km) { }
+    void print() {
+        Car::print();
+        cout &lt;&lt; "Range: " &lt;&lt; batteryKm &lt;&lt; " km" &lt;&lt; endl;
+    }
+};</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · Missing public</h3>
+        <p><code class="inline">class Rectangle : Shape</code> defaults to <b>private</b> inheritance, which makes the parent's <code class="inline">public</code> members private inside <code class="inline">Rectangle</code>. Outside code can no longer call them.</p>
+        <p style="margin-top:10px;">Always write <code class="inline">class Rectangle : <b>public</b> Shape</code> for normal inheritance.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><b>Inheritance</b> lets a child class receive the attributes and methods of a parent class for free.</li>
+      <li>Write <code class="inline">class Rectangle : public Shape</code> to derive <code class="inline">Rectangle</code> from <code class="inline">Shape</code>.</li>
+      <li><code class="inline">protected</code> members are visible in child classes but hidden from outside code.</li>
+      <li>Call the parent constructor from the child's initializer list: <code class="inline">: Shape(c)</code>.</li>
+      <li>A child can <b>override</b> a parent method by defining one with the same name and parameters.</li>
+      <li>Call the parent's version explicitly with <code class="inline">Shape::describe()</code>.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Next: Polymorphism</b> — the same call, different behaviour, chosen at run time.</p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>
