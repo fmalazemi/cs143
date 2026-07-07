@@ -115,10 +115,11 @@ ___
 | 15 | [Function overloading & default arguments](Lecture_notes/lecture_16_Overloading_and_Defaults.md) | [🔗](Lecture_notes/lecture16.html) |
 | 16 | [Struct vs Classes](Lecture_notes/lecture_17_Structs_vs_Classes.md) | [🔗](Lecture_notes/lecture17.html) |
 | 17 | [STL: Standard Template Library](Lecture_notes/lecture_18_stl.md) | [🔗](Lecture_notes/lecture18.html) |
-|   | [Exercise set 2](Lecture_notes/Exercises_2.md) --- [Solutions](Lecture_notes/solutions_2.md) | |
+|   | [Exercise set 2](Lecture_notes/Exercises_3.md) --- [Solutions](Lecture_notes/solutions_3.md) | |
+|   | [Exercise set 3](Lecture_notes/Exercises_2.md) --- [Solutions](Lecture_notes/solutions_2.md) | |
 |    | [pairs in C++](Lecture_notes/make_pair.png) | |
 | 19 | [Class Inheritance](Lecture_notes/lecture_20_inheritance.md) | [🔗](Lecture_notes/lecture20.html) |
-| 20 | [Arrow Operator](Lecture_notes/lecture_21_Objects_Through_Pointers.md) | [🔗](Lecture_notes/lecture21.html)
+| 20 | [Arrow Operator](Lecture_notes/lecture_21_Objects_Through_Pointers.md) | [🔗](Lecture_notes/lecture21.html) | 
 | | **Files and Advanced Strings** | |
 | 20 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
 
