@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Deep Copy vs. Shallow Copy</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+  .danger { color: var(--red); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+  .out-label.bad { color: var(--red); }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--danger { border-color: var(--red); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .obj { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .heap { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2.5; }
+  .fig .heapDead { fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 5; }
+  .fig .heapBad { fill: var(--surface); stroke: var(--red); stroke-width: 2.5; }
+  .fig .name { fill: var(--text); font-family: var(--font-sans); font-size: 18px; font-weight: 800; }
+  .fig .mono { fill: var(--text); font-family: var(--font-mono); font-size: 18px; text-anchor: middle; }
+  .fig .monoL { fill: var(--text); font-family: var(--font-mono); font-size: 17px; }
+  .fig .big { fill: var(--text); font-family: var(--font-mono); font-size: 26px; font-weight: 700; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .region-lbl { fill: var(--muted); font-family: var(--font-sans); font-size: 14px; font-weight: 700; letter-spacing: .12em; text-anchor: middle; }
+  .fig .redT { fill: var(--red); font-family: var(--font-sans); font-size: 15px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-sans); font-size: 15px; font-weight: 700; text-anchor: middle; }
+  .fig .warn { stroke: var(--red); stroke-width: 2.5; fill: none; }
+  .fig .safe { stroke: var(--green); stroke-width: 2.5; fill: none; }
+  .fig .edge { stroke: var(--primary); stroke-width: 2.5; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 60px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 44px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Deep vs. Shallow Copy</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Deep Copy vs.<br>Shallow Copy</h1>
+    <div class="sub">What happens when you copy an object that owns memory</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> pointers, <code style="font-family:var(--font-mono);">new</code>/<code style="font-family:var(--font-mono);">delete</code>, constructors &amp; destructors</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain the difference between a <span class="hl">shallow copy</span> and a <span class="hl">deep copy</span>.</li>
+      <li>Describe what the <b>default</b> copy does to a pointer member.</li>
+      <li>See why a shared pointer causes <b>shared state</b> and a <b>double free</b>.</li>
+      <li>Write a <b>copy constructor</b> that makes a deep copy.</li>
+      <li>Recall the <b>Rule of Three</b>.</li>
+      <li>Compare this with Python's assignment and <code class="inline">deepcopy</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 3. SETUP -->
+  <section class="slide">
+    <div class="kicker">The Setup</div>
+    <h2>A Class That Owns Memory</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class IntBox {
+    int* data;               // a pointer to heap memory
+public:
+    IntBox(int value) {
+        data = new int(value);   // allocate one int
+    }
+    ~IntBox() {
+        delete data;             // free it
+    }
+    int  get()      { return *data; }
+    void set(int v) { *data = v; }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">IntBox</code> holds a <b>pointer</b> to an int on the heap.</li>
+          <li>The constructor uses <code class="inline">new</code>; the destructor uses <code class="inline">delete</code>.</li>
+          <li>The object does not hold the value directly — it holds the <b>address</b> of the value.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">This "owns a pointer" pattern is where copying gets tricky.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. WHEN DOES A COPY HAPPEN -->
+  <section class="slide">
+    <div class="kicker">First, a Question</div>
+    <h2>When Does a Copy Happen?</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>IntBox a(5);
+
+IntBox b = a;    // 1. copy when created
+IntBox c(a);     // 2. same thing
+
+useBox(a);       // 3. passing by value copies
+
+// 4. returning an object by value copies too</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>A copy is made whenever one object is built <b>from another</b>.</li>
+          <li>It also happens when you <b>pass by value</b> or <b>return by value</b>.</li>
+          <li>So the way copying works matters more often than you might think.</li>
+        </ul>
+        <p style="margin-top:8px;"><b>The question:</b> what exactly gets copied when the object owns a pointer?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. DEFAULT COPY -->
+  <section class="slide">
+    <div class="kicker">The Default Behaviour</div>
+    <h2>The Compiler Copies Member by Member</h2>
+    <p class="lead">If you do not write a copy constructor, the compiler makes one for you. It copies <b>each member</b> as-is.</p>
+    <div class="card card--danger" style="margin-top:6px;">
+      <p style="margin:0;">For a pointer member, "copy the member" means <b>copy the address</b> — <span class="danger">not</span> the thing it points to. Both objects end up pointing to the <span class="danger">same</span> memory.</p>
+    </div>
+    <p style="margin-top:14px;">This is called a <span class="hl">shallow copy</span>: the pointer is copied, but the memory behind it is shared.</p>
+  </section>
+
+  <!-- 6. SHALLOW + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Shallow Copy</div>
+    <h2>Two Objects, One Block</h2>
+    <p class="lead">After <code class="inline">IntBox b = a;</code> with the default copy, <code class="inline">a.data</code> and <code class="inline">b.data</code> hold the <b>same address</b>.</p>
+    <svg class="fig" viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" aria-label="Object a and object b both point to the same heap block">
+      <defs>
+        <marker id="mw" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--red)"/>
+        </marker>
+      </defs>
+      <rect class="obj" x="60" y="46" width="210" height="80" rx="10"/>
+      <text class="name" x="82" y="76">a</text>
+      <text class="monoL" x="120" y="96">data  ●</text>
+      <rect class="obj" x="60" y="168" width="210" height="80" rx="10"/>
+      <text class="name" x="82" y="198">b</text>
+      <text class="monoL" x="120" y="218">data  ●</text>
+      <text class="region-lbl" x="595" y="118">HEAP</text>
+      <rect class="heap" x="520" y="128" width="150" height="72" rx="8"/>
+      <text class="big" x="595" y="172">5</text>
+      <path class="warn" d="M248,96 C400,96 420,150 520,158" marker-end="url(#mw)"/>
+      <path class="warn" d="M248,218 C400,218 420,186 520,178" marker-end="url(#mw)"/>
+      <text class="redT" x="360" y="270">a and b share one block — changing one changes both</text>
+    </svg>
+  </section>
+
+  <!-- 7. WORKED 1 SHARED STATE -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Problem 1: Shared State</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int main() {
+    IntBox a(5);
+    IntBox b = a;      // shallow copy (default)
+
+    b.set(99);         // change b only...
+
+    cout &lt;&lt; a.get() &lt;&lt; endl;   // 99  (!)
+    cout &lt;&lt; b.get() &lt;&lt; endl;   // 99
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label bad">Surprising Output</div>
+        <div class="output">99
+99</div>
+        <p style="margin-top:14px;"><b>What went wrong:</b> we changed <code class="inline">b</code>, but <code class="inline">a</code> changed too. Because both share one block, editing one edits the other.</p>
+        <p class="note">This "spooky" shared state is the first sign of a shallow copy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. DOUBLE FREE + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Bigger Danger</div>
+    <h2>Problem 2: Deleted Twice</h2>
+    <p class="lead">At the end of the program both destructors run. Each calls <code class="inline">delete data</code> — on the <b>same</b> block.</p>
+    <svg class="fig" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" aria-label="The shared block is freed once, then freed again causing a crash">
+      <defs>
+        <marker id="ms" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+      <rect class="heap" x="40" y="66" width="150" height="66" rx="8"/>
+      <text class="big" x="115" y="107">5</text>
+      <text class="cap" x="115" y="152">alive</text>
+      <path class="edge" d="M195,99 L285,99" style="stroke:var(--muted);" marker-end="url(#ms)"/>
+      <rect class="heapDead" x="300" y="66" width="150" height="66" rx="8"/>
+      <text class="mono" x="375" y="105" style="fill:var(--muted);">freed</text>
+      <text class="grnT" x="375" y="152">delete (from b) ✓</text>
+      <path class="edge" d="M455,99 L545,99" style="stroke:var(--muted);" marker-end="url(#ms)"/>
+      <rect class="heapBad" x="560" y="66" width="150" height="66" rx="8"/>
+      <text class="big" x="635" y="107" style="fill:var(--red);">✗</text>
+      <text class="redT" x="635" y="152">delete (from a) — crash</text>
+    </svg>
+    <p style="margin-top:6px;" class="danger">Freeing memory that is already freed is a serious bug (a "double free").</p>
+  </section>
+
+  <!-- 9. THE FIX -->
+  <section class="slide">
+    <div class="kicker">The Solution</div>
+    <h2>Deep Copy: Give Each Object Its Own Memory</h2>
+    <p class="lead">A <b>deep copy</b> allocates <b>new</b> memory for the copy and copies the <i>value</i> into it. The two objects no longer share anything.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--danger">
+        <h3 style="color:var(--red);">Shallow (default)</h3>
+        <p style="margin:0;">Copy the pointer → shared block → shared state and double free.</p>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">Deep (what we want)</h3>
+        <p style="margin:0;">Copy the value into a new block → each object owns its own memory.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;">We control this by writing a <span class="hl">copy constructor</span>.</p>
+  </section>
+
+  <!-- 10. COPY CONSTRUCTOR SYNTAX -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>The Copy Constructor</h2>
+    <div class="card" style="text-align:center; padding:22px; margin-bottom:16px;">
+      <div style="font-family:var(--font-mono); font-size:26px; color:var(--primary); font-weight:700;">ClassName(const ClassName&amp; other)</div>
+    </div>
+    <ul>
+      <li><b>Same name as the class</b> — it is a constructor.</li>
+      <li><b><code class="inline">const ClassName&amp; other</code></b> — it receives the object being copied, by reference.</li>
+      <li>Inside, you decide <b>how</b> the copy is made — this is where you do the deep copy.</li>
+    </ul>
+    <p style="margin-top:8px;">It runs automatically whenever a copy is made.</p>
+  </section>
+
+  <!-- 11. DEEP + FIGURE -->
+  <section class="slide">
+    <div class="kicker">Deep Copy</div>
+    <h2>Two Objects, Two Blocks</h2>
+    <div class="two" style="flex:none; grid-template-columns: 0.9fr 1.1fr;">
+      <div class="scroll">
+<pre><code>IntBox(const IntBox&amp; other) {
+    // new memory, copy the VALUE
+    data = new int(*other.data);
+}</code></pre>
+        <p style="margin-top:6px;">Each object now points to its <b>own</b> block.</p>
+      </div>
+      <div>
+        <svg class="fig" viewBox="0 0 460 280" xmlns="http://www.w3.org/2000/svg" aria-label="Object a and object b each point to their own heap block">
+          <defs>
+            <marker id="mg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L7,3 L0,6 Z" fill="var(--green)"/>
+            </marker>
+          </defs>
+          <rect class="obj" x="20" y="40" width="180" height="72" rx="10"/>
+          <text class="name" x="40" y="68">a</text>
+          <text class="monoL" x="76" y="88">data ●</text>
+          <rect class="obj" x="20" y="168" width="180" height="72" rx="10"/>
+          <text class="name" x="40" y="196">b</text>
+          <text class="monoL" x="76" y="216">data ●</text>
+          <rect class="heap" x="300" y="40" width="130" height="64" rx="8"/>
+          <text class="big" x="365" y="80">5</text>
+          <rect class="heap" x="300" y="176" width="130" height="64" rx="8"/>
+          <text class="big" x="365" y="216">5</text>
+          <path class="safe" d="M200,76 L300,72" marker-end="url(#mg)"/>
+          <path class="safe" d="M200,204 L300,208" marker-end="url(#mg)"/>
+          <text class="grnT" x="230" y="272">each owns its block — safe</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 2 DEEP IN ACTION -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Deep Copy in Action</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+class IntBox {
+    int* data;
+public:
+    IntBox(int value) { data = new int(value); }
+
+    // deep copy constructor
+    IntBox(const IntBox&amp; other) {
+        data = new int(*other.data);
+    }
+
+    ~IntBox() { delete data; }
+    int  get()      { return *data; }
+    void set(int v) { *data = v; }
+};
+
+int main() {
+    IntBox a(5);
+    IntBox b = a;      // now a DEEP copy
+
+    b.set(99);
+    cout &lt;&lt; a.get() &lt;&lt; endl;   // 5
+    cout &lt;&lt; b.get() &lt;&lt; endl;   // 99
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5
+99</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the copy constructor gives <code class="inline">b</code> its own block. Now changing <code class="inline">b</code> leaves <code class="inline">a</code> untouched, and each destructor frees a different block.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED 3 ARRAY -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Deep Copy of a Dynamic Array</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class Numbers {
+    int* arr;
+    int  size;
+public:
+    Numbers(int s) {
+        size = s;
+        arr = new int[size];
+        for (int i = 0; i &lt; size; i++) arr[i] = 0;
+    }
+    // deep copy: new array + copy each element
+    Numbers(const Numbers&amp; other) {
+        size = other.size;
+        arr = new int[size];
+        for (int i = 0; i &lt; size; i++)
+            arr[i] = other.arr[i];
+    }
+    ~Numbers() { delete[] arr; }
+    void set(int i, int v) { arr[i] = v; }
+    int  get(int i)        { return arr[i]; }
+};</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Using it</div>
+<pre style="margin-top:6px;"><code>Numbers a(3);
+a.set(0, 10);
+Numbers b = a;     // deep copy
+b.set(0, 99);
+cout &lt;&lt; a.get(0);   // 10
+cout &lt;&lt; b.get(0);   // 99</code></pre>
+        <p style="margin-top:10px;"><b>Idea:</b> allocate a <b>new array</b>, then copy the elements one by one — never just copy the pointer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. RULE OF THREE -->
+  <section class="slide">
+    <div class="kicker">Good Practice</div>
+    <h2>The Rule of Three</h2>
+    <p class="lead">If a class needs one of these, it usually needs all three. They keep copying and freeing correct.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="num">
+          <li><b>Destructor</b><br><code class="inline">~IntBox()</code> — frees the memory</li>
+          <li><b>Copy constructor</b><br><code class="inline">IntBox(const IntBox&amp;)</code> — deep-copies on creation</li>
+          <li><b>Copy assignment</b><br><code class="inline">operator=</code> — deep-copies on <code class="inline">b = a;</code> after creation</li>
+        </ul>
+      </div>
+      <div class="scroll">
+<pre><code>// copy assignment, for reference
+IntBox&amp; operator=(const IntBox&amp; other) {
+    if (this != &amp;other) {          // avoid self-copy
+        delete data;               // free old
+        data = new int(*other.data); // deep copy
+    }
+    return *this;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">A Short Comparison</div>
+    <h2>How Python Differs</h2>
+    <table class="cmp">
+      <tr><th>Goal</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Share the same object</td><td class="mono-cell">b = a</td><td class="mono-cell">shallow copy</td></tr>
+      <tr><td>Make an independent copy</td><td class="mono-cell">copy.deepcopy(a)</td><td class="mono-cell">deep copy constructor</td></tr>
+      <tr><td>Clean up memory</td><td class="mono-cell">automatic</td><td class="mono-cell">you write the destructor</td></tr>
+    </table>
+    <p style="margin-top:16px;">In Python, <code class="inline">b = a</code> makes both names refer to the <b>same</b> object — much like a shallow copy. To get an independent copy you call <code class="inline">copy.deepcopy(a)</code>.</p>
+    <p class="note">C++ has the same two ideas, but you must write the deep copy yourself — and a wrong copy can crash the program, not just surprise you.</p>
+  </section>
+
+  <!-- 16. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Trusting the default copy</b><br>when the class owns a pointer, the default is shallow</li>
+          <li><b>Copying the pointer, not the value</b><br><code class="inline">data = other.data;</code> is still shallow</li>
+          <li><b>Forgetting <code class="inline">new</code> in the copy constructor</b><br>no new block means no real copy</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Writing only the copy constructor</b><br>assignment <code class="inline">b = a;</code> also needs deep copy</li>
+          <li><b>Missing the self-copy check</b><br><code class="inline">operator=</code> should test <code class="inline">this != &amp;other</code></li>
+          <li><b>Using <code class="inline">delete</code> for an array</b><br>an array needs <code class="inline">delete[]</code></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Test to remember:</b> if editing the copy changes the original, it was a <span class="danger">shallow</span> copy.</p>
+  </section>
+
+  <!-- 17. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>A class holds a member <code class="inline">int* p</code> and writes no copy constructor. Is the default copy shallow or deep? Explain in one sentence.</li>
+      <li>Write a deep copy constructor for <code class="inline">IntBox</code> (which holds <code class="inline">int* data</code>).</li>
+      <li>Explain in one sentence why two objects that share a pointer crash at the end of the program.</li>
+    </ul>
+  </section>
+
+  <!-- 18. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>The class <code class="inline">Numbers</code> holds <code class="inline">int* arr</code> and <code class="inline">int size</code>. Write a deep copy constructor for it.</li>
+      <li>In Python, does <code class="inline">b = a</code> copy a list or share it? What does <code class="inline">copy.deepcopy(a)</code> do?</li>
+      <li>Find the bug: a copy constructor whose body is <code class="inline">data = other.data;</code>. What kind of copy is this, and how do you fix it?</li>
+    </ul>
+  </section>
+
+  <!-- 19. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Shallow or deep?</h3>
+        <p><b>Shallow.</b> The default copy copies the pointer's address, so both objects point to the same memory rather than to separate copies.</p>
+        <h3>2 · Deep copy constructor</h3>
+<pre><code>IntBox(const IntBox&amp; other) {
+    data = new int(*other.data);
+}</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Why the crash?</h3>
+        <p>Both objects hold the same address, so each destructor calls <code class="inline">delete</code> on it — the memory is freed twice, which is a double free and crashes the program.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Numbers deep copy</h3>
+<pre><code>Numbers(const Numbers&amp; other) {
+    size = other.size;
+    arr = new int[size];
+    for (int i = 0; i &lt; size; i++)
+        arr[i] = other.arr[i];
+}</code></pre>
+        <h3>5 · Python behaviour</h3>
+        <p><code class="inline">b = a</code> <b>shares</b> the list — both names refer to the same list. <code class="inline">copy.deepcopy(a)</code> makes a fully independent copy.</p>
+      </div>
+      <div class="scroll">
+        <h3>6 · Find the bug</h3>
+        <p>Writing <code class="inline">data = other.data;</code> is a <b>shallow</b> copy — it copies the address, so both objects share one block.</p>
+        <p><b>Fix:</b> allocate new memory and copy the value:</p>
+<pre><code>data = new int(*other.data);</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>shallow copy</b> copies the pointer, so two objects <b>share</b> one block of memory.</li>
+      <li>Sharing causes <b>shared state</b> (editing one edits the other) and a <b>double free</b> at the end.</li>
+      <li>A <b>deep copy</b> allocates new memory and copies the value, giving each object its own block.</li>
+      <li>You control copying with a <b>copy constructor</b>: <code class="inline">ClassName(const ClassName&amp; other)</code>.</li>
+      <li>The <b>Rule of Three</b>: a class with a destructor usually needs a copy constructor and copy assignment too.</li>
+      <li><b>Test:</b> if editing the copy changes the original, the copy was shallow.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>When an object owns memory, copy it deeply — or not at all.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>

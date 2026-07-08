@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Class Templates</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .tmpl { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .gen { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .genv { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .lblB { fill: var(--text); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .accM { fill: var(--accent); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .priM { fill: var(--primary); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 16px; text-anchor: middle; }
+  .fig .monoL { fill: var(--text); font-family: var(--font-mono); font-size: 17px; }
+  .fig .accL { fill: var(--accent); font-family: var(--font-mono); font-size: 17px; font-weight: 700; }
+  .fig .priL { fill: var(--primary); font-family: var(--font-mono); font-size: 17px; font-weight: 700; }
+  .fig .edge { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 64px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 36px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1 { font-size: 46px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Class Templates</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Class Templates</h1>
+    <div class="sub">Writing one class that works for any type</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> classes, and the STL (vector, map)</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what a <span class="hl">class template</span> is and why it helps.</li>
+      <li>Write a template with <code class="inline">template &lt;typename T&gt;</code>.</li>
+      <li>Create objects such as <code class="inline">Box&lt;int&gt;</code> and <code class="inline">Box&lt;string&gt;</code>.</li>
+      <li>Use a template with <b>more than one</b> type parameter.</li>
+      <li>Recognise that <code class="inline">vector</code> and <code class="inline">map</code> are class templates.</li>
+      <li>Avoid the common template mistakes.</li>
+    </ul>
+  </section>
+
+  <!-- 3. THE PROBLEM -->
+  <section class="slide">
+    <div class="kicker">The Problem</div>
+    <h2>The Same Class, Again and Again</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>class IntBox {
+    int value;
+public:
+    IntBox(int v) : value(v) { }
+    int get() { return value; }
+};
+
+class DoubleBox {           // almost identical...
+    double value;
+public:
+    DoubleBox(double v) : value(v) { }
+    double get() { return value; }
+};
+// ...and a StringBox, and a CharBox, and...</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>These classes differ only in <b>one type</b>.</li>
+          <li>Copying the whole class for each type is repetitive and error-prone.</li>
+          <li>Fix a bug in one and you must fix it in all the copies.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">We want to write the class <b>once</b> and let the type vary.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. THE IDEA -->
+  <section class="slide">
+    <div class="kicker">The Idea</div>
+    <h2>A Template Is a Class With a Blank for the Type</h2>
+    <p class="lead">A <b>class template</b> uses a placeholder type — usually called <code class="inline">T</code> — instead of a fixed type. You fill in the real type later.</p>
+    <div class="card card--featured" style="margin-top:6px;">
+<pre style="margin:0;"><code>template &lt;typename T&gt;
+class Box {
+    T value;              // T stands in for a real type
+public:
+    Box(T v) : value(v) { }
+    T get() { return value; }
+};</code></pre>
+    </div>
+    <p style="margin-top:12px;">One definition now serves <code class="inline">int</code>, <code class="inline">double</code>, <code class="inline">string</code>, and any other type.</p>
+  </section>
+
+  <!-- 5. ONE TEMPLATE MANY TYPES + FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Picture</div>
+    <h2>One Template, Many Versions</h2>
+    <p class="lead">When you use <code class="inline">Box&lt;int&gt;</code>, the compiler makes a version of the class with <code class="inline">T</code> replaced by <code class="inline">int</code>.</p>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="One template produces Box of int, Box of double, and Box of string">
+      <defs>
+        <marker id="mt" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="tmpl" x="250" y="18" width="260" height="76" rx="10"/>
+      <text class="accM" x="380" y="48">template&lt;typename T&gt;</text>
+      <text class="lbl" x="380" y="76">class Box { T value; }</text>
+      <rect class="genv" x="40" y="196" width="200" height="76" rx="10"/>
+      <text class="lblB" x="140" y="228">Box&lt;int&gt;</text>
+      <text class="priM" x="140" y="254">int value;</text>
+      <rect class="genv" x="280" y="196" width="200" height="76" rx="10"/>
+      <text class="lblB" x="380" y="228">Box&lt;double&gt;</text>
+      <text class="priM" x="380" y="254">double value;</text>
+      <rect class="genv" x="520" y="196" width="200" height="76" rx="10"/>
+      <text class="lblB" x="620" y="228">Box&lt;string&gt;</text>
+      <text class="priM" x="620" y="254">string value;</text>
+      <path class="edge" d="M340,94 L140,196" marker-end="url(#mt)"/>
+      <path class="edge" d="M380,94 L380,196" marker-end="url(#mt)"/>
+      <path class="edge" d="M420,94 L620,196" marker-end="url(#mt)"/>
+      <text class="cap" x="380" y="150">the compiler stamps out one version per type you use</text>
+    </svg>
+  </section>
+
+  <!-- 6. SYNTAX -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>How to Write a Class Template</h2>
+    <div class="card" style="text-align:center; padding:20px; margin-bottom:14px;">
+      <div style="font-family:var(--font-mono); font-size:26px; color:var(--accent); font-weight:700;">template &lt;typename T&gt;</div>
+      <div style="font-family:var(--font-mono); font-size:22px; color:var(--primary); margin-top:6px;">class Box { ... };</div>
+    </div>
+    <ul>
+      <li><code class="inline">template &lt;typename T&gt;</code> goes right before the class.</li>
+      <li><code class="inline">T</code> is a name you choose — it stands for whatever type is used.</li>
+      <li>Inside the class, use <code class="inline">T</code> wherever you would normally write a type.</li>
+      <li><code class="inline">typename</code> and <code class="inline">class</code> mean the same here: <code class="inline">template &lt;class T&gt;</code> also works.</li>
+    </ul>
+  </section>
+
+  <!-- 7. SUBSTITUTION FIGURE -->
+  <section class="slide">
+    <div class="kicker">What Really Happens</div>
+    <h2><code class="inline" style="font-size:.8em;">T</code> Becomes the Type You Choose</h2>
+    <svg class="fig" viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" aria-label="With Box of int, every T becomes int">
+      <defs>
+        <marker id="ms" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <rect class="tmpl" x="40" y="40" width="290" height="150" rx="10"/>
+      <text class="monoL" x="60" y="74">class Box {</text>
+      <text class="monoL" x="80" y="102"><tspan class="accL">T</tspan> value;</text>
+      <text class="monoL" x="80" y="130">Box(<tspan class="accL">T</tspan> v);</text>
+      <text class="monoL" x="80" y="158"><tspan class="accL">T</tspan> get();</text>
+      <text class="monoL" x="60" y="184">};</text>
+      <rect class="genv" x="430" y="40" width="290" height="150" rx="10"/>
+      <text class="monoL" x="450" y="74">class Box&lt;int&gt; {</text>
+      <text class="monoL" x="470" y="102"><tspan class="priL">int</tspan> value;</text>
+      <text class="monoL" x="470" y="130">Box(<tspan class="priL">int</tspan> v);</text>
+      <text class="monoL" x="470" y="158"><tspan class="priL">int</tspan> get();</text>
+      <text class="monoL" x="450" y="184">};</text>
+      <path class="edge" d="M330,115 L430,115" marker-end="url(#ms)"/>
+      <text class="cap" x="380" y="108">Box&lt;int&gt;</text>
+      <text class="cap" x="380" y="222">every T in the template is replaced by int</text>
+    </svg>
+  </section>
+
+  <!-- 8. USING IT -->
+  <section class="slide">
+    <div class="kicker">Using a Template</div>
+    <h2>Name the Type in Angle Brackets</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>Box&lt;int&gt;    a(5);        // a Box that holds an int
+Box&lt;string&gt; b("hi");     // a Box that holds a string
+Box&lt;double&gt; c(3.14);     // a Box that holds a double
+
+cout &lt;&lt; a.get() &lt;&lt; endl;   // 5
+cout &lt;&lt; b.get() &lt;&lt; endl;   // hi</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>Write the real type in <b>angle brackets</b>: <code class="inline">Box&lt;int&gt;</code>.</li>
+          <li>That type replaces <code class="inline">T</code> everywhere for this object.</li>
+          <li><code class="inline">Box&lt;int&gt;</code> and <code class="inline">Box&lt;string&gt;</code> are <b>different types</b>.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">You have seen these brackets before — in <code class="inline">vector&lt;int&gt;</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>One Box for Every Type</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+template &lt;typename T&gt;
+class Box {
+    T value;
+public:
+    Box(T v) : value(v) { }
+    T get() { return value; }
+    void set(T v) { value = v; }
+};
+
+int main() {
+    Box&lt;int&gt;    a(5);
+    Box&lt;string&gt; b("hello");
+
+    cout &lt;&lt; a.get() &lt;&lt; endl;   // 5
+    cout &lt;&lt; b.get() &lt;&lt; endl;   // hello
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5
+hello</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the single <code class="inline">Box</code> template serves both an <code class="inline">int</code> and a <code class="inline">string</code>. The compiler builds the right version for each.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. MEMBERS OUTSIDE -->
+  <section class="slide">
+    <div class="kicker">Good to Know</div>
+    <h2>Defining Members Outside the Class</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>template &lt;typename T&gt;
+class Box {
+    T value;
+public:
+    Box(T v);
+    T get();
+};
+
+// each outside definition repeats the template line
+template &lt;typename T&gt;
+Box&lt;T&gt;::Box(T v) : value(v) { }
+
+template &lt;typename T&gt;
+T Box&lt;T&gt;::get() {
+    return value;
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>Every member defined outside the class needs its own <code class="inline">template &lt;typename T&gt;</code> line.</li>
+          <li>The class name becomes <code class="inline">Box&lt;T&gt;</code> before the <code class="inline">::</code>.</li>
+          <li>For beginners, defining members <b>inside</b> the class is simpler.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">Templates usually live entirely in a header file.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. MULTIPLE PARAMS -->
+  <section class="slide">
+    <div class="kicker">More Than One Type</div>
+    <h2>Templates With Several Type Parameters</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>template &lt;typename K, typename V&gt;
+class Pair {
+    K key;
+    V value;
+public:
+    Pair(K k, V v) : key(k), value(v) { }
+    K getKey()   { return key; }
+    V getValue() { return value; }
+};</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>List each type parameter, separated by commas: <code class="inline">&lt;typename K, typename V&gt;</code>.</li>
+          <li>Use them independently inside the class.</li>
+          <li>Create one by naming both types: <code class="inline">Pair&lt;string, int&gt;</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">This is the same idea behind <code class="inline">map&lt;string, int&gt;</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>A Pair of Two Types</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+template &lt;typename K, typename V&gt;
+class Pair {
+    K key;
+    V value;
+public:
+    Pair(K k, V v) : key(k), value(v) { }
+    K getKey()   { return key; }
+    V getValue() { return value; }
+};
+
+int main() {
+    Pair&lt;string, int&gt; p("age", 30);
+    cout &lt;&lt; p.getKey() &lt;&lt; ": "
+         &lt;&lt; p.getValue() &lt;&lt; endl;   // age: 30
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">age: 30</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">Pair</code> holds a key of one type and a value of another. Here <code class="inline">K</code> is <code class="inline">string</code> and <code class="inline">V</code> is <code class="inline">int</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. STL CONNECTION -->
+  <section class="slide">
+    <div class="kicker">You Already Use These</div>
+    <h2>The STL Is Built From Templates</h2>
+    <p class="lead">Every STL container is a class template. The angle brackets you have been writing are template type arguments.</p>
+    <table class="cmp" style="margin-top:6px;">
+      <tr><th>You write</th><th>What it means</th></tr>
+      <tr><td class="mono-cell">vector&lt;int&gt;</td><td>the <code class="inline">vector</code> template with <code class="inline">T = int</code></td></tr>
+      <tr><td class="mono-cell">vector&lt;string&gt;</td><td>the same template with <code class="inline">T = string</code></td></tr>
+      <tr><td class="mono-cell">map&lt;string, int&gt;</td><td>a template with two type parameters</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>The takeaway:</b> you have used templates all along — now you can write your own.</p>
+  </section>
+
+  <!-- 14. WORKED 3 STACK -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>A Generic Stack</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+using namespace std;
+
+template &lt;typename T&gt;
+class Stack {
+    vector&lt;T&gt; items;
+public:
+    void push(T x) { items.push_back(x); }
+    T    top()     { return items.back(); }
+    void pop()     { items.pop_back(); }
+    bool empty()   { return items.empty(); }
+};
+
+int main() {
+    Stack&lt;int&gt; s;
+    s.push(1);
+    s.push(2);
+    cout &lt;&lt; s.top() &lt;&lt; endl;   // 2
+    s.pop();
+    cout &lt;&lt; s.top() &lt;&lt; endl;   // 1
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">2
+1</div>
+        <p style="margin-top:12px;"><b>What it does:</b> <code class="inline">Stack&lt;T&gt;</code> works for any type. Change <code class="inline">Stack&lt;int&gt;</code> to <code class="inline">Stack&lt;string&gt;</code> and it stores words instead — with no other changes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">A Short Comparison</div>
+    <h2>How Python Differs</h2>
+    <table class="cmp">
+      <tr><th>Goal</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Hold any type</td><td class="mono-cell">works automatically</td><td class="mono-cell">use a template</td></tr>
+      <tr><td>Name the type</td><td class="mono-cell">not needed</td><td class="mono-cell">Box&lt;int&gt;</td></tr>
+      <tr><td>Type checking</td><td class="mono-cell">at run time</td><td class="mono-cell">at compile time</td></tr>
+    </table>
+    <p style="margin-top:16px;">Python is <b>dynamically typed</b>, so a container or function already accepts any type — no templates needed. C++ is <b>statically typed</b>: templates give that same flexibility while the compiler still checks types for you.</p>
+    <p class="note">Templates bring Python-like flexibility without giving up compile-time safety.</p>
+  </section>
+
+  <!-- 16. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Forgetting the type</b><br><code class="inline">Box a(5);</code> — write <code class="inline">Box&lt;int&gt; a(5);</code></li>
+          <li><b>Missing the template line</b><br>each outside member needs <code class="inline">template &lt;typename T&gt;</code></li>
+          <li><b>Mixing versions</b><br><code class="inline">Box&lt;int&gt;</code> and <code class="inline">Box&lt;double&gt;</code> are different types</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Using an unsupported operation</b><br>if the code uses <code class="inline">&lt;</code>, the type <code class="inline">T</code> must support <code class="inline">&lt;</code></li>
+          <li><b>Splitting into a .cpp file</b><br>keep template definitions in the header</li>
+          <li><b>Confusing <code class="inline">&lt;&lt;</code> with <code class="inline">&lt; &gt;</code></b><br>angle brackets name a type, not a shift</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Rule:</b> a template becomes a real class only when you name a type in <code class="inline">&lt; &gt;</code>.</p>
+  </section>
+
+  <!-- 17. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write a class template <code class="inline">Box&lt;T&gt;</code> with a constructor, <code class="inline">get()</code>, and <code class="inline">set()</code>.</li>
+      <li>Create a <code class="inline">Box&lt;double&gt;</code> holding <code class="inline">3.14</code> and print its value.</li>
+      <li>Write a template <code class="inline">Pair&lt;A, B&gt;</code> that stores two values, with <code class="inline">getFirst()</code> and <code class="inline">getSecond()</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 18. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Given <code class="inline">template &lt;typename T&gt; class Stack</code> with a <code class="inline">vector&lt;T&gt; items;</code> member, write a <code class="inline">push(T)</code> method.</li>
+      <li>Explain what <code class="inline">vector&lt;string&gt;</code> means in template terms.</li>
+      <li>Find and fix the error: <code class="inline">Box b(5);</code> where <code class="inline">Box</code> is a template.</li>
+    </ul>
+  </section>
+
+  <!-- 19. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Box template</h3>
+<pre><code>template &lt;typename T&gt;
+class Box {
+    T value;
+public:
+    Box(T v) : value(v) { }
+    T get() { return value; }
+    void set(T v) { value = v; }
+};</code></pre>
+        <h3>2 · Box&lt;double&gt;</h3>
+<pre><code>Box&lt;double&gt; b(3.14);
+cout &lt;&lt; b.get() &lt;&lt; endl;   // 3.14</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>3 · Pair template</h3>
+<pre><code>template &lt;typename A, typename B&gt;
+class Pair {
+    A first;
+    B second;
+public:
+    Pair(A a, B b) : first(a), second(b) { }
+    A getFirst()  { return first; }
+    B getSecond() { return second; }
+};</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · push method</h3>
+<pre><code>void push(T x) {
+    items.push_back(x);
+}</code></pre>
+        <h3>5 · vector&lt;string&gt;</h3>
+        <p><code class="inline">vector</code> is a class template; <code class="inline">string</code> is the type argument. So <code class="inline">vector&lt;string&gt;</code> is the vector template built with <code class="inline">T = string</code> — a vector that stores strings.</p>
+      </div>
+      <div class="scroll">
+        <h3>6 · Find the error</h3>
+        <p>A template needs a type in angle brackets. <code class="inline">Box b(5);</code> does not say which type, so it will not compile.</p>
+        <p><b>Fix:</b></p>
+<pre><code>Box&lt;int&gt; b(5);   // name the type</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>class template</b> writes one class that works for any type, using a placeholder <code class="inline">T</code>.</li>
+      <li>Put <code class="inline">template &lt;typename T&gt;</code> before the class; use <code class="inline">T</code> as a type inside.</li>
+      <li>Create objects by naming the type: <code class="inline">Box&lt;int&gt;</code>, <code class="inline">Box&lt;string&gt;</code>.</li>
+      <li>Templates can take <b>several</b> type parameters, like <code class="inline">Pair&lt;K, V&gt;</code>.</li>
+      <li>The STL containers — <code class="inline">vector</code>, <code class="inline">map</code>, and more — are all class templates.</li>
+      <li><b>Rule:</b> a template becomes a real class only when you name a type in <code class="inline">&lt; &gt;</code>.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Write it once, use it for every type.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>
