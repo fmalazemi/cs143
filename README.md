@@ -120,8 +120,10 @@ ___
 |    | [pairs in C++](Lecture_notes/make_pair.png) | |
 | 19 | [Class Inheritance](Lecture_notes/lecture_20_inheritance.md) | [🔗](Lecture_notes/lecture20.html) |
 | 20 | [Arrow Operator](Lecture_notes/lecture_21_Objects_Through_Pointers.md) | [🔗](Lecture_notes/lecture21.html) | 
+| 21 | [Deep Copying vs Shallow Copying](Lecture_notes/lecture_23_Deep_vs_Shallow_Copy.md) | [🔗](Lecture_notes/lecture23.html) | 
+| 22 | [Class Templates](Lecture_notes/lecture_22_Class_Templates.md) | [🔗](Lecture_notes/lecture22.html)
 | | **Files and Advanced Strings** | |
-| 20 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
+| 23 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
 
 
 ## 📝 Grading
