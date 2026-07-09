@@ -99,6 +99,7 @@ ___
 | 2 | [if, if-else, if-else-if](Lecture_notes/lecture_2_conditionals.md) | [🔗](Lecture_notes/lecture2.html) |
 | 3 | [while loop](Lecture_notes/lecture_3_while_loops.md) | [🔗](Lecture_notes/lecture3.html) |
 | 4 | [for loop](Lecture_notes/lecture_4_for_loops.md) | [🔗](Lecture_notes/lecture4.html) |
+|    | [For vs While vs Do-while](Lecture_notes/loopComparison.png) | | 
 | 5 | [Nested if and loop](Lecture_notes/lecture_5_nested_if_and_loops.md) | [🔗](Lecture_notes/lecture5.html) |
 | 6 | [Arrays and Strings](Lecture_notes/lecture_6_Arrays_and_Strings.md) | [🔗](Lecture_notes/lecture6.html) |
 | 7 | [Functions](Lecture_notes/lecture_7_Functions.md) | [🔗](Lecture_notes/lecture7.html) |
