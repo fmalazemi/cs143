@@ -97,6 +97,7 @@ ___
 |:-------:|:-----:|:------:|
 | 1 | [C++ vs Python and I/O](Lecture_notes/lecture_1_intro.md) | [🔗](Lecture_notes/lecture1.html) |
 | 2 | [if, if-else, if-else-if](Lecture_notes/lecture_2_conditionals.md) | [🔗](Lecture_notes/lecture2.html) |
+| | [Conditional Statements](conditionalStatements.png) | |
 | | [Switch vs if-else-if](switch_vs_if.png) | |
 | 3 | [while loop](Lecture_notes/lecture_3_while_loops.md) | [🔗](Lecture_notes/lecture3.html) |
 | 4 | [for loop](Lecture_notes/lecture_4_for_loops.md) | [🔗](Lecture_notes/lecture4.html) |
@@ -124,8 +125,12 @@ ___
 | 20 | [Arrow Operator](Lecture_notes/lecture_21_Objects_Through_Pointers.md) | [🔗](Lecture_notes/lecture21.html) | 
 | 21 | [Deep Copying vs Shallow Copying](Lecture_notes/lecture_23_Deep_vs_Shallow_Copy.md) | [🔗](Lecture_notes/lecture23.html) | 
 | 22 | [Class Templates](Lecture_notes/lecture_22_Class_Templates.md) | [🔗](Lecture_notes/lecture22.html)
-| | **Files and Advanced Strings** | |
+| | **C++ advanced Tools and Techniques** | |
 | 23 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
+| 24 | [Conversions and Cmath library](Lecture_notes/lecture_24_Conversions_and_Math_Library.md) | [🔗](Lecture_notes/lecture24.html) | 
+| 25 | [Binary Search on Arrays](Lecture_notes/lecture_25_Binary_Search_1.md) | [🔗](Lecture_notes/lecture25.html) | 
+| 26 | [Solving Maze Problem](Lecture_notes/lecture_26_Maze_Problem.md) |  [🔗](Lecture_notes/lecture26.html) | 
+| | ** ** | |
 
 
 ## 📝 Grading
