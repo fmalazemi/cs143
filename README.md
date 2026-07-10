@@ -97,8 +97,8 @@ ___
 |:-------:|:-----:|:------:|
 | 1 | [C++ vs Python and I/O](Lecture_notes/lecture_1_intro.md) | [🔗](Lecture_notes/lecture1.html) |
 | 2 | [if, if-else, if-else-if](Lecture_notes/lecture_2_conditionals.md) | [🔗](Lecture_notes/lecture2.html) |
-| | [Conditional Statements](conditionalStatements.png) | |
-| | [Switch vs if-else-if](switch_vs_if.png) | |
+| | [Conditional Statements](Lecture_notes/conditionalStatements.png) | |
+| | [Switch vs if-else-if](Lecture_notes/switch_vs_if.png) | |
 | 3 | [while loop](Lecture_notes/lecture_3_while_loops.md) | [🔗](Lecture_notes/lecture3.html) |
 | 4 | [for loop](Lecture_notes/lecture_4_for_loops.md) | [🔗](Lecture_notes/lecture4.html) |
 |    | [For vs While vs Do-while](Lecture_notes/loopComparison.png) | | 
@@ -128,8 +128,11 @@ ___
 | | **C++ advanced Tools and Techniques** | |
 | 23 | [Files I/O & advanced string](Lecture_notes/lecture_19_File_and_Formatting.md) | [🔗](Lecture_notes/lecture19.html) |
 | 24 | [Conversions and Cmath library](Lecture_notes/lecture_24_Conversions_and_Math_Library.md) | [🔗](Lecture_notes/lecture24.html) | 
-| 25 | [Binary Search on Arrays](Lecture_notes/lecture_25_Binary_Search_1.md) | [🔗](Lecture_notes/lecture25.html) | 
-| 26 | [Solving Maze Problem](Lecture_notes/lecture_26_Maze_Problem.md) |  [🔗](Lecture_notes/lecture26.html) | 
+| 25 | [Basic Sorting Algorithms](Lecture_notes/lecture_28_Basic_Sorting_Algorithms.md) | [🔗](Lecture_notes/lecture28.html) |
+| 26 | [Merging Two sorted Arrays and MergeSort](Lecture_notes/lecture_29_Merge_Sort.md) |  [🔗](Lecture_notes/lecture29.html) | 
+| 27 | [Binary Search on Arrays](Lecture_notes/lecture_25_Binary_Search_1.md) | [🔗](Lecture_notes/lecture25.html) | 
+| 28 | [Solving Maze Problem](Lecture_notes/lecture_26_Maze_Problem.md) |  [🔗](Lecture_notes/lecture26.html) | 
+| 29 | [Rotate, shift, and Bitwise](Lecture_notes/lecture_27_Rotate_Shift_and_Bitwise.md) [🔗](Lecture_notes/lecture27.html) | 
 | | ** ** | |
 
 
