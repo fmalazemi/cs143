@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Rotating, Shifting, and Bitwise Operations</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 48px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 35px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 19px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--danger { border-color: var(--red); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 19px; }
+  table.cmp th, table.cmp td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 50vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--border); stroke-width: 1.6; }
+  .fig .cellA { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.2; }
+  .fig .cellG { fill: var(--surface); stroke: var(--green); stroke-width: 2.4; }
+  .fig .cellR { fill: var(--surface); stroke: var(--red); stroke-width: 2.2; stroke-dasharray: 5 4; }
+  .fig .cellB { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.4; }
+  .fig .n { fill: var(--text); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .nb { fill: var(--text); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .ng { fill: var(--green); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .nr { fill: var(--red); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-mono); font-size: 17px; font-weight: 700; text-anchor: end; }
+  .fig .val { fill: var(--accent); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: start; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .rl { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .redT { fill: var(--red); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .arw { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  .fig .arwR { stroke: var(--red); stroke-width: 2.2; fill: none; }
+  .fig .arwG { stroke: var(--green); stroke-width: 2.2; fill: none; }
+  .fig .sep { stroke: var(--muted); stroke-width: 1.6; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 52px; line-height: 1.05; }
+  .title-slide .sub { font-size: 27px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 32px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 48px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 36px; } h2 { font-size: 27px; }
+    .title-slide h1, .section-slide h1 { font-size: 40px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 15px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Rotate, Shift &amp; Bitwise</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Rotating, Shifting &amp; Bitwise Operations</h1>
+    <div class="sub">Moving values in an array — and moving bits in an integer</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> arrays, loops, and integer types</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain the difference between a <span class="hl">rotation</span> and a <span class="hl">shift</span>.</li>
+      <li>Rotate an array left and right by one position, and by <code class="inline">k</code>.</li>
+      <li>Shift an array left and right, filling the empty places with <code class="inline">0</code>.</li>
+      <li>Use the bitwise operators <code class="inline">&amp;</code>, <code class="inline">|</code>, <code class="inline">^</code>, and <code class="inline">~</code>.</li>
+      <li>Shift the bits of an integer with <code class="inline">&lt;&lt;</code> and <code class="inline">&gt;&gt;</code>.</li>
+      <li>See that a bit shift is really the same idea as an array shift.</li>
+    </ul>
+  </section>
+
+  <!-- 3. ROTATE VS SHIFT -->
+  <section class="slide">
+    <div class="kicker">The Core Distinction</div>
+    <h2>Rotation Wraps · Shift Drops</h2>
+    <p class="lead">Both move every value one place along. They differ only in what happens at the <b>two ends</b>.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3>Rotation</h3>
+        <p style="margin:0 0 8px;">The value that falls off one end <b>comes back</b> at the other end.</p>
+        <div class="output">1 2 3 4 5
+rotate left → 2 3 4 5 1</div>
+        <p class="note" style="margin-top:8px;">Nothing is lost.</p>
+      </div>
+      <div class="card">
+        <h3>Shift</h3>
+        <p style="margin:0 0 8px;">The value that falls off is <b>lost</b>. A <code class="inline">0</code> fills the empty place.</p>
+        <div class="output">1 2 3 4 5
+shift left  → 2 3 4 5 0</div>
+        <p class="note" style="margin-top:8px;">One value is destroyed.</p>
+      </div>
+    </div>
+    <p style="margin-top:14px;"><b>Keep this in mind:</b> the same two words describe what happens to the bits of an integer.</p>
+  </section>
+
+  <!-- 4. FIGURE 1 -->
+  <section class="slide">
+    <div class="kicker">The Picture</div>
+    <h2>What Happens at the Ends</h2>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="Rotate left wraps the first value to the end; shift left loses it and fills with zero">
+      <defs>
+        <marker id="ma" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+        <marker id="mr" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--red)"/></marker>
+        <marker id="mg" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)"/></marker>
+      </defs>
+
+      <!-- ROTATE -->
+      <text class="rl" x="380" y="20">ROTATE LEFT · the 1 comes back around</text>
+      <rect class="cellA" x="190" y="60" width="70" height="46" rx="5"/><text class="n" x="225" y="90">1</text>
+      <rect class="cell" x="260" y="60" width="70" height="46" rx="5"/><text class="n" x="295" y="90">2</text>
+      <rect class="cell" x="330" y="60" width="70" height="46" rx="5"/><text class="n" x="365" y="90">3</text>
+      <rect class="cell" x="400" y="60" width="70" height="46" rx="5"/><text class="n" x="435" y="90">4</text>
+      <rect class="cell" x="470" y="60" width="70" height="46" rx="5"/><text class="n" x="505" y="90">5</text>
+      <path class="arw" d="M225,58 C225,26 545,26 545,58" marker-end="url(#ma)"/>
+      <text class="accT" x="620" y="86">wraps to the end</text>
+      <text class="cap" x="380" y="126">result: 2 3 4 5 1</text>
+
+      <!-- SHIFT -->
+      <text class="rl" x="380" y="176">SHIFT LEFT · the 1 is lost, a 0 arrives</text>
+      <rect class="cellR" x="190" y="212" width="70" height="46" rx="5"/><text class="nr" x="225" y="242">1</text>
+      <rect class="cell" x="260" y="212" width="70" height="46" rx="5"/><text class="n" x="295" y="242">2</text>
+      <rect class="cell" x="330" y="212" width="70" height="46" rx="5"/><text class="n" x="365" y="242">3</text>
+      <rect class="cell" x="400" y="212" width="70" height="46" rx="5"/><text class="n" x="435" y="242">4</text>
+      <rect class="cell" x="470" y="212" width="70" height="46" rx="5"/><text class="n" x="505" y="242">5</text>
+      <rect class="cellG" x="560" y="212" width="70" height="46" rx="5"/><text class="ng" x="595" y="242">0</text>
+      <path class="arwR" d="M186,235 L130,235" marker-end="url(#mr)"/>
+      <text class="redT" x="110" y="212">lost</text>
+      <path class="arwG" d="M655,235 L636,235" marker-end="url(#mg)"/>
+      <text class="grnT" x="690" y="212">fills</text>
+      <text class="cap" x="380" y="284">result: 2 3 4 5 0</text>
+    </svg>
+  </section>
+
+  <!-- 5. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>Rotating and Shifting Arrays</h1>
+    <p class="lead">Moving the values inside an array.</p>
+  </section>
+
+  <!-- 6. ROTATE LEFT 1 -->
+  <section class="slide">
+    <div class="kicker">Part A · Rotate</div>
+    <h2>Rotate Left by One</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// save the first value, slide everyone left,
+// then put the saved value at the end
+int first = arr[0];
+
+for (int i = 0; i &lt; n - 1; i++) {
+    arr[i] = arr[i + 1];    // pull the next one back
+}
+
+arr[n - 1] = first;         // wrap it around</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Result</div>
+        <div class="output">before: 1 2 3 4 5
+after : 2 3 4 5 1</div>
+        <ul style="margin-top:12px;">
+          <li><b>Save first</b>, or it is overwritten immediately.</li>
+          <li>The loop stops at <code class="inline">n - 2</code>, because it reads <code class="inline">arr[i + 1]</code>.</li>
+          <li>The saved value goes into the last slot.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ROTATE RIGHT 1 -->
+  <section class="slide">
+    <div class="kicker">Part A · Rotate</div>
+    <h2>Rotate Right by One</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// save the last value, slide everyone right,
+// then put the saved value at the front
+int last = arr[n - 1];
+
+for (int i = n - 1; i &gt; 0; i--) {
+    arr[i] = arr[i - 1];    // push the previous one forward
+}
+
+arr[0] = last;              // wrap it around</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Result</div>
+        <div class="output">before: 1 2 3 4 5
+after : 5 1 2 3 4</div>
+        <p style="margin-top:12px;"><b>Notice the loop runs backwards.</b> If it ran forwards, <code class="inline">arr[i-1]</code> would already be overwritten and every value would become <code class="inline">arr[0]</code>.</p>
+        <p class="note">Direction of the loop is the opposite of the direction of the move.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>A Complete Rotation Program</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[5] = {1, 2, 3, 4, 5};
+    int n = 5;
+
+    // rotate left by one
+    int first = arr[0];
+    for (int i = 0; i &lt; n - 1; i++)
+        arr[i] = arr[i + 1];
+    arr[n - 1] = first;
+
+    for (int i = 0; i &lt; n; i++)
+        cout &lt;&lt; arr[i] &lt;&lt; " ";
+    cout &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">2 3 4 5 1 </div>
+        <p style="margin-top:14px;"><b>What it does:</b> every value moves one place left, and the old <code class="inline">1</code> reappears at the far right.</p>
+        <p class="note">Change the loop and you get the right rotation instead.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. SHIFT LEFT -->
+  <section class="slide">
+    <div class="kicker">Part A · Shift</div>
+    <h2>Shift Left, Filling With Zero</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// exactly the rotation, but we do NOT save
+// the first value — we drop it
+for (int i = 0; i &lt; n - 1; i++) {
+    arr[i] = arr[i + 1];
+}
+
+arr[n - 1] = 0;      // fill the empty place</code></pre>
+        <div class="out-label" style="margin-top:8px;">Result</div>
+        <div class="output">before: 1 2 3 4 5
+after : 2 3 4 5 0</div>
+      </div>
+      <div>
+        <h3>Compare with the rotation</h3>
+        <table class="cmp">
+          <tr><th></th><th>Rotate left</th><th>Shift left</th></tr>
+          <tr><td>Save first?</td><td class="mono-cell">yes</td><td class="mono-cell">no</td></tr>
+          <tr><td>Last slot gets</td><td class="mono-cell">first</td><td class="mono-cell">0</td></tr>
+        </table>
+        <p style="margin-top:14px;">The loop is <b>identical</b>. Only the final line changes.</p>
+        <p class="note">A shift is a rotation that forgets.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. SHIFT RIGHT -->
+  <section class="slide">
+    <div class="kicker">Part A · Shift</div>
+    <h2>Shift Right, Filling With Zero</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// run backwards, drop the last value
+for (int i = n - 1; i &gt; 0; i--) {
+    arr[i] = arr[i - 1];
+}
+
+arr[0] = 0;          // fill the empty place</code></pre>
+        <div class="out-label" style="margin-top:8px;">Result</div>
+        <div class="output">before: 1 2 3 4 5
+after : 0 1 2 3 4</div>
+      </div>
+      <div>
+        <h3>The four operations together</h3>
+        <table class="cmp">
+          <tr><th>Operation</th><th>Result</th></tr>
+          <tr><td>rotate left</td><td class="mono-cell">2 3 4 5 1</td></tr>
+          <tr><td>rotate right</td><td class="mono-cell">5 1 2 3 4</td></tr>
+          <tr><td>shift left</td><td class="mono-cell">2 3 4 5 0</td></tr>
+          <tr><td>shift right</td><td class="mono-cell">0 1 2 3 4</td></tr>
+        </table>
+        <p class="note" style="margin-top:10px;">All start from <code class="inline">1 2 3 4 5</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. BY K -->
+  <section class="slide">
+    <div class="kicker">Part A · By k Positions</div>
+    <h2>Moving More Than One Place</h2>
+    <p class="lead">The clearest way is a <b>temporary array</b>: compute where each value belongs, then copy back.</p>
+    <div class="two">
+      <div class="scroll">
+        <h3>Rotate left by k</h3>
+<pre><code>int tmp[5];
+k = k % n;                       // in case k &gt;= n
+
+for (int i = 0; i &lt; n; i++)
+    tmp[i] = arr[(i + k) % n];   // wrap with %
+
+for (int i = 0; i &lt; n; i++)
+    arr[i] = tmp[i];</code></pre>
+        <h3>Shift left by k (fill 0)</h3>
+<pre><code>for (int i = 0; i &lt; n; i++)
+    tmp[i] = (i + k &lt; n) ? arr[i + k] : 0;</code></pre>
+      </div>
+      <div>
+        <div class="out-label">With k = 2</div>
+        <div class="output">start        : 1 2 3 4 5
+rotate left  : 3 4 5 1 2
+rotate right : 4 5 1 2 3
+shift  left  : 3 4 5 0 0
+shift  right : 0 0 1 2 3</div>
+        <p style="margin-top:12px;"><b>The <code class="inline">%</code> is the wrap.</b> Rotation uses <code class="inline">% n</code>; a shift replaces the wrap with a <code class="inline">0</code>.</p>
+        <p class="note">Simpler alternative: repeat the by-one rotation <code class="inline">k</code> times.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Shift Left by k, Filling With Zero</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[5] = {1, 2, 3, 4, 5};
+    int n = 5, k = 2;
+    int tmp[5];
+
+    for (int i = 0; i &lt; n; i++) {
+        if (i + k &lt; n)
+            tmp[i] = arr[i + k];   // pull from the right
+        else
+            tmp[i] = 0;            // past the end → 0
+    }
+
+    for (int i = 0; i &lt; n; i++) arr[i] = tmp[i];
+
+    for (int i = 0; i &lt; n; i++) cout &lt;&lt; arr[i] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">3 4 5 0 0 </div>
+        <p style="margin-top:14px;"><b>What it does:</b> each slot <code class="inline">i</code> takes the value from <code class="inline">i + k</code>. When that index is past the end, we store <code class="inline">0</code>.</p>
+        <p><b>Values <code class="inline">1</code> and <code class="inline">2</code> are gone</b> — a shift destroys them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>Bitwise Operations</h1>
+    <p class="lead">Every integer is a row of bits. Now we move those.</p>
+  </section>
+
+  <!-- 14. BITS -->
+  <section class="slide">
+    <div class="kicker">Part B · The Foundation</div>
+    <h2>An Integer Is a Row of Bits</h2>
+    <p class="lead">Inside the computer, an <code class="inline">int</code> is stored in <b>binary</b> — a row of <code class="inline">0</code>s and <code class="inline">1</code>s. Each position stands for a power of two.</p>
+    <div class="card card--featured" style="margin-bottom:12px;">
+      <div class="output" style="border:none; background:none; padding:0;">place value :  128  64  32  16   8   4   2   1
+       5    :    0   0   0   0   0   1   0   1
+       3    :    0   0   0   0   0   0   1   1</div>
+    </div>
+    <p><b>Check it:</b> for <code class="inline">5</code>, the <code class="inline">4</code> and the <code class="inline">1</code> columns hold a <code class="inline">1</code>, and <code class="inline">4 + 1 = 5</code>.</p>
+    <p>Bitwise operators work on these columns, <b>one column at a time</b>.</p>
+  </section>
+
+  <!-- 15. THE OPERATORS -->
+  <section class="slide">
+    <div class="kicker">Part B · The Operators</div>
+    <h2>Six Bitwise Operators</h2>
+    <table class="cmp">
+      <tr><th>Operator</th><th>Name</th><th>A column gives 1 when…</th></tr>
+      <tr><td class="mono-cell">a &amp; b</td><td>AND</td><td><b>both</b> bits are 1</td></tr>
+      <tr><td class="mono-cell">a | b</td><td>OR</td><td><b>at least one</b> bit is 1</td></tr>
+      <tr><td class="mono-cell">a ^ b</td><td>XOR</td><td>the bits are <b>different</b></td></tr>
+      <tr><td class="mono-cell">~a</td><td>NOT</td><td>the bit was 0 (it flips every bit)</td></tr>
+      <tr><td class="mono-cell">a &lt;&lt; k</td><td>left shift</td><td>— moves bits left, <code class="inline">0</code> fills in</td></tr>
+      <tr><td class="mono-cell">a &gt;&gt; k</td><td>right shift</td><td>— moves bits right, bits fall off</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>Careful:</b> <code class="inline">&amp;</code> is not <code class="inline">&amp;&amp;</code>, and <code class="inline">|</code> is not <code class="inline">||</code>. The single symbols work on <b>bits</b>; the double symbols work on <b>true/false</b>.</p>
+  </section>
+
+  <!-- 16. FIGURE 2: AND OR XOR -->
+  <section class="slide">
+    <div class="kicker">Part B · Column by Column</div>
+    <h2>AND, OR, XOR on 5 and 3</h2>
+    <svg class="fig" viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" aria-label="Bit columns showing 5 AND 3 equals 1, 5 OR 3 equals 7, 5 XOR 3 equals 6">
+      <!-- row: 5 -->
+      <text class="lbl" x="185" y="42">5 =</text>
+      <rect class="cellB" x="200" y="20" width="46" height="32"/><text class="nb" x="223" y="43">0</text>
+      <rect class="cellB" x="246" y="20" width="46" height="32"/><text class="nb" x="269" y="43">0</text>
+      <rect class="cellB" x="292" y="20" width="46" height="32"/><text class="nb" x="315" y="43">0</text>
+      <rect class="cellB" x="338" y="20" width="46" height="32"/><text class="nb" x="361" y="43">0</text>
+      <rect class="cellB" x="384" y="20" width="46" height="32"/><text class="nb" x="407" y="43">0</text>
+      <rect class="cellA" x="430" y="20" width="46" height="32"/><text class="nb" x="453" y="43">1</text>
+      <rect class="cellB" x="476" y="20" width="46" height="32"/><text class="nb" x="499" y="43">0</text>
+      <rect class="cellA" x="522" y="20" width="46" height="32"/><text class="nb" x="545" y="43">1</text>
+      <!-- row: 3 -->
+      <text class="lbl" x="185" y="82">3 =</text>
+      <rect class="cellB" x="200" y="60" width="46" height="32"/><text class="nb" x="223" y="83">0</text>
+      <rect class="cellB" x="246" y="60" width="46" height="32"/><text class="nb" x="269" y="83">0</text>
+      <rect class="cellB" x="292" y="60" width="46" height="32"/><text class="nb" x="315" y="83">0</text>
+      <rect class="cellB" x="338" y="60" width="46" height="32"/><text class="nb" x="361" y="83">0</text>
+      <rect class="cellB" x="384" y="60" width="46" height="32"/><text class="nb" x="407" y="83">0</text>
+      <rect class="cellB" x="430" y="60" width="46" height="32"/><text class="nb" x="453" y="83">0</text>
+      <rect class="cellA" x="476" y="60" width="46" height="32"/><text class="nb" x="499" y="83">1</text>
+      <rect class="cellA" x="522" y="60" width="46" height="32"/><text class="nb" x="545" y="83">1</text>
+
+      <line class="sep" x1="185" y1="100" x2="580" y2="100"/>
+
+      <!-- AND -->
+      <text class="lbl" x="185" y="134">&amp; =</text>
+      <rect class="cellB" x="200" y="112" width="46" height="32"/><text class="nb" x="223" y="135">0</text>
+      <rect class="cellB" x="246" y="112" width="46" height="32"/><text class="nb" x="269" y="135">0</text>
+      <rect class="cellB" x="292" y="112" width="46" height="32"/><text class="nb" x="315" y="135">0</text>
+      <rect class="cellB" x="338" y="112" width="46" height="32"/><text class="nb" x="361" y="135">0</text>
+      <rect class="cellB" x="384" y="112" width="46" height="32"/><text class="nb" x="407" y="135">0</text>
+      <rect class="cellB" x="430" y="112" width="46" height="32"/><text class="nb" x="453" y="135">0</text>
+      <rect class="cellB" x="476" y="112" width="46" height="32"/><text class="nb" x="499" y="135">0</text>
+      <rect class="cellA" x="522" y="112" width="46" height="32"/><text class="nb" x="545" y="135">1</text>
+      <text class="val" x="600" y="135">= 1</text>
+      <!-- OR -->
+      <text class="lbl" x="185" y="180">| =</text>
+      <rect class="cellB" x="200" y="158" width="46" height="32"/><text class="nb" x="223" y="181">0</text>
+      <rect class="cellB" x="246" y="158" width="46" height="32"/><text class="nb" x="269" y="181">0</text>
+      <rect class="cellB" x="292" y="158" width="46" height="32"/><text class="nb" x="315" y="181">0</text>
+      <rect class="cellB" x="338" y="158" width="46" height="32"/><text class="nb" x="361" y="181">0</text>
+      <rect class="cellB" x="384" y="158" width="46" height="32"/><text class="nb" x="407" y="181">0</text>
+      <rect class="cellA" x="430" y="158" width="46" height="32"/><text class="nb" x="453" y="181">1</text>
+      <rect class="cellA" x="476" y="158" width="46" height="32"/><text class="nb" x="499" y="181">1</text>
+      <rect class="cellA" x="522" y="158" width="46" height="32"/><text class="nb" x="545" y="181">1</text>
+      <text class="val" x="600" y="181">= 7</text>
+      <!-- XOR -->
+      <text class="lbl" x="185" y="226">^ =</text>
+      <rect class="cellB" x="200" y="204" width="46" height="32"/><text class="nb" x="223" y="227">0</text>
+      <rect class="cellB" x="246" y="204" width="46" height="32"/><text class="nb" x="269" y="227">0</text>
+      <rect class="cellB" x="292" y="204" width="46" height="32"/><text class="nb" x="315" y="227">0</text>
+      <rect class="cellB" x="338" y="204" width="46" height="32"/><text class="nb" x="361" y="227">0</text>
+      <rect class="cellB" x="384" y="204" width="46" height="32"/><text class="nb" x="407" y="227">0</text>
+      <rect class="cellA" x="430" y="204" width="46" height="32"/><text class="nb" x="453" y="227">1</text>
+      <rect class="cellA" x="476" y="204" width="46" height="32"/><text class="nb" x="499" y="227">1</text>
+      <rect class="cellB" x="522" y="204" width="46" height="32"/><text class="nb" x="545" y="227">0</text>
+      <text class="val" x="600" y="227">= 6</text>
+      <text class="cap" x="380" y="266">each column is decided on its own — the columns never talk to each other</text>
+    </svg>
+  </section>
+
+  <!-- 17. WORKED 3 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>The Logic Operators in Code</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int x = 5;    // 0101
+    int y = 3;    // 0011
+
+    cout &lt;&lt; (x &amp; y) &lt;&lt; endl;   // 1   both bits 1
+    cout &lt;&lt; (x | y) &lt;&lt; endl;   // 7   either bit 1
+    cout &lt;&lt; (x ^ y) &lt;&lt; endl;   // 6   bits differ
+    cout &lt;&lt; (~x)    &lt;&lt; endl;   // -6  every bit flipped
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1
+7
+6
+-6</div>
+        <p style="margin-top:12px;"><b>Why is <code class="inline">~5</code> equal to <code class="inline">-6</code>?</b> Flipping every bit also flips the leftmost bit, which C++ uses to mark a negative number.</p>
+        <p class="note">Always put bitwise expressions in brackets — <code class="inline">&lt;&lt;</code> binds tighter than <code class="inline">&amp;</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18. SHIFT OPERATORS -->
+  <section class="slide">
+    <div class="kicker">Part B · The Shift Operators</div>
+    <h2>Moving the Bits</h2>
+    <p class="lead">The bits behave exactly like the values in a shifted array: they move along, the far ones <b>fall off</b>, and <code class="inline">0</code>s fill the gaps.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--featured">
+        <h3><code class="inline">a &lt;&lt; k</code> — left shift</h3>
+        <div class="output">5 &lt;&lt; 1  →  10
+0000 0101  →  0000 1010</div>
+        <p style="margin-top:10px;">Bits move left, <code class="inline">0</code> enters on the right.</p>
+      </div>
+      <div class="card">
+        <h3><code class="inline">a &gt;&gt; k</code> — right shift</h3>
+        <div class="output">20 &gt;&gt; 2  →  5
+0001 0100  →  0000 0101</div>
+        <p style="margin-top:10px;">Bits move right and fall off the end.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Same word, same meaning:</b> the array shift and the bit shift both lose what falls off, and both fill with <code class="inline">0</code>.</p>
+  </section>
+
+  <!-- 19. FIGURE 3 -->
+  <section class="slide">
+    <div class="kicker">Part B · The Picture</div>
+    <h2>What <code class="inline" style="font-size:.75em;">5 &lt;&lt; 1</code> Really Does</h2>
+    <svg class="fig" viewBox="0 0 760 270" xmlns="http://www.w3.org/2000/svg" aria-label="Left shifting 5 by one moves every bit left, drops the top bit, and fills a zero on the right">
+      <defs>
+        <marker id="mr2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--red)"/></marker>
+        <marker id="mg2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)"/></marker>
+        <marker id="ma2" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+      </defs>
+      <text class="lbl" x="185" y="60">5 =</text>
+      <rect class="cellB" x="200" y="38" width="46" height="34"/><text class="nb" x="223" y="62">0</text>
+      <rect class="cellB" x="246" y="38" width="46" height="34"/><text class="nb" x="269" y="62">0</text>
+      <rect class="cellB" x="292" y="38" width="46" height="34"/><text class="nb" x="315" y="62">0</text>
+      <rect class="cellB" x="338" y="38" width="46" height="34"/><text class="nb" x="361" y="62">0</text>
+      <rect class="cellB" x="384" y="38" width="46" height="34"/><text class="nb" x="407" y="62">0</text>
+      <rect class="cellA" x="430" y="38" width="46" height="34"/><text class="nb" x="453" y="62">1</text>
+      <rect class="cellB" x="476" y="38" width="46" height="34"/><text class="nb" x="499" y="62">0</text>
+      <rect class="cellA" x="522" y="38" width="46" height="34"/><text class="nb" x="545" y="62">1</text>
+
+      <!-- movement arrows -->
+      <path class="arw" d="M453,80 L407,110" marker-end="url(#ma2)"/>
+      <path class="arw" d="M545,80 L499,110" marker-end="url(#ma2)"/>
+      <text class="accT" x="300" y="102">every bit moves one place left</text>
+
+      <text class="lbl" x="185" y="150">10 =</text>
+      <rect class="cellB" x="200" y="128" width="46" height="34"/><text class="nb" x="223" y="152">0</text>
+      <rect class="cellB" x="246" y="128" width="46" height="34"/><text class="nb" x="269" y="152">0</text>
+      <rect class="cellB" x="292" y="128" width="46" height="34"/><text class="nb" x="315" y="152">0</text>
+      <rect class="cellB" x="338" y="128" width="46" height="34"/><text class="nb" x="361" y="152">0</text>
+      <rect class="cellA" x="384" y="128" width="46" height="34"/><text class="nb" x="407" y="152">1</text>
+      <rect class="cellB" x="430" y="128" width="46" height="34"/><text class="nb" x="453" y="152">0</text>
+      <rect class="cellA" x="476" y="128" width="46" height="34"/><text class="nb" x="499" y="152">1</text>
+      <rect class="cellG" x="522" y="128" width="46" height="34"/><text class="ng" x="545" y="152">0</text>
+
+      <path class="arwR" d="M196,55 L140,55" marker-end="url(#mr2)"/>
+      <text class="redT" x="112" y="36">top bit</text>
+      <text class="redT" x="112" y="54">falls off</text>
+
+      <path class="arwG" d="M624,145 L574,145" marker-end="url(#mg2)"/>
+      <text class="grnT" x="660" y="128">a 0</text>
+      <text class="grnT" x="660" y="146">fills in</text>
+
+      <text class="cap" x="380" y="200">0000 0101  becomes  0000 1010</text>
+      <text class="cap" x="380" y="228" style="font-weight:700;">5 &lt;&lt; 1 = 10 — the value doubled</text>
+      <text class="cap" x="380" y="256">shifting left by 1 multiplies by 2</text>
+    </svg>
+  </section>
+
+  <!-- 20. SHIFT = MULT/DIV -->
+  <section class="slide">
+    <div class="kicker">Part B · The Shortcut</div>
+    <h2>Shifting Is Multiplying and Dividing by 2</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>cout &lt;&lt; (5 &lt;&lt; 1) &lt;&lt; endl;    // 10  = 5 * 2
+cout &lt;&lt; (5 &lt;&lt; 2) &lt;&lt; endl;    // 20  = 5 * 4
+cout &lt;&lt; (5 &lt;&lt; 3) &lt;&lt; endl;    // 40  = 5 * 8
+
+cout &lt;&lt; (20 &gt;&gt; 1) &lt;&lt; endl;   // 10  = 20 / 2
+cout &lt;&lt; (20 &gt;&gt; 2) &lt;&lt; endl;   // 5   = 20 / 4
+
+// a lost bit means a lost remainder
+cout &lt;&lt; (7 &gt;&gt; 1) &lt;&lt; endl;    // 3   (7 / 2 = 3)</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">10
+20
+40
+10
+5
+3</div>
+        <table class="cmp" style="margin-top:12px;">
+          <tr><th>Shift</th><th>Same as</th></tr>
+          <tr><td class="mono-cell">a &lt;&lt; k</td><td class="mono-cell">a × 2ᵏ</td></tr>
+          <tr><td class="mono-cell">a &gt;&gt; k</td><td class="mono-cell">a ÷ 2ᵏ</td></tr>
+        </table>
+        <p class="note" style="margin-top:8px;"><code class="inline">7 &gt;&gt; 1</code> is <code class="inline">3</code> — the bit that fell off was the remainder.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. WORKED 4 -->
+  <section class="slide">
+    <div class="pill">Worked Example 4</div>
+    <h2>Useful Bit Tricks</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int n = 12;      // 0000 1100
+
+// is n even? test the lowest bit
+if ((n &amp; 1) == 0) cout &lt;&lt; "even" &lt;&lt; endl;
+
+// read bit number 2 (counting from 0, right to left)
+cout &lt;&lt; ((n &gt;&gt; 2) &amp; 1) &lt;&lt; endl;    // 1
+
+// turn ON bit 1
+cout &lt;&lt; (n | (1 &lt;&lt; 1)) &lt;&lt; endl;    // 14
+
+// turn OFF bit 2
+cout &lt;&lt; (n &amp; ~(1 &lt;&lt; 2)) &lt;&lt; endl;   // 8
+
+// flip bit 0
+cout &lt;&lt; (n ^ (1 &lt;&lt; 0)) &lt;&lt; endl;    // 13</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">even
+1
+14
+8
+13</div>
+        <p style="margin-top:12px;"><b>The pattern:</b> <code class="inline">1 &lt;&lt; k</code> builds a <b>mask</b> — a number with a single <code class="inline">1</code> at position <code class="inline">k</code>.</p>
+        <ul>
+          <li><code class="inline">|</code> the mask to <b>set</b> a bit.</li>
+          <li><code class="inline">&amp; ~</code> the mask to <b>clear</b> a bit.</li>
+          <li><code class="inline">^</code> the mask to <b>flip</b> a bit.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 22. THE CONNECTION -->
+  <section class="slide">
+    <div class="kicker">Putting It Together</div>
+    <h2>One Idea, Two Places</h2>
+    <p class="lead">The array shift and the bit shift are the same operation on different data.</p>
+    <table class="cmp">
+      <tr><th></th><th>Array of ints</th><th>Bits of an int</th></tr>
+      <tr><td>Move left</td><td class="mono-cell">loop: arr[i] = arr[i+1]</td><td class="mono-cell">a &lt;&lt; 1</td></tr>
+      <tr><td>Move right</td><td class="mono-cell">loop: arr[i] = arr[i-1]</td><td class="mono-cell">a &gt;&gt; 1</td></tr>
+      <tr><td>What falls off</td><td>is lost</td><td>is lost</td></tr>
+      <tr><td>What fills in</td><td class="mono-cell">0</td><td class="mono-cell">0</td></tr>
+      <tr><td>Rotation exists?</td><td>yes, you write it</td><td>not built in</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>The difference:</b> C++ gives you <code class="inline">&lt;&lt;</code> and <code class="inline">&gt;&gt;</code> for bits as a single fast instruction. For arrays, you write the loop yourself.</p>
+    <p class="note">There is no built-in bit <i>rotation</i> operator — a rotation must be built from two shifts and an <code class="inline">|</code>.</p>
+  </section>
+
+  <!-- 23. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Arrays</h3>
+        <ul class="cross">
+          <li><b>Not saving the end value</b><br>rotation needs <code class="inline">first</code> or <code class="inline">last</code> stored before the loop</li>
+          <li><b>Looping the wrong way</b><br>a right shift must run <b>backwards</b>, or all values become <code class="inline">arr[0]</code></li>
+          <li><b>Reading past the end</b><br><code class="inline">arr[i+1]</code> needs <code class="inline">i &lt; n - 1</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Bits</h3>
+        <ul class="cross">
+          <li><b>Writing <code class="inline">&amp;&amp;</code> instead of <code class="inline">&amp;</code></b><br><code class="inline">4 &amp;&amp; 3</code> is <code class="inline">1</code>, but <code class="inline">4 &amp; 3</code> is <code class="inline">0</code></li>
+          <li><b>Forgetting brackets</b><br><code class="inline">cout &lt;&lt; x &amp; y</code> does not do what you expect</li>
+          <li><b>Shifting a negative number</b><br>the result is not always what you predict</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Rule:</b> a shift always loses data; a rotation never does.</p>
+  </section>
+
+  <!-- 24. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Start with <code class="inline">{10, 20, 30, 40}</code>. Write the array after a <b>rotate right by 1</b>, and after a <b>shift right by 1</b>.</li>
+      <li>Write the loop that shifts an array <b>left</b> by one and puts <code class="inline">0</code> in the last slot.</li>
+      <li>Why must a <b>right</b> shift loop run backwards? Explain in one sentence.</li>
+    </ul>
+  </section>
+
+  <!-- 25. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Compute by hand, showing the bits: <code class="inline">6 &amp; 3</code>, <code class="inline">6 | 3</code>, and <code class="inline">6 ^ 3</code>.</li>
+      <li>What are <code class="inline">3 &lt;&lt; 2</code> and <code class="inline">24 &gt;&gt; 3</code>? Give the value and the equivalent multiplication or division.</li>
+      <li>Write one expression that tests whether the integer <code class="inline">n</code> is <b>odd</b>, using a bitwise operator.</li>
+    </ul>
+  </section>
+
+  <!-- 26. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Rotate vs shift right</h3>
+        <div class="output">start        : 10 20 30 40
+rotate right : 40 10 20 30
+shift  right :  0 10 20 30</div>
+        <p style="margin-top:8px;">The rotation brings <code class="inline">40</code> around; the shift loses it.</p>
+        <h3 style="margin-top:12px;">3 · Why backwards?</h3>
+        <p>Because moving forwards would overwrite <code class="inline">arr[i-1]</code> before it has been copied, so every slot would end up holding the same value.</p>
+      </div>
+      <div class="scroll">
+        <h3>2 · Shift left by one</h3>
+<pre><code>for (int i = 0; i &lt; n - 1; i++)
+    arr[i] = arr[i + 1];
+arr[n - 1] = 0;</code></pre>
+        <p class="note">Identical to the rotation, except nothing is saved and the last slot gets <code class="inline">0</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 27. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Bit by bit</h3>
+        <div class="output">6 = 0110
+3 = 0011
+-------------
+&amp; = 0010  = 2
+| = 0111  = 7
+^ = 0101  = 5</div>
+      </div>
+      <div class="scroll">
+        <h3>5 · The shifts</h3>
+        <div class="output">3 &lt;&lt; 2  = 12   (3 × 4)
+24 &gt;&gt; 3 = 3    (24 ÷ 8)</div>
+        <h3 style="margin-top:12px;">6 · Test for odd</h3>
+<pre><code>if (n &amp; 1) {
+    // n is odd
+}</code></pre>
+        <p>The lowest bit is <code class="inline">1</code> exactly when the number is odd.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 28. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A <b>rotation</b> wraps the end value around; a <b>shift</b> loses it and fills with <code class="inline">0</code>.</li>
+      <li>Rotate left: save <code class="inline">arr[0]</code>, slide left, put it at the end. Rotate right: the mirror, looping backwards.</li>
+      <li>To shift, use the same loop but store <code class="inline">0</code> in the empty slot.</li>
+      <li>Moving by <code class="inline">k</code>: use a temporary array; <code class="inline">% n</code> gives the wrap for a rotation.</li>
+      <li><code class="inline">&amp;</code>, <code class="inline">|</code>, <code class="inline">^</code>, <code class="inline">~</code> work on one bit column at a time. They are not <code class="inline">&amp;&amp;</code> and <code class="inline">||</code>.</li>
+      <li><code class="inline">a &lt;&lt; k</code> multiplies by <code class="inline">2ᵏ</code>; <code class="inline">a &gt;&gt; k</code> divides by <code class="inline">2ᵏ</code>. Bits that fall off are lost, and <code class="inline">0</code>s fill in.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>A shift forgets. A rotation remembers.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename|stack|pair)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>
