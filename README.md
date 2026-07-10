@@ -133,7 +133,8 @@ ___
 | 27 | [Binary Search on Arrays](Lecture_notes/lecture_25_Binary_Search_1.md) | [🔗](Lecture_notes/lecture25.html) | 
 | 28 | [Solving Maze Problem](Lecture_notes/lecture_26_Maze_Problem.md) |  [🔗](Lecture_notes/lecture26.html) | 
 | 29 | [Rotate, shift, and Bitwise](Lecture_notes/lecture_27_Rotate_Shift_and_Bitwise.md) | [🔗](Lecture_notes/lecture27.html) | 
-| | ** ** | |
+
+---
 
 
 ## 📝 Grading
