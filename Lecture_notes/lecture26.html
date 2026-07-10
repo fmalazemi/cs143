@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Solving the Maze Problem</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --wall: #3a4a60; --open: #ffffff;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --wall: #55647c; --open: #1c2838;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 19px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 50vh; display: block; }
+  .fig .open { fill: var(--open); stroke: var(--border); stroke-width: 1.6; }
+  .fig .wall { fill: var(--wall); stroke: var(--wall); stroke-width: 1.6; }
+  .fig .path { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.2; }
+  .fig .startC { fill: var(--surface); stroke: var(--green); stroke-width: 3; }
+  .fig .endC { fill: var(--surface); stroke: var(--red); stroke-width: 3; }
+  .fig .deadC { fill: var(--surface); stroke: var(--red); stroke-width: 2.5; stroke-dasharray: 5 4; }
+  .fig .cur { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
+  .fig .t { fill: var(--text); font-family: var(--font-mono); font-size: 15px; text-anchor: middle; }
+  .fig .tg { fill: var(--green); font-family: var(--font-sans); font-size: 15px; font-weight: 800; text-anchor: middle; }
+  .fig .tr { fill: var(--red); font-family: var(--font-sans); font-size: 15px; font-weight: 800; text-anchor: middle; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-mono); font-size: 17px; font-weight: 700; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .redT { fill: var(--red); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .mut { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; text-anchor: middle; }
+  .fig .arw { stroke: var(--accent); stroke-width: 2.4; fill: none; }
+  .fig .arwR { stroke: var(--red); stroke-width: 2.4; fill: none; }
+  .fig .arwM { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 58px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 34px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 52px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 15px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · The Maze Problem</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Solving the Maze Problem</h1>
+    <div class="sub">Recursion and backtracking on a 2D grid</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> 2D arrays, functions, and recursion</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Represent a maze using a <span class="hl">2D array</span>.</li>
+      <li>Explain the idea of <span class="hl">backtracking</span>: try, fail, undo, try again.</li>
+      <li>Identify the <b>base cases</b> of the recursive solver.</li>
+      <li>Write a recursive function that explores four directions.</li>
+      <li>Understand why we must <b>mark</b> and <b>unmark</b> cells.</li>
+      <li>Trace the algorithm on a small maze.</li>
+    </ul>
+  </section>
+
+  <!-- 3. THE PROBLEM -->
+  <section class="slide">
+    <div class="kicker">The Problem</div>
+    <h2>Find a Way Out</h2>
+    <p class="lead">Given a grid of open cells and walls, find a path from the <b>top-left</b> corner to the <b>bottom-right</b> corner. You may move only up, down, left, or right.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>How we store it</h3>
+        <ul>
+          <li><code class="inline">1</code> means the cell is <b>open</b>.</li>
+          <li><code class="inline">0</code> means the cell is a <b>wall</b>.</li>
+        </ul>
+<pre style="margin-top:8px;"><code>int maze[5][5] = {
+    {1, 1, 1, 0, 0},
+    {1, 0, 1, 0, 0},
+    {0, 0, 1, 1, 1},
+    {0, 0, 0, 0, 1},
+    {0, 0, 0, 0, 1}
+};</code></pre>
+      </div>
+      <div class="card card--featured">
+        <h3>What we want</h3>
+        <p>A second grid, <code class="inline">solution</code>, marking the cells of a path from <code class="inline">(0,0)</code> to <code class="inline">(4,4)</code>.</p>
+        <p style="margin:0;"><b>Start:</b> row 0, column 0<br><b>End:</b> row 4, column 4</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. MAZE FIGURE -->
+  <section class="slide">
+    <div class="kicker">The Picture</div>
+    <h2>The Maze as a Grid</h2>
+    <svg class="fig" viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg" aria-label="A 5 by 5 maze grid with walls, a start at top-left and an end at bottom-right">
+      <!-- row 0: 1 1 1 0 0 -->
+      <rect class="startC" x="200" y="30" width="52" height="52"/><text class="tg" x="226" y="62">S</text>
+      <rect class="open" x="252" y="30" width="52" height="52"/>
+      <rect class="open" x="304" y="30" width="52" height="52"/>
+      <rect class="wall" x="356" y="30" width="52" height="52"/>
+      <rect class="wall" x="408" y="30" width="52" height="52"/>
+      <!-- row 1: 1 0 1 0 0 -->
+      <rect class="open" x="200" y="82" width="52" height="52"/>
+      <rect class="wall" x="252" y="82" width="52" height="52"/>
+      <rect class="open" x="304" y="82" width="52" height="52"/>
+      <rect class="wall" x="356" y="82" width="52" height="52"/>
+      <rect class="wall" x="408" y="82" width="52" height="52"/>
+      <!-- row 2: 0 0 1 1 1 -->
+      <rect class="wall" x="200" y="134" width="52" height="52"/>
+      <rect class="wall" x="252" y="134" width="52" height="52"/>
+      <rect class="open" x="304" y="134" width="52" height="52"/>
+      <rect class="open" x="356" y="134" width="52" height="52"/>
+      <rect class="open" x="408" y="134" width="52" height="52"/>
+      <!-- row 3: 0 0 0 0 1 -->
+      <rect class="wall" x="200" y="186" width="52" height="52"/>
+      <rect class="wall" x="252" y="186" width="52" height="52"/>
+      <rect class="wall" x="304" y="186" width="52" height="52"/>
+      <rect class="wall" x="356" y="186" width="52" height="52"/>
+      <rect class="open" x="408" y="186" width="52" height="52"/>
+      <!-- row 4: 0 0 0 0 1 -->
+      <rect class="wall" x="200" y="238" width="52" height="52"/>
+      <rect class="wall" x="252" y="238" width="52" height="52"/>
+      <rect class="wall" x="304" y="238" width="52" height="52"/>
+      <rect class="wall" x="356" y="238" width="52" height="52"/>
+      <rect class="endC" x="408" y="238" width="52" height="52"/><text class="tr" x="434" y="270">E</text>
+      <!-- legend -->
+      <rect class="open" x="520" y="60" width="30" height="30"/>
+      <text class="cap" x="600" y="81" style="text-anchor:start;">1 = open</text>
+      <rect class="wall" x="520" y="105" width="30" height="30"/>
+      <text class="cap" x="600" y="126" style="text-anchor:start;">0 = wall</text>
+      <text class="tg" x="535" y="170">S</text>
+      <text class="cap" x="600" y="170" style="text-anchor:start;">start (0,0)</text>
+      <text class="tr" x="535" y="205">E</text>
+      <text class="cap" x="600" y="205" style="text-anchor:start;">end (4,4)</text>
+      <text class="cap" x="330" y="312">move only up, down, left, or right</text>
+    </svg>
+  </section>
+
+  <!-- 5. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>The Idea: Backtracking</h1>
+    <p class="lead">Try a direction. If it leads nowhere, undo it and try another.</p>
+  </section>
+
+  <!-- 6. BACKTRACKING IDEA -->
+  <section class="slide">
+    <div class="kicker">Part A · The Strategy</div>
+    <h2>Try, Fail, Undo, Try Again</h2>
+    <p class="lead">Imagine walking through a real maze with chalk. At each open cell you mark your path. If you reach a dead end, you rub out the mark and step back.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>At every cell, ask:</h3>
+        <ul class="num">
+          <li>Am I outside the maze? → give up on this cell.</li>
+          <li>Is this a wall? → give up on this cell.</li>
+          <li>Have I been here already? → give up on this cell.</li>
+          <li>Am I at the end? → <b>success!</b></li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Otherwise</h3>
+        <p>Mark the cell, then try <b>down</b>, <b>right</b>, <b>up</b>, <b>left</b> in turn.</p>
+        <p style="margin:0;">If <b>all four</b> fail, <b>unmark</b> the cell and report failure to the caller. That unmarking is <span class="hl">backtracking</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. FOUR MOVES FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part A · The Moves</div>
+    <h2>Four Directions From One Cell</h2>
+    <p class="lead">From a cell at <code class="inline">(row, col)</code>, the four neighbours are found by changing one index by one.</p>
+    <svg class="fig" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg" aria-label="From a cell, four neighbours: up, down, left, right">
+      <defs>
+        <marker id="ma" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+      <!-- center -->
+      <rect class="cur" x="290" y="120" width="110" height="60" rx="6"/>
+      <text class="lbl" x="345" y="156">(r, c)</text>
+      <!-- up -->
+      <rect class="open" x="290" y="20" width="110" height="60" rx="6"/>
+      <text class="t" x="345" y="56">(r-1, c)</text>
+      <path class="arw" d="M345,118 L345,84" marker-end="url(#ma)"/>
+      <text class="accT" x="418" y="58">up</text>
+      <!-- down -->
+      <rect class="open" x="290" y="220" width="110" height="60" rx="6"/>
+      <text class="t" x="345" y="256">(r+1, c)</text>
+      <path class="arw" d="M345,182 L345,216" marker-end="url(#ma)"/>
+      <text class="accT" x="424" y="256">down</text>
+      <!-- left -->
+      <rect class="open" x="120" y="120" width="130" height="60" rx="6"/>
+      <text class="t" x="185" y="156">(r, c-1)</text>
+      <path class="arw" d="M288,150 L254,150" marker-end="url(#ma)"/>
+      <text class="accT" x="185" y="108">left</text>
+      <!-- right -->
+      <rect class="open" x="440" y="120" width="130" height="60" rx="6"/>
+      <text class="t" x="505" y="156">(r, c+1)</text>
+      <path class="arw" d="M402,150 L436,150" marker-end="url(#ma)"/>
+      <text class="accT" x="505" y="108">right</text>
+      <text class="cap" x="345" y="296">we will always try them in this order: down, right, up, left</text>
+    </svg>
+  </section>
+
+  <!-- 8. BACKTRACK FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part A · Backtracking</div>
+    <h2>A Dead End, Undone</h2>
+    <p class="lead">From the start, the solver first tries <b>down</b> into cell <code class="inline">(1,0)</code>. That cell has walls on every side, so it is undone.</p>
+    <svg class="fig" viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" aria-label="Step 1 mark 1,0; step 2 all sides blocked; step 3 unmark and try right instead">
+      <defs>
+        <marker id="mb" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+      <!-- panel 1 -->
+      <text class="mut" x="105" y="24">1. mark (1,0)</text>
+      <rect class="path" x="60" y="36" width="46" height="46"/><text class="t" x="83" y="65">S</text>
+      <rect class="open" x="106" y="36" width="46" height="46"/>
+      <rect class="path" x="60" y="82" width="46" height="46"/><text class="t" x="83" y="111">✓</text>
+      <rect class="wall" x="106" y="82" width="46" height="46"/>
+      <rect class="wall" x="60" y="128" width="46" height="46"/>
+      <rect class="wall" x="106" y="128" width="46" height="46"/>
+      <path class="arwM" d="M170,105 L215,105" marker-end="url(#mb)"/>
+      <!-- panel 2 -->
+      <text class="mut" x="285" y="24">2. all four fail</text>
+      <rect class="path" x="240" y="36" width="46" height="46"/><text class="t" x="263" y="65">S</text>
+      <rect class="open" x="286" y="36" width="46" height="46"/>
+      <rect class="deadC" x="240" y="82" width="46" height="46"/><text class="tr" x="263" y="111">✗</text>
+      <rect class="wall" x="286" y="82" width="46" height="46"/>
+      <rect class="wall" x="240" y="128" width="46" height="46"/>
+      <rect class="wall" x="286" y="128" width="46" height="46"/>
+      <text class="redT" x="285" y="196">down: wall</text>
+      <text class="redT" x="285" y="214">right: wall</text>
+      <text class="redT" x="285" y="232">up: visited · left: outside</text>
+      <path class="arwM" d="M350,105 L395,105" marker-end="url(#mb)"/>
+      <!-- panel 3 -->
+      <text class="mut" x="470" y="24">3. unmark, go right</text>
+      <rect class="path" x="420" y="36" width="46" height="46"/><text class="t" x="443" y="65">S</text>
+      <rect class="path" x="466" y="36" width="46" height="46"/><text class="t" x="489" y="65">✓</text>
+      <rect class="open" x="420" y="82" width="46" height="46"/>
+      <rect class="wall" x="466" y="82" width="46" height="46"/>
+      <rect class="wall" x="420" y="128" width="46" height="46"/>
+      <rect class="wall" x="466" y="128" width="46" height="46"/>
+      <text class="accT" x="470" y="196">(1,0) is cleared</text>
+      <text class="accT" x="470" y="214">the path continues right</text>
+      <text class="cap" x="380" y="256">backtracking = removing a mark that led nowhere</text>
+    </svg>
+  </section>
+
+  <!-- 9. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>The Recursive Solution</h1>
+    <p class="lead">Turning the strategy into C++ code.</p>
+  </section>
+
+  <!-- 10. BASE CASES -->
+  <section class="slide">
+    <div class="kicker">Part B · Base Cases</div>
+    <h2>When Does the Recursion Stop?</h2>
+    <p class="lead">Every recursive function needs base cases. Ours has four — three failures and one success.</p>
+    <table class="cmp">
+      <tr><th>Condition</th><th>Meaning</th><th>Return</th></tr>
+      <tr><td class="mono-cell">r&lt;0 || r&gt;=N || c&lt;0 || c&gt;=N</td><td>stepped outside the maze</td><td class="mono-cell">false</td></tr>
+      <tr><td class="mono-cell">maze[r][c] == 0</td><td>this cell is a wall</td><td class="mono-cell">false</td></tr>
+      <tr><td class="mono-cell">solution[r][c] == 1</td><td>already on our path</td><td class="mono-cell">false</td></tr>
+      <tr><td class="mono-cell">r == N-1 &amp;&amp; c == N-1</td><td>we reached the end</td><td class="mono-cell">true</td></tr>
+    </table>
+    <p style="margin-top:14px;" class="note">The third check stops the solver from walking in circles forever.</p>
+  </section>
+
+  <!-- 11. THE FUNCTION -->
+  <section class="slide">
+    <div class="kicker">Part B · The Core</div>
+    <h2>The Recursive Solver</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>bool solve(int r, int c) {
+    // 1. outside the maze?
+    if (r &lt; 0 || r &gt;= N || c &lt; 0 || c &gt;= N)
+        return false;
+    // 2. a wall?
+    if (maze[r][c] == 0)  return false;
+    // 3. already visited?
+    if (solution[r][c] == 1) return false;
+
+    solution[r][c] = 1;          // mark this cell
+
+    // 4. reached the end?
+    if (r == N - 1 &amp;&amp; c == N - 1)
+        return true;
+
+    // try the four directions
+    if (solve(r + 1, c)) return true;   // down
+    if (solve(r, c + 1)) return true;   // right
+    if (solve(r - 1, c)) return true;   // up
+    if (solve(r, c - 1)) return true;   // left
+
+    solution[r][c] = 0;          // BACKTRACK
+    return false;
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li>The three <b>failure</b> checks come first.</li>
+          <li>We <b>mark</b> the cell before exploring further.</li>
+          <li>If any direction returns <code class="inline">true</code>, we stop and pass <code class="inline">true</code> up.</li>
+          <li>If <b>all four</b> fail, we <b>unmark</b> and return <code class="inline">false</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">That last line is the whole idea of backtracking.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 1 FULL PROGRAM -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>The Complete Program</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+const int N = 5;
+
+int maze[N][N] = {
+    {1, 1, 1, 0, 0},
+    {1, 0, 1, 0, 0},
+    {0, 0, 1, 1, 1},
+    {0, 0, 0, 0, 1},
+    {0, 0, 0, 0, 1}
+};
+int solution[N][N] = {0};   // all zeros
+
+bool solve(int r, int c) {
+    if (r &lt; 0 || r &gt;= N || c &lt; 0 || c &gt;= N) return false;
+    if (maze[r][c] == 0)      return false;
+    if (solution[r][c] == 1)  return false;
+
+    solution[r][c] = 1;
+    if (r == N - 1 &amp;&amp; c == N - 1) return true;
+
+    if (solve(r + 1, c)) return true;
+    if (solve(r, c + 1)) return true;
+    if (solve(r - 1, c)) return true;
+    if (solve(r, c - 1)) return true;
+
+    solution[r][c] = 0;      // backtrack
+    return false;
+}
+
+int main() {
+    if (solve(0, 0)) {
+        for (int i = 0; i &lt; N; i++) {
+            for (int j = 0; j &lt; N; j++)
+                cout &lt;&lt; solution[i][j] &lt;&lt; " ";
+            cout &lt;&lt; endl;
+        }
+    } else {
+        cout &lt;&lt; "No solution" &lt;&lt; endl;
+    }
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 1 1 0 0
+0 0 1 0 0
+0 0 1 1 1
+0 0 0 0 1
+0 0 0 0 1</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the <code class="inline">1</code>s show the path found. Notice cell <code class="inline">(1,0)</code> is <code class="inline">0</code> — it was tried, failed, and was <b>unmarked</b>.</p>
+        <p class="note">If no path exists, the program prints <code class="inline">No solution</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED 2 TRACE -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Tracing the Calls</h2>
+    <div class="two">
+      <div class="scroll">
+        <div class="out-label">Call sequence</div>
+        <div class="output" style="font-size:17px;">solve(0,0)  mark
+  solve(1,0)  mark      (down)
+    all 4 fail
+    UNMARK (1,0)        ← backtrack
+  solve(0,1)  mark      (right)
+    solve(0,2)  mark
+      solve(1,2)  mark
+        solve(2,2)  mark
+          solve(2,3)  mark
+            solve(2,4)  mark
+              solve(3,4)  mark
+                solve(4,4)  END → true</div>
+      </div>
+      <div>
+        <h3>What to notice</h3>
+        <ul>
+          <li><code class="inline">(1,0)</code> is marked, explored, and then <b>unmarked</b> — the only backtrack in this maze.</li>
+          <li>Once <code class="inline">(4,4)</code> returns <code class="inline">true</code>, every call above it returns <code class="inline">true</code> immediately.</li>
+          <li>The path is never unmarked after success — the <code class="inline">solution</code> grid keeps it.</li>
+        </ul>
+        <p class="note" style="margin-top:8px;">Success travels back up the chain of calls.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. WHY MARK -->
+  <section class="slide">
+    <div class="kicker">Part B · A Key Detail</div>
+    <h2>Why Mark and Unmark?</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3 style="color:var(--red);">Without marking</h3>
+        <p>The solver moves right, then left, then right, then left… forever. It revisits the same cell endlessly and the program crashes.</p>
+        <p style="margin:0;"><code class="inline">solution[r][c] == 1</code> stops this.</p>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">Without unmarking</h3>
+        <p>Dead ends would stay marked and appear in the final answer, as if they were part of the path.</p>
+        <p style="margin:0;">Unmarking keeps the answer <b>clean</b>.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>So:</b> <span class="hl">mark</span> to avoid loops, <span class="hl">unmark</span> to erase wrong turns.</p>
+  </section>
+
+  <!-- 15. WORKED 3 NO SOLUTION -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>When There Is No Path</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// the exit (4,4) is now sealed off
+int maze[N][N] = {
+    {1, 1, 1, 0, 0},
+    {1, 0, 1, 0, 0},
+    {0, 0, 1, 1, 1},
+    {0, 0, 0, 0, 0},   // (3,4) is now a wall
+    {0, 0, 0, 0, 1}
+};
+
+int main() {
+    if (solve(0, 0)) {
+        // print the grid...
+    } else {
+        cout &lt;&lt; "No solution" &lt;&lt; endl;
+    }
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">No solution</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the solver explores every reachable cell, backtracks out of each one, and finally <code class="inline">solve(0,0)</code> itself returns <code class="inline">false</code>.</p>
+        <p><b>Important:</b> because every cell is unmarked on the way out, the <code class="inline">solution</code> grid ends up all zeros again.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Forgetting the bounds check</b><br>always test <code class="inline">r</code> and <code class="inline">c</code> before reading <code class="inline">maze[r][c]</code></li>
+          <li><b>Checking bounds after the array</b><br><code class="inline">maze[r][c]</code> with <code class="inline">r = -1</code> is already an error</li>
+          <li><b>No visited check</b><br>the solver loops forever between two cells</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Forgetting to unmark</b><br>dead ends stay in the final answer</li>
+          <li><b>Unmarking after success</b><br>only unmark when <b>all four</b> directions fail</li>
+          <li><b>Ignoring the return value</b><br><code class="inline">solve(r+1, c);</code> without <code class="inline">if</code> throws the answer away</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Order matters:</b> bounds → wall → visited → mark → end check → explore → unmark.</p>
+  </section>
+
+  <!-- 17. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write the three <b>failure</b> base cases of <code class="inline">solve(r, c)</code> in C++.</li>
+      <li>Explain in one sentence why the line <code class="inline">solution[r][c] = 0;</code> appears at the <b>end</b> of the function.</li>
+      <li>What happens if you remove the check <code class="inline">if (solution[r][c] == 1) return false;</code>?</li>
+    </ul>
+  </section>
+
+  <!-- 18. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Change the solver to try the directions in the order <b>right, down, left, up</b>. Write the four calls.</li>
+      <li>Modify the program to also <b>count</b> how many cells are on the final path.</li>
+      <li>Given the maze below, is there a path from <code class="inline">(0,0)</code> to <code class="inline">(2,2)</code>? Explain.</li>
+    </ul>
+    <div class="output" style="margin-top:6px; width:max-content;">1 0 0
+1 0 0
+1 1 1</div>
+  </section>
+
+  <!-- 19. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · The three failure cases</h3>
+<pre><code>if (r &lt; 0 || r &gt;= N || c &lt; 0 || c &gt;= N)
+    return false;                  // outside
+if (maze[r][c] == 0)     return false;  // wall
+if (solution[r][c] == 1) return false;  // visited</code></pre>
+        <h3>2 · Why unmark at the end?</h3>
+        <p>Because we only reach that line when <b>all four</b> directions failed, meaning this cell is part of a dead end and must be erased from the path.</p>
+      </div>
+      <div class="scroll">
+        <h3>3 · Removing the visited check</h3>
+        <p>The solver would move back and forth between two open cells forever — infinite recursion, ending in a stack overflow crash.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · A different order</h3>
+<pre><code>if (solve(r, c + 1)) return true;   // right
+if (solve(r + 1, c)) return true;   // down
+if (solve(r, c - 1)) return true;   // left
+if (solve(r - 1, c)) return true;   // up</code></pre>
+        <p class="note">A different order may find a different valid path.</p>
+        <h3>5 · Counting the path</h3>
+<pre><code>int count = 0;
+for (int i = 0; i &lt; N; i++)
+    for (int j = 0; j &lt; N; j++)
+        if (solution[i][j] == 1) count++;
+cout &lt;&lt; "Path length: " &lt;&lt; count &lt;&lt; endl;</code></pre>
+      </div>
+      <div class="scroll">
+        <h3>6 · Is there a path?</h3>
+        <div class="output">1 0 0
+1 0 0
+1 1 1</div>
+        <p style="margin-top:10px;"><b>Yes.</b> Go down from <code class="inline">(0,0)</code> to <code class="inline">(1,0)</code> and <code class="inline">(2,0)</code>, then right along the bottom row to <code class="inline">(2,1)</code> and <code class="inline">(2,2)</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>A maze is a <b>2D array</b>: <code class="inline">1</code> is open, <code class="inline">0</code> is a wall.</li>
+      <li><b>Backtracking</b> means: try a direction, and if it fails, undo the move and try another.</li>
+      <li>The solver has three failure base cases (outside, wall, visited) and one success case (the end).</li>
+      <li><b>Mark</b> a cell before exploring, to avoid walking in circles.</li>
+      <li><b>Unmark</b> it only when all four directions fail, to erase dead ends.</li>
+      <li>Success returns <code class="inline">true</code> all the way up the chain of calls.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Backtracking turns "try everything" into a few clear lines of recursion.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>

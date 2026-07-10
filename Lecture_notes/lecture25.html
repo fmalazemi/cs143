@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Binary Search on Sorted Arrays</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 19px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--danger { border-color: var(--red); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 50vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--border); stroke-width: 1.6; }
+  .fig .live { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .dead { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.2; opacity: .45; }
+  .fig .mid { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.8; }
+  .fig .hit { fill: var(--surface); stroke: var(--green); stroke-width: 3; }
+  .fig .box { fill: var(--surface); stroke: var(--accent); stroke-width: 2.4; }
+  .fig .n { fill: var(--text); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .nd { fill: var(--muted); font-family: var(--font-mono); font-size: 18px; text-anchor: middle; opacity:.6; }
+  .fig .ng { fill: var(--green); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .ix { fill: var(--muted); font-family: var(--font-mono); font-size: 13px; text-anchor: middle; }
+  .fig .rowlbl { fill: var(--muted); font-family: var(--font-sans); font-size: 14px; text-anchor: end; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .accS { fill: var(--accent); font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .redT { fill: var(--red); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .m { fill: var(--text); font-family: var(--font-mono); font-size: 17px; text-anchor: middle; }
+  .fig .arw { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  .fig .arwR { stroke: var(--red); stroke-width: 2.2; fill: none; }
+  .fig .arwG { stroke: var(--green); stroke-width: 2.2; fill: none; }
+  .fig .bar { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 1.6; }
+  .fig .barA { fill: var(--accent); stroke: var(--accent); stroke-width: 1.6; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 56px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 34px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 50px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 15px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Binary Search</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Binary Search</h1>
+    <div class="sub">Finding a value in a sorted array, fast</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> arrays, loops, functions, and sorting</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain why binary search needs a <span class="hl">sorted</span> array.</li>
+      <li>Describe the idea of <b>halving</b> the search space.</li>
+      <li>Use the three variables <code class="inline">low</code>, <code class="inline">mid</code>, and <code class="inline">high</code>.</li>
+      <li>Write binary search as a <b>loop</b> and as a <b>recursion</b>.</li>
+      <li>Handle the case where the value is <b>not found</b>.</li>
+      <li>Avoid the classic mistakes, including the infinite loop.</li>
+    </ul>
+  </section>
+
+  <!-- 3. THE PROBLEM -->
+  <section class="slide">
+    <div class="kicker">The Problem</div>
+    <h2>Searching a Long List</h2>
+    <p class="lead">Given an array and a target value, find the <b>index</b> of the target — or report that it is not there.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Linear search</h3>
+        <p style="margin:0 0 8px;">Check every element from left to right.</p>
+<pre style="margin:0;"><code>for (int i = 0; i &lt; n; i++)
+    if (arr[i] == target)
+        return i;
+return -1;</code></pre>
+        <p class="note" style="margin-top:8px;">Works on <b>any</b> array. Slow: up to <code class="inline">n</code> checks.</p>
+      </div>
+      <div class="card card--featured">
+        <h3>Binary search</h3>
+        <p>Look at the <b>middle</b>. Because the array is sorted, one comparison throws away <b>half</b> the array.</p>
+        <p style="margin:0;">Needs a <b>sorted</b> array. Fast: about <code class="inline">log₂ n</code> checks.</p>
+      </div>
+    </div>
+    <p style="margin-top:14px;"><b>This is why we sort:</b> sorting once makes every later search enormously faster.</p>
+  </section>
+
+  <!-- 4. WHY IT PAYS -->
+  <section class="slide">
+    <div class="kicker">The Payoff</div>
+    <h2>Halving Beats Walking</h2>
+    <p class="lead">Each comparison in binary search removes half of what is left. The number of steps grows very slowly.</p>
+    <table class="cmp" style="margin-top:6px;">
+      <tr><th>Array size n</th><th>Linear search (worst)</th><th>Binary search (worst)</th></tr>
+      <tr><td class="mono-cell">10</td><td class="mono-cell">10 checks</td><td class="mono-cell" style="color:var(--green); font-weight:700;">4 checks</td></tr>
+      <tr><td class="mono-cell">1,000</td><td class="mono-cell">1,000 checks</td><td class="mono-cell" style="color:var(--green); font-weight:700;">10 checks</td></tr>
+      <tr><td class="mono-cell">1,000,000</td><td class="mono-cell" style="color:var(--red); font-weight:700;">1,000,000 checks</td><td class="mono-cell" style="color:var(--green); font-weight:700;">20 checks</td></tr>
+    </table>
+    <p style="margin-top:16px;">Doubling the array adds only <b>one</b> extra step. A million items are searched in twenty comparisons.</p>
+    <p class="note">Each step halves the problem: 1000000 → 500000 → 250000 → … → 1</p>
+  </section>
+
+  <!-- 5. THE PRECONDITION -->
+  <section class="slide">
+    <div class="kicker">The Rule You Must Not Break</div>
+    <h2>The Array Must Be Sorted</h2>
+    <p class="lead">Binary search decides which half to keep by comparing with the middle value. If the array is not sorted, that decision is meaningless.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--danger">
+        <h3 style="color:var(--red);">Unsorted — it fails</h3>
+        <div class="output">arr = 16  2  91  5  23
+search 5  →  -1  (not found)</div>
+        <p style="margin-top:10px;">But <code class="inline">5</code> <b>is</b> in the array, at index 3! The search compared with <code class="inline">91</code>, decided to look left, and missed it.</p>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">Sorted — it works</h3>
+        <div class="output">arr = 2  5  16  23  91
+search 5  →  1  (found)</div>
+        <p style="margin-top:10px;">Sort first, then search. <code class="inline">sort(arr, arr + n);</code></p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Remember:</b> a wrong answer is worse than a slow one.</p>
+  </section>
+
+  <!-- 6. THE IDEA -->
+  <section class="slide">
+    <div class="kicker">The Idea</div>
+    <h2>Three Variables, Three Cases</h2>
+    <p class="lead">We keep the part of the array that could still contain the target, using two indices.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>The variables</h3>
+        <ul>
+          <li><code class="inline">low</code> — first index still in play.</li>
+          <li><code class="inline">high</code> — last index still in play.</li>
+          <li><code class="inline">mid</code> — the middle of that range.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>At each step, compare <code class="inline">arr[mid]</code> with the target</h3>
+        <ul>
+          <li><b>Equal</b> → found it. Return <code class="inline">mid</code>.</li>
+          <li><b>Too small</b> → the target is to the right: <code class="inline">low = mid + 1</code></li>
+          <li><b>Too large</b> → the target is to the left: <code class="inline">high = mid - 1</code></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:12px;">Repeat while <code class="inline">low &lt;= high</code>. If they cross, the target is not present.</p>
+  </section>
+
+  <!-- 7. FIGURE 1: THREE CASES -->
+  <section class="slide">
+    <div class="kicker">The Decision</div>
+    <h2>One Comparison, Half the Array Gone</h2>
+    <svg class="fig" viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" aria-label="Comparing target with the middle element gives three cases">
+      <defs>
+        <marker id="ag" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)"/></marker>
+        <marker id="aa" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+      </defs>
+      <!-- the bar -->
+      <rect class="bar" x="90" y="60" width="250" height="52" rx="4"/>
+      <text class="m" x="215" y="92">left half</text>
+      <rect class="mid" x="340" y="60" width="90" height="52" rx="4"/>
+      <text class="n" x="385" y="92">mid</text>
+      <rect class="bar" x="430" y="60" width="250" height="52" rx="4"/>
+      <text class="m" x="555" y="92">right half</text>
+      <text class="ix" x="98" y="130">low</text>
+      <text class="ix" x="672" y="130">high</text>
+      <!-- three cases -->
+      <text class="grnT" x="385" y="168">target == arr[mid]  →  found, return mid</text>
+      <path class="arwG" d="M385,116 L385,150" marker-end="url(#ag)"/>
+      <path class="arw" d="M330,188 L200,188" marker-end="url(#aa)"/>
+      <text class="accT" x="265" y="212">target &lt; arr[mid]</text>
+      <text class="cap" x="265" y="234">keep the left: high = mid - 1</text>
+      <path class="arw" d="M440,188 L570,188" marker-end="url(#aa)"/>
+      <text class="accT" x="505" y="212">target &gt; arr[mid]</text>
+      <text class="cap" x="505" y="234">keep the right: low = mid + 1</text>
+      <text class="cap" x="385" y="270">every comparison discards half of what remains</text>
+    </svg>
+  </section>
+
+  <!-- 8. SYNTAX -->
+  <section class="slide">
+    <div class="kicker">The Syntax</div>
+    <h2>Finding the Middle</h2>
+    <div class="card card--featured" style="text-align:center; padding:18px; margin-bottom:14px;">
+      <div style="font-family:var(--font-mono); font-size:26px; color:var(--accent); font-weight:700;">int mid = low + (high - low) / 2;</div>
+    </div>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Why not <code class="inline">(low + high) / 2</code>?</h3>
+        <p style="margin:0;">For very large arrays, <code class="inline">low + high</code> can be bigger than <code class="inline">int</code> can hold. The result would be wrong.</p>
+      </div>
+      <div class="card">
+        <h3>The safe form</h3>
+        <p style="margin:0;"><code class="inline">low + (high - low) / 2</code> gives the <b>same</b> answer and never overflows.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;">Integer division rounds <b>down</b>: with <code class="inline">low = 0</code> and <code class="inline">high = 9</code>, <code class="inline">mid</code> is <code class="inline">4</code>, not <code class="inline">4.5</code>.</p>
+  </section>
+
+  <!-- 9. FIGURE 2: THE TRACE -->
+  <section class="slide">
+    <div class="kicker">The Trace</div>
+    <h2>Searching for 23</h2>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="Three steps of binary search finding 23 at index 5">
+      <!-- index row -->
+      <text class="ix" x="88" y="24">0</text><text class="ix" x="148" y="24">1</text><text class="ix" x="208" y="24">2</text>
+      <text class="ix" x="268" y="24">3</text><text class="ix" x="328" y="24">4</text><text class="ix" x="388" y="24">5</text>
+      <text class="ix" x="448" y="24">6</text><text class="ix" x="508" y="24">7</text><text class="ix" x="568" y="24">8</text><text class="ix" x="628" y="24">9</text>
+
+      <!-- STEP 1 -->
+      <text class="rowlbl" x="52" y="62">step 1</text>
+      <rect class="live" x="58" y="36" width="60" height="40"/><text class="n" x="88" y="62">2</text>
+      <rect class="live" x="118" y="36" width="60" height="40"/><text class="n" x="148" y="62">5</text>
+      <rect class="live" x="178" y="36" width="60" height="40"/><text class="n" x="208" y="62">8</text>
+      <rect class="live" x="238" y="36" width="60" height="40"/><text class="n" x="268" y="62">12</text>
+      <rect class="mid"  x="298" y="36" width="60" height="40"/><text class="n" x="328" y="62">16</text>
+      <rect class="live" x="358" y="36" width="60" height="40"/><text class="n" x="388" y="62">23</text>
+      <rect class="live" x="418" y="36" width="60" height="40"/><text class="n" x="448" y="62">38</text>
+      <rect class="live" x="478" y="36" width="60" height="40"/><text class="n" x="508" y="62">56</text>
+      <rect class="live" x="538" y="36" width="60" height="40"/><text class="n" x="568" y="62">72</text>
+      <rect class="live" x="598" y="36" width="60" height="40"/><text class="n" x="628" y="62">91</text>
+      <text class="accS" x="328" y="90">mid=4</text>
+      <text class="accT" x="700" y="62" style="text-anchor:start;">16 &lt; 23</text>
+      <text class="cap" x="700" y="84" style="text-anchor:start;">go right</text>
+
+      <!-- STEP 2 -->
+      <text class="rowlbl" x="52" y="146">step 2</text>
+      <rect class="dead" x="58" y="120" width="60" height="40"/><text class="nd" x="88" y="146">2</text>
+      <rect class="dead" x="118" y="120" width="60" height="40"/><text class="nd" x="148" y="146">5</text>
+      <rect class="dead" x="178" y="120" width="60" height="40"/><text class="nd" x="208" y="146">8</text>
+      <rect class="dead" x="238" y="120" width="60" height="40"/><text class="nd" x="268" y="146">12</text>
+      <rect class="dead" x="298" y="120" width="60" height="40"/><text class="nd" x="328" y="146">16</text>
+      <rect class="live" x="358" y="120" width="60" height="40"/><text class="n" x="388" y="146">23</text>
+      <rect class="live" x="418" y="120" width="60" height="40"/><text class="n" x="448" y="146">38</text>
+      <rect class="mid"  x="478" y="120" width="60" height="40"/><text class="n" x="508" y="146">56</text>
+      <rect class="live" x="538" y="120" width="60" height="40"/><text class="n" x="568" y="146">72</text>
+      <rect class="live" x="598" y="120" width="60" height="40"/><text class="n" x="628" y="146">91</text>
+      <text class="accS" x="508" y="174">mid=7</text>
+      <text class="accT" x="700" y="146" style="text-anchor:start;">56 &gt; 23</text>
+      <text class="cap" x="700" y="168" style="text-anchor:start;">go left</text>
+
+      <!-- STEP 3 -->
+      <text class="rowlbl" x="52" y="230">step 3</text>
+      <rect class="dead" x="58" y="204" width="60" height="40"/><text class="nd" x="88" y="230">2</text>
+      <rect class="dead" x="118" y="204" width="60" height="40"/><text class="nd" x="148" y="230">5</text>
+      <rect class="dead" x="178" y="204" width="60" height="40"/><text class="nd" x="208" y="230">8</text>
+      <rect class="dead" x="238" y="204" width="60" height="40"/><text class="nd" x="268" y="230">12</text>
+      <rect class="dead" x="298" y="204" width="60" height="40"/><text class="nd" x="328" y="230">16</text>
+      <rect class="hit"  x="358" y="204" width="60" height="40"/><text class="ng" x="388" y="230">23</text>
+      <rect class="live" x="418" y="204" width="60" height="40"/><text class="n" x="448" y="230">38</text>
+      <rect class="dead" x="478" y="204" width="60" height="40"/><text class="nd" x="508" y="230">56</text>
+      <rect class="dead" x="538" y="204" width="60" height="40"/><text class="nd" x="568" y="230">72</text>
+      <rect class="dead" x="598" y="204" width="60" height="40"/><text class="nd" x="628" y="230">91</text>
+      <text class="accS" x="388" y="258">mid=5</text>
+      <text class="grnT" x="700" y="230" style="text-anchor:start;">found!</text>
+      <text class="cap" x="360" y="288">3 comparisons instead of 6 — faded cells were discarded</text>
+    </svg>
+  </section>
+
+  <!-- 10. WORKED 1 ITERATIVE -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Binary Search With a Loop</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+// returns the index of target, or -1 if absent
+int binarySearch(int arr[], int n, int target) {
+    int low = 0;
+    int high = n - 1;
+
+    while (low &lt;= high) {          // still a range left
+        int mid = low + (high - low) / 2;
+
+        if (arr[mid] == target)
+            return mid;            // found
+        else if (arr[mid] &lt; target)
+            low = mid + 1;         // keep the right half
+        else
+            high = mid - 1;        // keep the left half
+    }
+    return -1;                     // not found
+}
+
+int main() {
+    int arr[10] = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+    cout &lt;&lt; binarySearch(arr, 10, 23) &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5</div>
+        <p style="margin-top:12px;"><b>What it does:</b> <code class="inline">23</code> sits at index <code class="inline">5</code>. The loop found it in <b>3</b> comparisons.</p>
+        <ul style="margin-top:6px;">
+          <li><code class="inline">low &lt;= high</code> means the range is not empty.</li>
+          <li><code class="inline">mid + 1</code> and <code class="inline">mid - 1</code> <b>exclude</b> the value we just tested.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. WORKED 2 NOT FOUND -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>When the Target Is Absent</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int arr[10] = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+
+int result = binarySearch(arr, 10, 10);   // 10 is not there
+
+if (result == -1)
+    cout &lt;&lt; "Not found" &lt;&lt; endl;
+else
+    cout &lt;&lt; "Found at index " &lt;&lt; result &lt;&lt; endl;</code></pre>
+        <div class="out-label" style="margin-top:10px;">The range shrinks to nothing</div>
+        <div class="output" style="font-size:17px;">low=0 high=9 mid=4  arr[4]=16 &gt; 10
+low=0 high=3 mid=1  arr[1]=5  &lt; 10
+low=2 high=3 mid=2  arr[2]=8  &lt; 10
+low=3 high=3 mid=3  arr[3]=12 &gt; 10
+low=3 high=2  →  low &gt; high, stop</div>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Not found</div>
+        <p style="margin-top:14px;"><b>What it does:</b> after four comparisons, <code class="inline">high</code> becomes smaller than <code class="inline">low</code>. The range is empty, so the target cannot be there.</p>
+        <p class="note">Returning <code class="inline">-1</code> is the usual way to say "absent", because <code class="inline">-1</code> is never a valid index.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 3 RECURSIVE -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Binary Search With Recursion</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int binarySearch(int arr[], int low, int high, int target) {
+    // base case 1: empty range
+    if (low &gt; high)
+        return -1;
+
+    int mid = low + (high - low) / 2;
+
+    // base case 2: found it
+    if (arr[mid] == target)
+        return mid;
+
+    if (arr[mid] &lt; target)                    // search right
+        return binarySearch(arr, mid + 1, high, target);
+    else                                      // search left
+        return binarySearch(arr, low, mid - 1, target);
+}
+
+int main() {
+    int arr[10] = {2, 5, 8, 12, 16, 23, 38, 56, 72, 91};
+    cout &lt;&lt; binarySearch(arr, 0, 9, 23) &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">5</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the same algorithm, written as a recursion. The shrinking range is passed as <code class="inline">low</code> and <code class="inline">high</code>.</p>
+        <h3 style="margin-top:12px;">Two base cases</h3>
+        <ul>
+          <li><code class="inline">low &gt; high</code> → empty range → <code class="inline">-1</code></li>
+          <li><code class="inline">arr[mid] == target</code> → success</li>
+        </ul>
+        <p class="note">Only one recursive call runs, so a loop is easily preferred.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. FIGURE 3: SHRINKING -->
+  <section class="slide">
+    <div class="kicker">The Growth</div>
+    <h2>Why Twenty Steps Are Enough</h2>
+    <p class="lead">Each comparison halves the range. Starting from a million, the range reaches one after about twenty halvings.</p>
+    <svg class="fig" viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" aria-label="A bar halving repeatedly from one million down to one">
+      <text class="ix" x="46" y="36" style="text-anchor:end;">step 0</text>
+      <rect class="bar" x="60" y="20" width="640" height="24" rx="3"/>
+      <text class="accS" x="380" y="37">1,000,000</text>
+
+      <text class="ix" x="46" y="72" style="text-anchor:end;">step 1</text>
+      <rect class="bar" x="60" y="56" width="320" height="24" rx="3"/>
+      <text class="accS" x="220" y="73">500,000</text>
+
+      <text class="ix" x="46" y="108" style="text-anchor:end;">step 2</text>
+      <rect class="bar" x="60" y="92" width="160" height="24" rx="3"/>
+      <text class="accS" x="140" y="109">250,000</text>
+
+      <text class="ix" x="46" y="144" style="text-anchor:end;">step 3</text>
+      <rect class="bar" x="60" y="128" width="80" height="24" rx="3"/>
+      <text class="accS" x="100" y="145">125,000</text>
+
+      <text class="ix" x="46" y="180" style="text-anchor:end;">step 4</text>
+      <rect class="bar" x="60" y="164" width="40" height="24" rx="3"/>
+      <text class="cap" x="130" y="181" style="text-anchor:start;">62,500  …and so on</text>
+
+      <text class="ix" x="46" y="216" style="text-anchor:end;">step 20</text>
+      <rect class="barA" x="60" y="200" width="8" height="24" rx="2"/>
+      <text class="grnT" x="130" y="217" style="text-anchor:start;">1 element left — the answer</text>
+      <text class="cap" x="380" y="244">doubling the array adds only one step</text>
+    </svg>
+  </section>
+
+  <!-- 14. PYTHON COMPARISON -->
+  <section class="slide">
+    <div class="kicker">A Short Comparison</div>
+    <h2>How Python Differs</h2>
+    <table class="cmp">
+      <tr><th>Goal</th><th>Python</th><th>C++</th></tr>
+      <tr><td>Simple search</td><td class="mono-cell">x in myList</td><td class="mono-cell">write a loop</td></tr>
+      <tr><td>Binary search</td><td class="mono-cell">bisect.bisect_left</td><td class="mono-cell">write it, or use STL</td></tr>
+      <tr><td>Requires sorting</td><td>yes, for bisect</td><td>yes, always</td></tr>
+    </table>
+    <p style="margin-top:16px;">In Python, <code class="inline">x in myList</code> is a <b>linear</b> search — simple but slow. Both languages give you a library binary search, and both demand a sorted list first.</p>
+    <div class="card" style="margin-top:6px;">
+<pre style="margin:0;"><code>// C++ standard library
+#include &lt;algorithm&gt;
+bool found = binary_search(arr, arr + n, 23);   // true</code></pre>
+    </div>
+  </section>
+
+  <!-- 15. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Searching an unsorted array</b><br>the answer is simply wrong</li>
+          <li><b>Infinite loop</b><br><code class="inline">high = mid;</code> instead of <code class="inline">high = mid - 1;</code> never shrinks the range</li>
+          <li><b>Using <code class="inline">low &lt; high</code></b><br>a one-element range is skipped; use <code class="inline">low &lt;= high</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Overflow in <code class="inline">mid</code></b><br>prefer <code class="inline">low + (high - low) / 2</code></li>
+          <li><b>Starting <code class="inline">high = n</code></b><br>the last index is <code class="inline">n - 1</code></li>
+          <li><b>Forgetting the not-found case</b><br>always return <code class="inline">-1</code> after the loop</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The infinite-loop test:</b> after every step, the range must get <span class="hl">strictly smaller</span>.</p>
+  </section>
+
+  <!-- 16. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Using <code class="inline">{2, 5, 8, 12, 16, 23, 38, 56, 72, 91}</code>, trace the search for <code class="inline">72</code>. Write <code class="inline">low</code>, <code class="inline">mid</code>, and <code class="inline">high</code> at each step.</li>
+      <li>Why must the array be sorted? Answer in one sentence.</li>
+      <li>Write the line that computes <code class="inline">mid</code> safely, and explain why it is preferred.</li>
+    </ul>
+  </section>
+
+  <!-- 17. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>What happens if you write <code class="inline">high = mid;</code> instead of <code class="inline">high = mid - 1;</code>?</li>
+      <li>Write a complete iterative <code class="inline">binarySearch</code> that returns <code class="inline">-1</code> when the target is absent.</li>
+      <li>An array holds 1,000,000 sorted values. What is the worst-case number of comparisons for binary search? Explain briefly.</li>
+    </ul>
+  </section>
+
+  <!-- 18. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Trace for 72</h3>
+        <div class="output" style="font-size:17px;">low=0 high=9 mid=4  arr[4]=16 &lt; 72
+low=5 high=9 mid=7  arr[7]=56 &lt; 72
+low=8 high=9 mid=8  arr[8]=72 ✓
+found at index 8  (3 steps)</div>
+        <h3 style="margin-top:12px;">2 · Why sorted?</h3>
+        <p>Because the comparison with <code class="inline">arr[mid]</code> is what tells us which half to discard; without order, that half may still contain the target.</p>
+      </div>
+      <div class="scroll">
+        <h3>3 · Safe mid</h3>
+<pre><code>int mid = low + (high - low) / 2;</code></pre>
+        <p>It gives the same value as <code class="inline">(low + high) / 2</code> but never lets the sum grow too large for an <code class="inline">int</code>, so it cannot overflow.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · high = mid</h3>
+        <p>The range stops shrinking once <code class="inline">high</code> equals <code class="inline">low + 1</code>, so <code class="inline">mid</code> keeps taking the same value: an <b>infinite loop</b>. The tested element must be excluded.</p>
+        <h3>6 · One million values</h3>
+        <p><b>About 20 comparisons</b>, because each step halves the range and <code class="inline">2²⁰</code> is just over a million.</p>
+      </div>
+      <div class="scroll">
+        <h3>5 · Complete function</h3>
+<pre><code>int binarySearch(int arr[], int n, int target) {
+    int low = 0, high = n - 1;
+    while (low &lt;= high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] == target) return mid;
+        else if (arr[mid] &lt; target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><b>Binary search</b> finds a value in a sorted array by repeatedly halving the range.</li>
+      <li>The array <b>must be sorted</b>, or the answer is wrong.</li>
+      <li>Keep <code class="inline">low</code> and <code class="inline">high</code>; test <code class="inline">arr[mid]</code>; discard half each time.</li>
+      <li>Use <code class="inline">mid + 1</code> and <code class="inline">mid - 1</code> so the range always shrinks.</li>
+      <li>Loop while <code class="inline">low &lt;= high</code>; return <code class="inline">-1</code> when they cross.</li>
+      <li>A million values need only about <b>20</b> comparisons.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Sort once, then search almost instantly — forever after.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename|stack|pair)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>

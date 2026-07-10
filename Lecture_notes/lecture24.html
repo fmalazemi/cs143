@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Conversions and the Math Library</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 19px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--danger { border-color: var(--red); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 19px; }
+  table.cmp th, table.cmp td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 50vh; display: block; }
+  .fig .box { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .boxA { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.4; }
+  .fig .cell { fill: var(--surface); stroke: var(--border); stroke-width: 1.6; }
+  .fig .cellA { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.2; }
+  .fig .n { fill: var(--text); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .code { fill: var(--muted); font-family: var(--font-mono); font-size: 14px; text-anchor: middle; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-mono); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-mono); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .ambT { fill: var(--amber); font-family: var(--font-mono); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .redT { fill: var(--red); font-family: var(--font-mono); font-size: 16px; font-weight: 700; text-anchor: middle; }
+  .fig .rl { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-anchor: middle; }
+  .fig .arw { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  .fig .axis { stroke: var(--muted); stroke-width: 2; }
+  .fig .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .fig .dot { fill: var(--accent); }
+  .fig .dotG { fill: var(--green); }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 54px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 34px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 50px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 15px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Conversions &amp; Math Library</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Conversions &amp; the Math Library</h1>
+    <div class="sub">int ⇄ string ⇄ char, and the tools in &lt;cmath&gt;</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> variables, types, strings, and functions</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Convert an <code class="inline">int</code> to a <code class="inline">string</code> with <code class="inline">to_string</code>.</li>
+      <li>Convert a <code class="inline">string</code> to a number with <code class="inline">stoi</code> and <code class="inline">stod</code>.</li>
+      <li>Explain why a <code class="inline">char</code> <span class="hl">is a number</span>, and use ASCII codes.</li>
+      <li>Convert between a digit and its character with <code class="inline">'0'</code>.</li>
+      <li>Use the popular <code class="inline">&lt;cmath&gt;</code> functions correctly.</li>
+      <li>Avoid the truncation trap when storing a <code class="inline">double</code> into an <code class="inline">int</code>.</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHY -->
+  <section class="slide">
+    <div class="kicker">Motivation</div>
+    <h2>Numbers and Text Are Different Things</h2>
+    <p class="lead"><code class="inline">cout</code> hides the difference, so it is easy to forget that <code class="inline">42</code> and <code class="inline">"42"</code> are not the same.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>A number</h3>
+        <div class="output">int n = 42;</div>
+        <p style="margin-top:10px;">You can do arithmetic: <code class="inline">n + 1</code> is <code class="inline">43</code>.</p>
+      </div>
+      <div class="card card--featured">
+        <h3>A string of text</h3>
+        <div class="output">string s = "42";</div>
+        <p style="margin-top:10px;">You can find its length, or read <code class="inline">s[0]</code>. Arithmetic makes no sense.</p>
+      </div>
+    </div>
+    <p style="margin-top:14px;">We often need to move between them: reading input, building messages, or working on digits one at a time.</p>
+  </section>
+
+  <!-- 4. FIGURE 1: THE MAP -->
+  <section class="slide">
+    <div class="kicker">The Map</div>
+    <h2>Three Types, Six Conversions</h2>
+    <svg class="fig" viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" aria-label="Conversions between int, string and char">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+      </defs>
+      <rect class="boxA" x="290" y="20" width="180" height="58" rx="8"/>
+      <text class="lbl" x="380" y="47">int</text>
+      <text class="code" x="380" y="67">42</text>
+
+      <rect class="box" x="40" y="190" width="200" height="58" rx="8"/>
+      <text class="lbl" x="140" y="217">string</text>
+      <text class="code" x="140" y="237">"42"</text>
+
+      <rect class="box" x="520" y="190" width="200" height="58" rx="8"/>
+      <text class="lbl" x="620" y="217">char</text>
+      <text class="code" x="620" y="237">'4'</text>
+
+      <!-- int -> string -->
+      <path class="arw" d="M300,78 L175,186" marker-end="url(#ar)"/>
+      <text class="accT" x="176" y="122">to_string(n)</text>
+      <!-- string -> int -->
+      <path class="arw" d="M210,182 L330,80" marker-end="url(#ar)"/>
+      <text class="accT" x="300" y="160">stoi(s)</text>
+      <!-- int -> char -->
+      <path class="arw" d="M462,78 L588,186" marker-end="url(#ar)"/>
+      <text class="accT" x="600" y="122">'0' + d</text>
+      <!-- char -> int -->
+      <path class="arw" d="M552,182 L434,80" marker-end="url(#ar)"/>
+      <text class="accT" x="452" y="160">c - '0'</text>
+      <!-- string <-> char -->
+      <path class="arw" d="M245,222 L515,222" marker-end="url(#ar)"/>
+      <path class="arw" d="M515,240 L245,240" marker-end="url(#ar)"/>
+      <text class="accT" x="380" y="214">s[i]</text>
+      <text class="cap" x="380" y="262">string(1, c)</text>
+      <text class="cap" x="380" y="284">each arrow is one line of C++</text>
+    </svg>
+  </section>
+
+  <!-- 5. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>int ⇄ string ⇄ char</h1>
+    <p class="lead">Moving between numbers and text.</p>
+  </section>
+
+  <!-- 6. INT -> STRING -->
+  <section class="slide">
+    <div class="kicker">Part A · Numbers to Text</div>
+    <h2><code class="inline" style="font-size:.8em;">int</code> → <code class="inline" style="font-size:.8em;">string</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;string&gt;
+using namespace std;
+
+int n = 42;
+string s = to_string(n);   // "42"
+
+cout &lt;&lt; s.length() &lt;&lt; endl;   // 2
+cout &lt;&lt; s + "!" &lt;&lt; endl;      // 42!</code></pre>
+        <h3 style="margin-top:8px;">The older way</h3>
+<pre><code>#include &lt;sstream&gt;
+stringstream ss;
+ss &lt;&lt; 42;
+string s = ss.str();       // "42"</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">2
+42!</div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">to_string</code> works for <code class="inline">int</code>, <code class="inline">double</code>, <code class="inline">long</code>, and more.</li>
+          <li>Needs <code class="inline">#include &lt;string&gt;</code>.</li>
+          <li>Once it is a string, you can join it with <code class="inline">+</code>.</li>
+        </ul>
+        <p class="note">Use <code class="inline">to_string</code>. The <code class="inline">stringstream</code> way is older and longer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. STRING -> INT -->
+  <section class="slide">
+    <div class="kicker">Part A · Text to Numbers</div>
+    <h2><code class="inline" style="font-size:.8em;">string</code> → <code class="inline" style="font-size:.8em;">int</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;string&gt;
+using namespace std;
+
+string s = "123";
+
+int n = stoi(s);            // string to int
+cout &lt;&lt; n + 1 &lt;&lt; endl;      // 124
+
+double d = stod("3.14");    // string to double
+cout &lt;&lt; d &lt;&lt; endl;          // 3.14</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">124
+3.14</div>
+        <h3 style="margin-top:14px;">The family</h3>
+        <table class="cmp">
+          <tr><th>Function</th><th>Gives</th></tr>
+          <tr><td class="mono-cell">stoi</td><td>int</td></tr>
+          <tr><td class="mono-cell">stod</td><td>double</td></tr>
+          <tr><td class="mono-cell">stol</td><td>long</td></tr>
+        </table>
+        <p class="note" style="margin-top:8px;"><code class="inline">stoi("hello")</code> is an error — the text must look like a number.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>A Round Trip</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+int main() {
+    int age = 20;
+
+    // number -> text, to build a message
+    string msg = "Age: " + to_string(age);
+    cout &lt;&lt; msg &lt;&lt; endl;
+
+    // text -> number, to do arithmetic
+    string input = "15";
+    int years = stoi(input);
+    cout &lt;&lt; "Next year: " &lt;&lt; years + 1 &lt;&lt; endl;
+
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Age: 20
+Next year: 16</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">to_string</code> lets us join a number onto text with <code class="inline">+</code>. <code class="inline">stoi</code> lets us do arithmetic on text.</p>
+        <p class="note">Note: <code class="inline">"Age: " + age</code> without <code class="inline">to_string</code> is an error.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. CHAR IS A NUMBER -->
+  <section class="slide">
+    <div class="kicker">Part A · The Key Idea</div>
+    <h2>A <code class="inline" style="font-size:.75em;">char</code> Is Really a Small Number</h2>
+    <p class="lead">Every character is stored as a number — its <b>ASCII code</b>. The characters <code class="inline">'0'</code> to <code class="inline">'9'</code> sit next to each other, in order.</p>
+    <svg class="fig" viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg" aria-label="ASCII codes for the characters 0 through 9, from 48 to 57">
+      <text class="rl" x="380" y="20">THE DIGIT CHARACTERS</text>
+      <rect class="cellA" x="60" y="34" width="64" height="46" rx="5"/><text class="n" x="92" y="63">'0'</text><text class="code" x="92" y="98">48</text>
+      <rect class="cell" x="124" y="34" width="64" height="46" rx="5"/><text class="n" x="156" y="63">'1'</text><text class="code" x="156" y="98">49</text>
+      <rect class="cell" x="188" y="34" width="64" height="46" rx="5"/><text class="n" x="220" y="63">'2'</text><text class="code" x="220" y="98">50</text>
+      <rect class="cell" x="252" y="34" width="64" height="46" rx="5"/><text class="n" x="284" y="63">'3'</text><text class="code" x="284" y="98">51</text>
+      <rect class="cell" x="316" y="34" width="64" height="46" rx="5"/><text class="n" x="348" y="63">'4'</text><text class="code" x="348" y="98">52</text>
+      <rect class="cellA" x="380" y="34" width="64" height="46" rx="5"/><text class="n" x="412" y="63">'5'</text><text class="code" x="412" y="98">53</text>
+      <rect class="cell" x="444" y="34" width="64" height="46" rx="5"/><text class="n" x="476" y="63">'6'</text><text class="code" x="476" y="98">54</text>
+      <rect class="cell" x="508" y="34" width="64" height="46" rx="5"/><text class="n" x="540" y="63">'7'</text><text class="code" x="540" y="98">55</text>
+      <rect class="cell" x="572" y="34" width="64" height="46" rx="5"/><text class="n" x="604" y="63">'8'</text><text class="code" x="604" y="98">56</text>
+      <rect class="cell" x="636" y="34" width="64" height="46" rx="5"/><text class="n" x="668" y="63">'9'</text><text class="code" x="668" y="98">57</text>
+      <text class="cap" x="380" y="118">the number under each character is its ASCII code</text>
+      <text class="grnT" x="200" y="158">'5' - '0'  =  53 - 48  =  5</text>
+      <text class="cap" x="200" y="180">character → digit</text>
+      <text class="ambT" x="560" y="158">'0' + 5  =  48 + 5  =  '5'</text>
+      <text class="cap" x="560" y="180">digit → character</text>
+    </svg>
+  </section>
+
+  <!-- 10. THE TRAP -->
+  <section class="slide">
+    <div class="kicker">Part A · The Classic Trap</div>
+    <h2><code class="inline" style="font-size:.75em;">char c = 5;</code> Is Not the Character <code class="inline" style="font-size:.75em;">'5'</code></h2>
+    <div class="two" style="flex:none;">
+      <div class="card card--danger">
+        <h3 style="color:var(--red);">Wrong</h3>
+<pre style="margin:0;"><code>char c = 5;
+cout &lt;&lt; c;   // prints nothing visible!</code></pre>
+        <p style="margin-top:10px;">ASCII code <code class="inline">5</code> is an invisible control character, not the digit five.</p>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">Correct</h3>
+<pre style="margin:0;"><code>char c = '0' + 5;
+cout &lt;&lt; c;   // prints 5</code></pre>
+        <p style="margin-top:10px;">ASCII code <code class="inline">53</code> is the character <code class="inline">'5'</code>.</p>
+      </div>
+    </div>
+    <div class="output" style="margin-top:14px;">char c = 5;       ascii code 5    → prints nothing
+char c = '0'+5;   ascii code 53   → prints 5</div>
+    <p style="margin-top:10px;"><b>Rule:</b> to turn a digit <code class="inline">d</code> into a character, add <code class="inline">'0'</code>.</p>
+  </section>
+
+  <!-- 11. CHAR <-> INT -->
+  <section class="slide">
+    <div class="kicker">Part A · Both Directions</div>
+    <h2>Digit ⇄ Character, and ASCII Codes</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>char d = '7';
+
+// character -> the digit it shows
+cout &lt;&lt; d - '0' &lt;&lt; endl;    // 7
+
+// character -> its ASCII code
+cout &lt;&lt; (int)d &lt;&lt; endl;     // 55
+cout &lt;&lt; (int)'A' &lt;&lt; endl;   // 65
+
+// a number -> the character with that code
+cout &lt;&lt; (char)66 &lt;&lt; endl;   // B
+
+// careful: this is arithmetic, not text
+cout &lt;&lt; '5' + 1 &lt;&lt; endl;         // 54
+cout &lt;&lt; (char)('5' + 1) &lt;&lt; endl; // 6</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">7
+55
+65
+B
+54
+6</div>
+        <p style="margin-top:12px;"><b>Notice:</b> <code class="inline">'5' + 1</code> gives <code class="inline">54</code>, a number. Cast it back to <code class="inline">char</code> to see <code class="inline">'6'</code>.</p>
+        <p class="note">Use <code class="inline">- '0'</code> for the digit value; use <code class="inline">(int)</code> for the ASCII code.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. WORKED 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Sum the Digits of a String</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+int main() {
+    string s = "4729";
+    int sum = 0;
+
+    for (int i = 0; i &lt; s.length(); i++) {
+        // s[i] is a char; subtract '0' to get its value
+        sum += s[i] - '0';
+    }
+
+    cout &lt;&lt; "Sum of digits: " &lt;&lt; sum &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Sum of digits: 22</div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">4 + 7 + 2 + 9 = 22</code>. Each <code class="inline">s[i]</code> is a character, so <code class="inline">- '0'</code> converts it to its digit value.</p>
+        <p class="note">Without <code class="inline">- '0'</code> you would add ASCII codes and get 214.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. WORKED 3 -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Building a String Digit by Digit</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;string&gt;
+using namespace std;
+
+int main() {
+    int n = 407;
+    string out = "";
+
+    if (n == 0) out = "0";
+
+    while (n &gt; 0) {
+        int digit = n % 10;              // last digit
+        out = char('0' + digit) + out;   // put it in front
+        n = n / 10;                      // drop it
+    }
+
+    cout &lt;&lt; out &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">407</div>
+        <p style="margin-top:12px;"><b>What it does:</b> this is <code class="inline">to_string</code> written by hand. <code class="inline">% 10</code> takes the last digit, <code class="inline">/ 10</code> removes it.</p>
+        <p><b>Why put it in front?</b> Digits come out backwards, so each new one goes before the rest.</p>
+        <p class="note">In real code, just use <code class="inline">to_string(407)</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>The Math Library</h1>
+    <p class="lead">The popular functions inside &lt;cmath&gt;.</p>
+  </section>
+
+  <!-- 15. CMATH OVERVIEW -->
+  <section class="slide">
+    <div class="kicker">Part B · The Toolkit</div>
+    <h2>What <code class="inline" style="font-size:.75em;">&lt;cmath&gt;</code> Gives You</h2>
+    <div class="card card--featured" style="margin-bottom:12px;">
+<pre style="margin:0;"><code>#include &lt;cmath&gt;   // put this at the top</code></pre>
+    </div>
+    <table class="cmp">
+      <tr><th>Function</th><th>Meaning</th><th>Example</th><th>Result</th></tr>
+      <tr><td class="mono-cell">sqrt(x)</td><td>square root</td><td class="mono-cell">sqrt(16)</td><td class="mono-cell">4</td></tr>
+      <tr><td class="mono-cell">pow(a, b)</td><td>a to the power b</td><td class="mono-cell">pow(2, 10)</td><td class="mono-cell">1024</td></tr>
+      <tr><td class="mono-cell">abs(x)</td><td>absolute value</td><td class="mono-cell">abs(-7)</td><td class="mono-cell">7</td></tr>
+      <tr><td class="mono-cell">floor(x)</td><td>round down</td><td class="mono-cell">floor(3.7)</td><td class="mono-cell">3</td></tr>
+      <tr><td class="mono-cell">ceil(x)</td><td>round up</td><td class="mono-cell">ceil(3.2)</td><td class="mono-cell">4</td></tr>
+      <tr><td class="mono-cell">round(x)</td><td>nearest whole</td><td class="mono-cell">round(3.5)</td><td class="mono-cell">4</td></tr>
+      <tr><td class="mono-cell">fmod(a, b)</td><td>remainder, decimals</td><td class="mono-cell">fmod(10.5, 3)</td><td class="mono-cell">1.5</td></tr>
+    </table>
+    <p style="margin-top:12px;" class="note">Nearly all of these take and return a <code class="inline">double</code>.</p>
+  </section>
+
+  <!-- 16. SQRT AND POW -->
+  <section class="slide">
+    <div class="kicker">Part B · The Two Most Used</div>
+    <h2><code class="inline" style="font-size:.75em;">sqrt</code> and <code class="inline" style="font-size:.75em;">pow</code></h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;cmath&gt;
+using namespace std;
+
+int main() {
+    cout &lt;&lt; sqrt(16) &lt;&lt; endl;     // 4
+    cout &lt;&lt; sqrt(2) &lt;&lt; endl;      // 1.41421
+
+    cout &lt;&lt; pow(2, 10) &lt;&lt; endl;   // 1024
+    cout &lt;&lt; pow(5, 3) &lt;&lt; endl;    // 125
+
+    // a fractional power is a root
+    cout &lt;&lt; pow(9, 0.5) &lt;&lt; endl;  // 3
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">4
+1.41421
+1024
+125
+3</div>
+        <ul style="margin-top:12px;">
+          <li>There is no <code class="inline">**</code> operator in C++ — always use <code class="inline">pow</code>.</li>
+          <li><code class="inline">cout</code> shows about 6 digits by default, so <code class="inline">sqrt(2)</code> appears as <code class="inline">1.41421</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. FIGURE 3: ROUNDING -->
+  <section class="slide">
+    <div class="kicker">Part B · Rounding</div>
+    <h2><code class="inline" style="font-size:.7em;">floor</code>, <code class="inline" style="font-size:.7em;">ceil</code>, and <code class="inline" style="font-size:.7em;">round</code></h2>
+    <svg class="fig" viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" aria-label="Number line showing floor ceil and round for 3.7 and -3.2">
+      <!-- positive line -->
+      <text class="rl" x="380" y="22">x = 3.7</text>
+      <line class="axis" x1="120" y1="60" x2="660" y2="60"/>
+      <line class="tick" x1="200" y1="52" x2="200" y2="68"/><text class="code" x="200" y="88">3</text>
+      <line class="tick" x1="560" y1="52" x2="560" y2="68"/><text class="code" x="560" y="88">4</text>
+      <circle class="dot" cx="488" cy="60" r="6"/><text class="accT" x="488" y="44">3.7</text>
+      <text class="grnT" x="200" y="110">floor → 3</text>
+      <text class="ambT" x="560" y="110">ceil → 4</text>
+      <text class="redT" x="380" y="132">round → 4  (nearer to 4)</text>
+
+      <!-- negative line -->
+      <text class="rl" x="380" y="168">x = -3.2   (careful!)</text>
+      <line class="axis" x1="120" y1="200" x2="660" y2="200"/>
+      <line class="tick" x1="200" y1="192" x2="200" y2="208"/><text class="code" x="200" y="228">-4</text>
+      <line class="tick" x1="560" y1="192" x2="560" y2="208"/><text class="code" x="560" y="228">-3</text>
+      <circle class="dot" cx="488" cy="200" r="6"/><text class="accT" x="488" y="186">-3.2</text>
+      <text class="grnT" x="200" y="250">floor → -4</text>
+      <text class="ambT" x="560" y="250">ceil → -3</text>
+    </svg>
+    <p style="margin-top:2px;"><b>Remember:</b> <code class="inline">floor</code> always goes <b>left</b> on the number line, <code class="inline">ceil</code> always goes <b>right</b> — even for negatives.</p>
+  </section>
+
+  <!-- 18. FMOD VS % -->
+  <section class="slide">
+    <div class="kicker">Part B · Remainders</div>
+    <h2><code class="inline" style="font-size:.75em;">%</code> for Integers, <code class="inline" style="font-size:.75em;">fmod</code> for Decimals</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;cmath&gt;
+
+cout &lt;&lt; 10 % 3 &lt;&lt; endl;        // 1   (int only)
+cout &lt;&lt; fmod(10, 3) &lt;&lt; endl;   // 1
+cout &lt;&lt; fmod(10.5, 3) &lt;&lt; endl; // 1.5
+
+// integer division surprises beginners
+cout &lt;&lt; 10 / 3 &lt;&lt; endl;        // 3
+cout &lt;&lt; 10.0 / 3 &lt;&lt; endl;      // 3.33333</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1
+1
+1.5
+3
+3.33333</div>
+        <ul style="margin-top:12px;">
+          <li><code class="inline">%</code> refuses to work on <code class="inline">double</code>.</li>
+          <li><code class="inline">10 / 3</code> is <b>3</b>: two ints give an int.</li>
+          <li>Make one side a <code class="inline">double</code> to keep the fraction.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19. WORKED 4 -->
+  <section class="slide">
+    <div class="pill">Worked Example 4</div>
+    <h2>Distance Between Two Points</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+#include &lt;cmath&gt;
+using namespace std;
+
+int main() {
+    double x1 = 0, y1 = 0;
+    double x2 = 3, y2 = 4;
+
+    double dx = x2 - x1;          // 3
+    double dy = y2 - y1;          // 4
+
+    // distance = square root of (dx² + dy²)
+    double dist = sqrt(pow(dx, 2) + pow(dy, 2));
+
+    cout &lt;&lt; "Distance: " &lt;&lt; dist &lt;&lt; endl;
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">Distance: 5</div>
+        <p style="margin-top:14px;"><b>What it does:</b> the classic 3-4-5 triangle. <code class="inline">pow(dx, 2)</code> squares each side, <code class="inline">sqrt</code> takes the root of the total.</p>
+        <p class="note">For simple squaring, <code class="inline">dx * dx</code> is faster and clearer than <code class="inline">pow(dx, 2)</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20. TRUNCATION TRAP -->
+  <section class="slide">
+    <div class="kicker">Part B · The Second Trap</div>
+    <h2>Storing a <code class="inline" style="font-size:.75em;">double</code> Into an <code class="inline" style="font-size:.75em;">int</code> Cuts the Fraction</h2>
+    <p class="lead">Assignment does <b>not</b> round. It throws the fractional part away.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--danger">
+        <h3 style="color:var(--red);">Cut, not rounded</h3>
+<pre style="margin:0;"><code>int t = 3.99;
+cout &lt;&lt; t;      // 3</code></pre>
+        <p style="margin-top:10px;">Nearly <code class="inline">4</code>, but stored as <code class="inline">3</code>.</p>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">Round on purpose</h3>
+<pre style="margin:0;"><code>int t = round(3.99);
+cout &lt;&lt; t;      // 4</code></pre>
+        <p style="margin-top:10px;">Say what you mean.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Why it matters:</b> <code class="inline">sqrt</code> and <code class="inline">pow</code> return <code class="inline">double</code>. If a result is <code class="inline">4.999999</code> instead of <code class="inline">5</code>, storing it in an <code class="inline">int</code> silently gives <code class="inline">4</code>.</p>
+    <p class="note">Safe habit: <code class="inline">int n = (int)round(pow(a, b));</code></p>
+  </section>
+
+  <!-- 21. PYTHON -->
+  <section class="slide">
+    <div class="kicker">A Short Comparison</div>
+    <h2>How Python Differs</h2>
+    <table class="cmp">
+      <tr><th>Goal</th><th>Python</th><th>C++</th></tr>
+      <tr><td>int → string</td><td class="mono-cell">str(42)</td><td class="mono-cell">to_string(42)</td></tr>
+      <tr><td>string → int</td><td class="mono-cell">int("42")</td><td class="mono-cell">stoi("42")</td></tr>
+      <tr><td>char → digit</td><td class="mono-cell">int('7')</td><td class="mono-cell">'7' - '0'</td></tr>
+      <tr><td>ASCII code</td><td class="mono-cell">ord('A')</td><td class="mono-cell">(int)'A'</td></tr>
+      <tr><td>Power</td><td class="mono-cell">2 ** 10</td><td class="mono-cell">pow(2, 10)</td></tr>
+      <tr><td>Square root</td><td class="mono-cell">math.sqrt(16)</td><td class="mono-cell">sqrt(16)</td></tr>
+    </table>
+    <p style="margin-top:14px;">Python has no separate <code class="inline">char</code> type — a single character is just a short string. In C++ a <code class="inline">char</code> is a number, which is why <code class="inline">- '0'</code> works.</p>
+  </section>
+
+  <!-- 22. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b><code class="inline">char c = 5;</code></b><br>gives ASCII code 5, not <code class="inline">'5'</code>; use <code class="inline">'0' + 5</code></li>
+          <li><b>Adding characters</b><br><code class="inline">'4' + '2'</code> is <code class="inline">102</code>, not <code class="inline">"42"</code></li>
+          <li><b>Forgetting <code class="inline">- '0'</code></b><br>summing <code class="inline">"4729"</code> gives 214, not 22</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b><code class="inline">"Age: " + age</code></b><br>will not compile; wrap with <code class="inline">to_string</code></li>
+          <li><b><code class="inline">int n = 3.99;</code></b><br>stores <code class="inline">3</code>; use <code class="inline">round</code> if you want <code class="inline">4</code></li>
+          <li><b><code class="inline">10 / 3</code> for an average</b><br>integer division gives <code class="inline">3</code>; use <code class="inline">10.0 / 3</code></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The habit:</b> ask "is this value a number, or the <i>text</i> of a number?"</p>
+  </section>
+
+  <!-- 23. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Write one line that turns the <code class="inline">int</code> <code class="inline">n = 99</code> into the string <code class="inline">"99"</code>.</li>
+      <li>Given <code class="inline">char c = '8';</code>, write the expression that gives the number <code class="inline">8</code>, and the expression that gives its ASCII code.</li>
+      <li>What does <code class="inline">cout &lt;&lt; '3' + '4';</code> print, and why?</li>
+    </ul>
+  </section>
+
+  <!-- 24. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write a loop that counts how many digits in the string <code class="inline">"90210"</code> are even.</li>
+      <li>What are <code class="inline">floor(-2.5)</code>, <code class="inline">ceil(-2.5)</code>, and <code class="inline">round(-2.5)</code>?</li>
+      <li>Explain why <code class="inline">int x = sqrt(26);</code> stores <code class="inline">5</code>, and how to get <code class="inline">5</code> on purpose.</li>
+    </ul>
+  </section>
+
+  <!-- 25. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · int → string</h3>
+<pre><code>string s = to_string(n);   // "99"</code></pre>
+        <h3>2 · char '8'</h3>
+<pre><code>int value = c - '0';   // 8
+int code  = (int)c;    // 56</code></pre>
+        <p class="note">Subtracting <code class="inline">'0'</code> gives the digit; casting gives the ASCII code.</p>
+      </div>
+      <div class="scroll">
+        <h3>3 · '3' + '4'</h3>
+        <div class="output">103</div>
+        <p style="margin-top:10px;">Both are numbers: <code class="inline">51 + 52 = 103</code>. C++ adds their ASCII codes, it does not join them as text.</p>
+        <p>To join them, use strings: <code class="inline">string("3") + "4"</code> gives <code class="inline">"34"</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 26. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Count even digits</h3>
+<pre><code>string s = "90210";
+int count = 0;
+for (int i = 0; i &lt; s.length(); i++) {
+    int d = s[i] - '0';
+    if (d % 2 == 0) count++;
+}
+cout &lt;&lt; count &lt;&lt; endl;   // 3</code></pre>
+        <p class="note">The digits are 9, 0, 2, 1, 0. The even ones are 0, 2, 0 → <b>3</b>. Remember that 0 counts as even.</p>
+      </div>
+      <div class="scroll">
+        <h3>5 · Negative rounding</h3>
+        <div class="output">floor(-2.5) = -3
+ceil(-2.5)  = -2
+round(-2.5) = -3</div>
+        <p style="margin-top:8px;"><code class="inline">floor</code> goes left, <code class="inline">ceil</code> goes right, <code class="inline">round</code> goes away from zero on a tie.</p>
+        <h3 style="margin-top:12px;">6 · sqrt(26)</h3>
+        <p><code class="inline">sqrt(26)</code> is about <code class="inline">5.099</code>. Assigning to an <code class="inline">int</code> <b>cuts</b> the fraction, giving <code class="inline">5</code>. To round on purpose: <code class="inline">int x = round(sqrt(26));</code></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 27. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><code class="inline">to_string(n)</code> turns a number into text; <code class="inline">stoi(s)</code> and <code class="inline">stod(s)</code> turn text into numbers.</li>
+      <li>A <code class="inline">char</code> <b>is a number</b> — its ASCII code. <code class="inline">'0'</code> is 48.</li>
+      <li>Digit → character: <code class="inline">'0' + d</code>. &nbsp; Character → digit: <code class="inline">c - '0'</code>.</li>
+      <li><code class="inline">&lt;cmath&gt;</code> gives <code class="inline">sqrt</code>, <code class="inline">pow</code>, <code class="inline">abs</code>, <code class="inline">floor</code>, <code class="inline">ceil</code>, <code class="inline">round</code>, <code class="inline">fmod</code>.</li>
+      <li><code class="inline">floor</code> goes left, <code class="inline">ceil</code> goes right — even for negative numbers.</li>
+      <li>Storing a <code class="inline">double</code> in an <code class="inline">int</code> <b>cuts</b> the fraction; use <code class="inline">round</code> to round.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Always ask: is this a number, or the text of a number?</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename|stack|pair|sqrt|pow|abs|fabs|floor|ceil|round|fmod|to_string|stoi|stod|stringstream)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>
