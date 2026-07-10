@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Merge Sort</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 35px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 19px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--danger { border-color: var(--red); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 19px; }
+  table.cmp th, table.cmp td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--border); stroke-width: 1.6; }
+  .fig .cellA { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.4; }
+  .fig .cellD { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.2; opacity: .5; }
+  .fig .cellG { fill: var(--surface); stroke: var(--green); stroke-width: 2.2; }
+  .fig .cellE { fill: var(--surface); stroke: var(--border); stroke-width: 1.4; stroke-dasharray: 4 4; }
+  .fig .node { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .nodeG { fill: var(--surface); stroke: var(--green); stroke-width: 2.2; }
+  .fig .nodeA { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.4; }
+  .fig .bar { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 1.6; }
+  .fig .n { fill: var(--text); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .nd { fill: var(--muted); font-family: var(--font-mono); font-size: 18px; text-anchor: middle; opacity:.6; }
+  .fig .ng { fill: var(--green); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .t { fill: var(--text); font-family: var(--font-mono); font-size: 16px; text-anchor: middle; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-mono); font-size: 17px; font-weight: 700; text-anchor: end; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .rl { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .accM { fill: var(--accent); font-family: var(--font-mono); font-size: 17px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .mut { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; text-anchor: middle; }
+  .fig .arw { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  .fig .arwM { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .fig .arwG { stroke: var(--green); stroke-width: 2.2; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 56px; line-height: 1.05; }
+  .title-slide .sub { font-size: 27px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 32px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 48px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 27px; }
+    .title-slide h1, .section-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 15px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Merge Sort</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Merge Sort</h1>
+    <div class="sub">First learn to merge. Then sorting comes for free.</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> arrays, loops, recursion, and basic sorting</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Solve the <span class="hl">merging problem</span>: join two sorted arrays into one.</li>
+      <li>Use the <b>two-pointer</b> method, and handle the leftovers.</li>
+      <li>Explain <span class="hl">divide and conquer</span>: split, sort, merge.</li>
+      <li>Write <code class="inline">mergeSort</code> as a recursive function.</li>
+      <li>Trace the splitting and the merging on a small array.</li>
+      <li>Explain why merge sort is much faster than bubble sort.</li>
+    </ul>
+  </section>
+
+  <!-- 3. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>The Merging Problem</h1>
+    <p class="lead">Forget sorting for a moment. Solve this smaller problem first.</p>
+  </section>
+
+  <!-- 4. THE PROBLEM -->
+  <section class="slide">
+    <div class="kicker">Part A · The Problem</div>
+    <h2>Two Sorted Arrays, One Sorted Result</h2>
+    <p class="lead">You are given <b>two arrays that are already sorted</b>. Produce a single sorted array containing all their values.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Input</h3>
+        <div class="output">A = 1  4  7  9
+B = 2  3  8</div>
+      </div>
+      <div class="card card--featured">
+        <h3>Output</h3>
+        <div class="output">C = 1 2 3 4 7 8 9</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;"><b>The important word is <i>already</i>.</b> Because each array is sorted, the smallest value that has not been used yet must be at the <b>front</b> of one of them.</p>
+  </section>
+
+  <!-- 5. THE IDEA -->
+  <section class="slide">
+    <div class="kicker">Part A · The Idea</div>
+    <h2>Two Pointers, Take the Smaller</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>The method</h3>
+        <ul class="num">
+          <li>Put a pointer <code class="inline">i</code> at the start of <code class="inline">A</code>, and <code class="inline">j</code> at the start of <code class="inline">B</code>.</li>
+          <li>Compare <code class="inline">A[i]</code> with <code class="inline">B[j]</code>.</li>
+          <li>Copy the <b>smaller</b> one into <code class="inline">C</code>.</li>
+          <li>Advance <b>only that</b> pointer.</li>
+          <li>Repeat until one array runs out.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Why it works</h3>
+        <p style="margin:0;">Each array is sorted, so <code class="inline">A[i]</code> is the smallest unused value of <code class="inline">A</code>, and <code class="inline">B[j]</code> the smallest of <code class="inline">B</code>. The smaller of those two must be the smallest value remaining <b>overall</b>.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Cost:</b> every value is copied exactly once, so merging takes about <code class="inline">nA + nB</code> steps.</p>
+  </section>
+
+  <!-- 6. FIGURE 1: TWO POINTERS -->
+  <section class="slide">
+    <div class="kicker">Part A · The Picture</div>
+    <h2>The Two Pointers in Action</h2>
+    <p class="lead">After copying <code class="inline">1</code> and <code class="inline">2</code>: we compare <code class="inline">A[1] = 4</code> with <code class="inline">B[1] = 3</code>, and take the <b>3</b>.</p>
+    <svg class="fig" viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg" aria-label="Two pointers i and j walking along sorted arrays A and B, copying the smaller value into C">
+      <defs>
+        <marker id="ma" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+        <marker id="mg" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)"/></marker>
+      </defs>
+      <!-- A -->
+      <text class="lbl" x="150" y="46">A =</text>
+      <rect class="cellD" x="165" y="22" width="58" height="40"/><text class="nd" x="194" y="49">1</text>
+      <rect class="cellA" x="223" y="22" width="58" height="40"/><text class="n" x="252" y="49">4</text>
+      <rect class="cell"  x="281" y="22" width="58" height="40"/><text class="n" x="310" y="49">7</text>
+      <rect class="cell"  x="339" y="22" width="58" height="40"/><text class="n" x="368" y="49">9</text>
+      <text class="accM" x="252" y="82">↑ i</text>
+
+      <!-- B -->
+      <text class="lbl" x="150" y="130">B =</text>
+      <rect class="cellD" x="165" y="106" width="58" height="40"/><text class="nd" x="194" y="133">2</text>
+      <rect class="cellA" x="223" y="106" width="58" height="40"/><text class="n" x="252" y="133">3</text>
+      <rect class="cell"  x="281" y="106" width="58" height="40"/><text class="n" x="310" y="133">8</text>
+      <text class="accM" x="252" y="166">↑ j</text>
+
+      <!-- decision -->
+      <text class="accT" x="560" y="60">compare 4 and 3</text>
+      <text class="grnT" x="560" y="86">3 is smaller → copy it</text>
+      <text class="mut" x="560" y="112">then advance j only</text>
+      <path class="arwG" d="M470,120 C540,150 540,180 470,200" marker-end="url(#mg)"/>
+
+      <!-- C -->
+      <text class="lbl" x="150" y="222">C =</text>
+      <rect class="cellG" x="165" y="198" width="58" height="40"/><text class="ng" x="194" y="225">1</text>
+      <rect class="cellG" x="223" y="198" width="58" height="40"/><text class="ng" x="252" y="225">2</text>
+      <rect class="cellG" x="281" y="198" width="58" height="40"/><text class="ng" x="310" y="225">3</text>
+      <rect class="cellE" x="339" y="198" width="58" height="40"/>
+      <rect class="cellE" x="397" y="198" width="58" height="40"/>
+      <rect class="cellE" x="455" y="198" width="58" height="40"/>
+      <rect class="cellE" x="513" y="198" width="58" height="40"/>
+      <text class="accM" x="310" y="258">↑ k</text>
+      <text class="cap" x="380" y="282">grey = already used · dashed = not filled yet</text>
+    </svg>
+  </section>
+
+  <!-- 7. THE MERGE CODE -->
+  <section class="slide">
+    <div class="kicker">Part A · The Code</div>
+    <h2>The Main Loop, and the Leftovers</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>int i = 0, j = 0, k = 0;
+
+// while BOTH arrays still have values
+while (i &lt; nA &amp;&amp; j &lt; nB) {
+    if (A[i] &lt;= B[j])
+        C[k++] = A[i++];   // take from A
+    else
+        C[k++] = B[j++];   // take from B
+}
+
+// one array is empty — copy whatever is left
+while (i &lt; nA) C[k++] = A[i++];
+while (j &lt; nB) C[k++] = B[j++];</code></pre>
+      </div>
+      <div>
+        <h3>Why two extra loops?</h3>
+        <p>The main loop stops as soon as <b>one</b> array runs out. The other may still hold values — and they are already sorted, so we just copy them across.</p>
+        <p><b>Only one</b> of the two leftover loops ever runs.</p>
+        <p class="note" style="margin-top:10px;">Using <code class="inline">&lt;=</code> rather than <code class="inline">&lt;</code> keeps equal values in their original order.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Merging Two Sorted Arrays</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int A[4] = {1, 4, 7, 9};
+    int B[3] = {2, 3, 8};
+    int nA = 4, nB = 3;
+    int C[7];
+
+    int i = 0, j = 0, k = 0;
+    while (i &lt; nA &amp;&amp; j &lt; nB) {
+        if (A[i] &lt;= B[j]) C[k++] = A[i++];
+        else              C[k++] = B[j++];
+    }
+    while (i &lt; nA) C[k++] = A[i++];   // leftovers
+    while (j &lt; nB) C[k++] = B[j++];
+
+    for (int x = 0; x &lt; 7; x++) cout &lt;&lt; C[x] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 3 4 7 8 9 </div>
+        <div class="out-label" style="margin-top:12px;">What happened</div>
+        <div class="output" style="font-size:16px;">1 vs 2 → take 1
+4 vs 2 → take 2
+4 vs 3 → take 3
+4 vs 8 → take 4
+7 vs 8 → take 7
+9 vs 8 → take 8
+B is empty → copy 9</div>
+        <p class="note" style="margin-top:8px;">6 comparisons, then one leftover.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>From Merging to Merge Sort</h1>
+    <p class="lead">Now use that solution to sort a whole array.</p>
+  </section>
+
+  <!-- 10. THE INSIGHT -->
+  <section class="slide">
+    <div class="kicker">Part B · The Insight</div>
+    <h2>If the Halves Were Sorted, We Could Merge Them</h2>
+    <p class="lead">We can merge two <b>sorted</b> arrays quickly. So imagine cutting an unsorted array in half…</p>
+    <div class="card card--featured" style="margin-bottom:12px;">
+      <div class="output" style="border:none; background:none; padding:0;">unsorted:   5  2  8  1
+
+left half:  5  2          right half:  8  1
+  ↓ somehow sort            ↓ somehow sort
+            2  5                       1  8
+
+merge them  →   1  2  5  8</div>
+    </div>
+    <p><b>But how do we sort each half?</b> The same way — cut it in half, sort <i>those</i> halves, and merge.</p>
+    <p class="note">That is recursion. And a half of a half of a half eventually has just one value, which is already sorted.</p>
+  </section>
+
+  <!-- 11. DIVIDE AND CONQUER -->
+  <section class="slide">
+    <div class="kicker">Part B · The Strategy</div>
+    <h2>Divide and Conquer, in Three Steps</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>The algorithm</h3>
+        <ul class="num">
+          <li><b>Divide:</b> cut the array in half at <code class="inline">mid</code>.</li>
+          <li><b>Conquer:</b> call <code class="inline">mergeSort</code> on each half.</li>
+          <li><b>Combine:</b> merge the two sorted halves.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>The base case</h3>
+        <p style="margin:0 0 8px;">An array of <b>one</b> value — or none — is already sorted. Stop and return.</p>
+        <div class="output">if (left &gt;= right) return;</div>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Notice:</b> the splitting does no sorting at all. <span class="hl">All the sorting happens on the way back up, inside <code class="inline">merge</code>.</span></p>
+  </section>
+
+  <!-- 12. FIGURE 2: TREE -->
+  <section class="slide">
+    <div class="kicker">Part B · The Picture</div>
+    <h2>Split Going Down, Merge Coming Up</h2>
+    <svg class="fig" viewBox="0 0 760 390" xmlns="http://www.w3.org/2000/svg" aria-label="Recursion tree splitting 5 2 8 1 into single values then merging back into 1 2 5 8">
+      <defs>
+        <marker id="md" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker>
+        <marker id="mu" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)"/></marker>
+      </defs>
+
+      <text class="rl" x="90" y="42">SPLIT</text>
+      <text class="rl" x="90" y="300">MERGE</text>
+
+      <!-- level 0 -->
+      <rect class="nodeA" x="310" y="20" width="140" height="36" rx="5"/><text class="n" x="380" y="44">5  2  8  1</text>
+      <!-- level 1 -->
+      <rect class="node" x="185" y="90" width="90" height="36" rx="5"/><text class="n" x="230" y="114">5  2</text>
+      <rect class="node" x="485" y="90" width="90" height="36" rx="5"/><text class="n" x="530" y="114">8  1</text>
+      <!-- level 2 -->
+      <rect class="node" x="130" y="160" width="50" height="36" rx="5"/><text class="n" x="155" y="184">5</text>
+      <rect class="node" x="280" y="160" width="50" height="36" rx="5"/><text class="n" x="305" y="184">2</text>
+      <rect class="node" x="430" y="160" width="50" height="36" rx="5"/><text class="n" x="455" y="184">8</text>
+      <rect class="node" x="580" y="160" width="50" height="36" rx="5"/><text class="n" x="605" y="184">1</text>
+      <!-- merged level 1 -->
+      <rect class="nodeG" x="185" y="230" width="90" height="36" rx="5"/><text class="ng" x="230" y="254">2  5</text>
+      <rect class="nodeG" x="485" y="230" width="90" height="36" rx="5"/><text class="ng" x="530" y="254">1  8</text>
+      <!-- final -->
+      <rect class="nodeG" x="310" y="300" width="140" height="36" rx="5"/><text class="ng" x="380" y="324">1  2  5  8</text>
+
+      <!-- split arrows -->
+      <path class="arwM" d="M350,58 L245,86" marker-end="url(#md)"/>
+      <path class="arwM" d="M410,58 L515,86" marker-end="url(#md)"/>
+      <path class="arwM" d="M212,128 L166,156" marker-end="url(#md)"/>
+      <path class="arwM" d="M248,128 L294,156" marker-end="url(#md)"/>
+      <path class="arwM" d="M512,128 L466,156" marker-end="url(#md)"/>
+      <path class="arwM" d="M548,128 L594,156" marker-end="url(#md)"/>
+      <!-- merge arrows -->
+      <path class="arwG" d="M160,198 L206,226" marker-end="url(#mu)"/>
+      <path class="arwG" d="M300,198 L254,226" marker-end="url(#mu)"/>
+      <path class="arwG" d="M460,198 L506,226" marker-end="url(#mu)"/>
+      <path class="arwG" d="M600,198 L554,226" marker-end="url(#mu)"/>
+      <path class="arwG" d="M245,268 L350,298" marker-end="url(#mu)"/>
+      <path class="arwG" d="M515,268 L410,298" marker-end="url(#mu)"/>
+
+      <text class="mut" x="680" y="114">no sorting here</text>
+      <text class="grnT" x="680" y="254">sorting happens here</text>
+      <text class="cap" x="380" y="368">a single value is already sorted — that is the base case</text>
+    </svg>
+  </section>
+
+  <!-- 13. THE CODE: MERGESORT -->
+  <section class="slide">
+    <div class="kicker">Part B · The Code</div>
+    <h2>The <code class="inline" style="font-size:.75em;">mergeSort</code> Function</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>void mergeSort(int arr[], int left, int right) {
+    // base case: 0 or 1 value is already sorted
+    if (left &gt;= right) return;
+
+    int mid = left + (right - left) / 2;
+
+    mergeSort(arr, left, mid);        // sort left half
+    mergeSort(arr, mid + 1, right);   // sort right half
+
+    merge(arr, left, mid, right);     // combine them
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">left</code> and <code class="inline">right</code> mark the piece we are sorting.</li>
+          <li><code class="inline">mid</code> splits it: <code class="inline">left..mid</code> and <code class="inline">mid+1..right</code>.</li>
+          <li>Both calls must finish <b>before</b> <code class="inline">merge</code> runs.</li>
+        </ul>
+        <p style="margin-top:12px;"><b>Only four lines</b> — because all the real work lives in <code class="inline">merge</code>, which we already wrote in Part A.</p>
+        <p class="note">Call it with <code class="inline">mergeSort(arr, 0, n - 1);</code></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. THE MERGE FOR SUBARRAY -->
+  <section class="slide">
+    <div class="kicker">Part B · The Code</div>
+    <h2>Merging Two Halves of One Array</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>void merge(int arr[], int left, int mid, int right) {
+    int n1 = mid - left + 1;      // size of left half
+    int n2 = right - mid;         // size of right half
+
+    int L[100], R[100];           // temporary copies
+    for (int i = 0; i &lt; n1; i++) L[i] = arr[left + i];
+    for (int j = 0; j &lt; n2; j++) R[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = left;   // k writes back into arr
+
+    while (i &lt; n1 &amp;&amp; j &lt; n2) {
+        if (L[i] &lt;= R[j]) arr[k++] = L[i++];
+        else              arr[k++] = R[j++];
+    }
+    while (i &lt; n1) arr[k++] = L[i++];
+    while (j &lt; n2) arr[k++] = R[j++];
+}</code></pre>
+      </div>
+      <div>
+        <p><b>This is Part A's merge</b>, with two changes:</p>
+        <ul>
+          <li>The two halves live inside <b>one</b> array, so we first <b>copy them out</b> into <code class="inline">L</code> and <code class="inline">R</code>.</li>
+          <li>The result is written <b>back</b> into <code class="inline">arr</code>, starting at index <code class="inline">left</code>.</li>
+        </ul>
+        <p class="note" style="margin-top:10px;">The copies are needed: writing into <code class="inline">arr</code> would otherwise destroy values we still have to read.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. WORKED 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>The Complete Program</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+void merge(int arr[], int left, int mid, int right) {
+    int n1 = mid - left + 1, n2 = right - mid;
+    int L[100], R[100];
+    for (int i = 0; i &lt; n1; i++) L[i] = arr[left + i];
+    for (int j = 0; j &lt; n2; j++) R[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = left;
+    while (i &lt; n1 &amp;&amp; j &lt; n2) {
+        if (L[i] &lt;= R[j]) arr[k++] = L[i++];
+        else              arr[k++] = R[j++];
+    }
+    while (i &lt; n1) arr[k++] = L[i++];
+    while (j &lt; n2) arr[k++] = R[j++];
+}
+
+void mergeSort(int arr[], int left, int right) {
+    if (left &gt;= right) return;
+    int mid = left + (right - left) / 2;
+    mergeSort(arr, left, mid);
+    mergeSort(arr, mid + 1, right);
+    merge(arr, left, mid, right);
+}
+
+int main() {
+    int arr[7] = {38, 27, 43, 3, 9, 82, 10};
+    mergeSort(arr, 0, 6);
+    for (int i = 0; i &lt; 7; i++) cout &lt;&lt; arr[i] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">3 9 10 27 38 43 82 </div>
+        <p style="margin-top:14px;"><b>What it does:</b> <code class="inline">mergeSort</code> keeps splitting until every piece holds one value, then <code class="inline">merge</code> rebuilds the array in order.</p>
+        <p class="note">Two short functions sort any array of any size.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. WORKED 3 TRACE -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Tracing the Calls</h2>
+    <div class="two">
+      <div class="scroll">
+        <div class="out-label">Splits and merges</div>
+        <div class="output" style="font-size:15.5px;">split [38 27 43 3 9 82 10]
+  split [38 27 43 3]
+    split [38 27]
+    merged -&gt; [27 38]
+    split [43 3]
+    merged -&gt; [3 43]
+  merged -&gt; [3 27 38 43]
+  split [9 82 10]
+    split [9 82]
+    merged -&gt; [9 82]
+  merged -&gt; [9 10 82]
+merged -&gt; [3 9 10 27 38 43 82]</div>
+      </div>
+      <div>
+        <h3>What to notice</h3>
+        <ul>
+          <li>Every <b>split</b> happens before any merge in that branch.</li>
+          <li>The left half is fully sorted before the right half is even touched.</li>
+          <li>The <b>last</b> merge joins two sorted halves of four and three values.</li>
+        </ul>
+        <p style="margin-top:10px;"><b>Odd sizes are fine:</b> <code class="inline">[9 82 10]</code> splits into <code class="inline">[9 82]</code> and <code class="inline">[10]</code>. A single value needs no sorting.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. FIGURE 3: WHY FAST -->
+  <section class="slide">
+    <div class="kicker">Part B · The Cost</div>
+    <h2>Why Merge Sort Is Fast</h2>
+    <p class="lead">Each level of the tree merges every value exactly once — that is <code class="inline">n</code> work. The number of levels is how many times you can halve <code class="inline">n</code>.</p>
+    <svg class="fig" viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" aria-label="Four levels of merging, each doing n work, giving n times log n total">
+      <text class="rl" x="70" y="30">LEVEL</text>
+      <text class="rl" x="690" y="30">WORK</text>
+
+      <text class="t" x="70" y="58">0</text>
+      <rect class="bar" x="130" y="40" width="480" height="26" rx="3"/>
+      <text class="t" x="690" y="58">n</text>
+
+      <text class="t" x="70" y="102">1</text>
+      <rect class="bar" x="130" y="84" width="236" height="26" rx="3"/>
+      <rect class="bar" x="374" y="84" width="236" height="26" rx="3"/>
+      <text class="t" x="690" y="102">n</text>
+
+      <text class="t" x="70" y="146">2</text>
+      <rect class="bar" x="130" y="128" width="112" height="26" rx="3"/>
+      <rect class="bar" x="250" y="128" width="112" height="26" rx="3"/>
+      <rect class="bar" x="378" y="128" width="112" height="26" rx="3"/>
+      <rect class="bar" x="498" y="128" width="112" height="26" rx="3"/>
+      <text class="t" x="690" y="146">n</text>
+
+      <text class="t" x="70" y="190">3</text>
+      <rect class="bar" x="130" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="188" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="246" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="304" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="362" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="420" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="478" y="172" width="50" height="26" rx="3"/>
+      <rect class="bar" x="536" y="172" width="50" height="26" rx="3"/>
+      <text class="t" x="690" y="190">n</text>
+
+      <text class="cap" x="370" y="222" style="font-weight:700;">log₂(n) levels  ×  n work per level  =  n × log₂(n)</text>
+      <text class="cap" x="370" y="244">every level holds the same total number of values</text>
+    </svg>
+  </section>
+
+  <!-- 18. COMPARISON -->
+  <section class="slide">
+    <div class="kicker">Putting It Together</div>
+    <h2>Compared With the Simple Sorts</h2>
+    <table class="cmp">
+      <tr><th>Algorithm</th><th>Worst case</th><th>Extra memory</th><th>Idea</th></tr>
+      <tr><td>Bubble</td><td class="mono-cell">n × n</td><td class="mono-cell">none</td><td>swap neighbours</td></tr>
+      <tr><td>Selection</td><td class="mono-cell">n × n</td><td class="mono-cell">none</td><td>find the smallest</td></tr>
+      <tr><td>Insertion</td><td class="mono-cell">n × n</td><td class="mono-cell">none</td><td>insert into sorted part</td></tr>
+      <tr><td><b>Merge</b></td><td class="mono-cell" style="color:var(--green); font-weight:700;">n × log₂(n)</td><td class="mono-cell" style="color:var(--amber);">a second array</td><td>split, sort, merge</td></tr>
+    </table>
+    <div class="card card--featured" style="margin-top:14px;">
+      <h3>For one million values</h3>
+      <div class="output">bubble sort : about 1,000,000,000,000 steps
+merge sort  : about     20,000,000 steps</div>
+    </div>
+    <p style="margin-top:10px;" class="note">Merge sort trades a little extra memory for an enormous gain in speed.</p>
+  </section>
+
+  <!-- 19. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Forgetting the leftover loops</b><br>the tail of the longer array is silently dropped</li>
+          <li><b>Advancing both pointers</b><br>only the pointer you copied from moves forward</li>
+          <li><b>No base case</b><br><code class="inline">if (left &gt;= right) return;</code> must come first</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Wrong halves</b><br>use <code class="inline">left..mid</code> and <code class="inline">mid+1..right</code>, never <code class="inline">mid..right</code></li>
+          <li><b>Merging before both calls return</b><br><code class="inline">merge</code> comes <b>after</b> the two recursive calls</li>
+          <li><b>Writing into <code class="inline">arr</code> while still reading it</b><br>copy the halves into <code class="inline">L</code> and <code class="inline">R</code> first</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The infinite-recursion test:</b> with <code class="inline">mid..right</code>, a two-element piece never shrinks — the program crashes.</p>
+  </section>
+
+  <!-- 20. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Merge <code class="inline">A = {2, 5, 6}</code> and <code class="inline">B = {1, 3, 9}</code> by hand. Write the order in which values are copied.</li>
+      <li>Why does the merge need <b>two</b> leftover loops, and why does only one ever run?</li>
+      <li>What is the base case of <code class="inline">mergeSort</code>, and why is it correct?</li>
+    </ul>
+  </section>
+
+  <!-- 21. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Draw the split tree for <code class="inline">{4, 1, 3, 2}</code>, then write the result of each merge.</li>
+      <li>In <code class="inline">merge</code>, why must we copy the halves into <code class="inline">L</code> and <code class="inline">R</code> before writing into <code class="inline">arr</code>?</li>
+      <li>An array holds 1,000,000 values. Roughly how many <b>levels</b> of splitting are there? Explain.</li>
+    </ul>
+  </section>
+
+  <!-- 22. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Merging by hand</h3>
+        <div class="output" style="font-size:17px;">2 vs 1 → take 1
+2 vs 3 → take 2
+5 vs 3 → take 3
+5 vs 9 → take 5
+6 vs 9 → take 6
+A is empty → copy 9 from B
+
+result: 1 2 3 5 6 9</div>
+      </div>
+      <div class="scroll">
+        <h3>2 · The leftover loops</h3>
+        <p>The main loop ends when <b>one</b> array is exhausted. The other still holds sorted values, which must be copied. Only one loop runs, because only one array can have values left.</p>
+        <h3 style="margin-top:12px;">3 · The base case</h3>
+        <p><code class="inline">if (left &gt;= right) return;</code> — a piece with one value (or none) is <b>already sorted</b>, so there is nothing to do.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Tree for {4, 1, 3, 2}</h3>
+        <div class="output" style="font-size:16px;">split : [4 1 3 2]
+        [4 1]   [3 2]
+        [4][1] [3][2]
+
+merge : [1 4]   [2 3]
+        [1 2 3 4]</div>
+      </div>
+      <div class="scroll">
+        <h3>5 · Why copy first?</h3>
+        <p>Because <code class="inline">merge</code> writes its output back into <code class="inline">arr</code> starting at <code class="inline">left</code>. Without the copies, the very first write would overwrite a value in the left half that has not been read yet.</p>
+        <h3 style="margin-top:12px;">6 · Levels for a million</h3>
+        <p><b>About 20.</b> Each level halves the size, and <code class="inline">2²⁰</code> is just over one million, so twenty halvings reach pieces of size one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><b>Merging</b> joins two sorted arrays with two pointers: compare the fronts, take the smaller, advance that pointer.</li>
+      <li>After the main loop, copy the <b>leftovers</b> from whichever array still has values.</li>
+      <li><b>Merge sort</b> = divide at <code class="inline">mid</code>, sort each half by recursion, then merge.</li>
+      <li>The base case is a piece of one value, which is already sorted.</li>
+      <li>Splitting does no sorting — <b>all the sorting happens inside <code class="inline">merge</code></b>, on the way back up.</li>
+      <li>Cost: <code class="inline">log₂(n)</code> levels × <code class="inline">n</code> work = <code class="inline">n × log₂(n)</code>, far faster than <code class="inline">n × n</code>.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Solve the small problem first — then sorting is just merging, applied again and again.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename|stack|pair)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>

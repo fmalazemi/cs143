@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Basic Sorting Algorithms</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --green: #1f7a4d; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --green: #5fd99a; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 20px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 20px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 20px; }
+  table.cmp th, table.cmp td { padding: 11px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 50vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--border); stroke-width: 1.8; }
+  .fig .cellA { fill: var(--primary-soft); stroke: var(--accent); stroke-width: 2.5; }
+  .fig .cellDone { fill: var(--surface-2); stroke: var(--green); stroke-width: 2; }
+  .fig .cellMin { fill: var(--surface); stroke: var(--amber); stroke-width: 2.5; }
+  .fig .num { fill: var(--text); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .numDone { fill: var(--green); font-family: var(--font-mono); font-size: 19px; font-weight: 700; text-anchor: middle; }
+  .fig .rowlbl { fill: var(--muted); font-family: var(--font-sans); font-size: 14px; text-anchor: end; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .ambT { fill: var(--amber); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .swap { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .fig .arrowD { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 58px; line-height: 1.05; }
+  .title-slide .sub { font-size: 28px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 34px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 54px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 28px; }
+    .title-slide h1, .section-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 16px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Basic Sorting</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Basic Sorting Algorithms</h1>
+    <div class="sub">Bubble Sort · Selection Sort · Insertion Sort</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> arrays, loops, and nested loops</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>Explain what it means to <span class="hl">sort</span> an array.</li>
+      <li>Describe and code <b>bubble sort</b> — swap neighbours.</li>
+      <li>Describe and code <b>selection sort</b> — find the smallest.</li>
+      <li>Describe and code <b>insertion sort</b> — place into a sorted part.</li>
+      <li>Trace each algorithm by hand on a small array.</li>
+      <li>Compare the three and know when each is useful.</li>
+    </ul>
+  </section>
+
+  <!-- 3. WHAT IS SORTING -->
+  <section class="slide">
+    <div class="kicker">The Problem</div>
+    <h2>What Is Sorting?</h2>
+    <p class="lead"><b>Sorting</b> means rearranging the items of an array so they are in order — usually smallest to largest.</p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Before</h3>
+        <div class="output">5   1   4   2</div>
+      </div>
+      <div class="card card--featured">
+        <h3>After</h3>
+        <div class="output">1   2   4   5</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;">All three algorithms today use the same two tools you already know: <b>comparing</b> two values, and <b>swapping</b> them.</p>
+    <div class="card" style="margin-top:10px;">
+<pre style="margin:0;"><code>// swapping two values in an array
+int temp = arr[i];
+arr[i] = arr[j];
+arr[j] = temp;</code></pre>
+    </div>
+  </section>
+
+  <!-- 4. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>Bubble Sort</h1>
+    <p class="lead">Compare each pair of neighbours, and swap them if they are out of order.</p>
+  </section>
+
+  <!-- 5. BUBBLE IDEA -->
+  <section class="slide">
+    <div class="kicker">Part A · The Idea</div>
+    <h2>Swap Neighbours, Again and Again</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>The rule</h3>
+        <ul>
+          <li>Walk along the array from left to right.</li>
+          <li>Compare each item with the one next to it.</li>
+          <li>If they are in the wrong order, <b>swap</b> them.</li>
+          <li>Repeat until no swaps are needed.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>Why "bubble"?</h3>
+        <p style="margin:0;">After each pass, the largest remaining value has moved — <i>bubbled</i> — all the way to the right end, where it stays.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Key point:</b> after pass 1 the last item is correct, after pass 2 the last two are correct, and so on.</p>
+  </section>
+
+  <!-- 6. BUBBLE TRACE FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part A · Trace</div>
+    <h2>One Pass of Bubble Sort</h2>
+    <p class="lead">Starting from <code class="inline">5 1 4 2</code>, comparing each neighbouring pair.</p>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="One pass of bubble sort on 5 1 4 2">
+      <!-- row 1 -->
+      <text class="rowlbl" x="150" y="46">start</text>
+      <rect class="cellA" x="170" y="22" width="60" height="42" rx="6"/><text class="num" x="200" y="50">5</text>
+      <rect class="cellA" x="240" y="22" width="60" height="42" rx="6"/><text class="num" x="270" y="50">1</text>
+      <rect class="cell"  x="310" y="22" width="60" height="42" rx="6"/><text class="num" x="340" y="50">4</text>
+      <rect class="cell"  x="380" y="22" width="60" height="42" rx="6"/><text class="num" x="410" y="50">2</text>
+      <text class="accT" x="235" y="14">5 &gt; 1 → swap</text>
+      <!-- row 2 -->
+      <text class="rowlbl" x="150" y="112">then</text>
+      <rect class="cell"  x="170" y="88" width="60" height="42" rx="6"/><text class="num" x="200" y="116">1</text>
+      <rect class="cellA" x="240" y="88" width="60" height="42" rx="6"/><text class="num" x="270" y="116">5</text>
+      <rect class="cellA" x="310" y="88" width="60" height="42" rx="6"/><text class="num" x="340" y="116">4</text>
+      <rect class="cell"  x="380" y="88" width="60" height="42" rx="6"/><text class="num" x="410" y="116">2</text>
+      <text class="accT" x="305" y="80">5 &gt; 4 → swap</text>
+      <!-- row 3 -->
+      <text class="rowlbl" x="150" y="178">then</text>
+      <rect class="cell"  x="170" y="154" width="60" height="42" rx="6"/><text class="num" x="200" y="182">1</text>
+      <rect class="cell"  x="240" y="154" width="60" height="42" rx="6"/><text class="num" x="270" y="182">4</text>
+      <rect class="cellA" x="310" y="154" width="60" height="42" rx="6"/><text class="num" x="340" y="182">5</text>
+      <rect class="cellA" x="380" y="154" width="60" height="42" rx="6"/><text class="num" x="410" y="182">2</text>
+      <text class="accT" x="375" y="146">5 &gt; 2 → swap</text>
+      <!-- row 4 -->
+      <text class="rowlbl" x="150" y="244">after pass 1</text>
+      <rect class="cell"  x="170" y="220" width="60" height="42" rx="6"/><text class="num" x="200" y="248">1</text>
+      <rect class="cell"  x="240" y="220" width="60" height="42" rx="6"/><text class="num" x="270" y="248">4</text>
+      <rect class="cell"  x="310" y="220" width="60" height="42" rx="6"/><text class="num" x="340" y="248">2</text>
+      <rect class="cellDone" x="380" y="220" width="60" height="42" rx="6"/><text class="numDone" x="410" y="248">5</text>
+      <text class="grnT" x="530" y="248">largest is in place ✓</text>
+      <text class="cap" x="300" y="288">each pass pushes the biggest remaining value to the right</text>
+    </svg>
+  </section>
+
+  <!-- 7. WORKED 1 BUBBLE -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Bubble Sort in C++</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[4] = {5, 1, 4, 2};
+    int n = 4;
+
+    // each pass fixes one more value at the end
+    for (int i = 0; i &lt; n - 1; i++) {
+        for (int j = 0; j &lt; n - 1 - i; j++) {
+            if (arr[j] &gt; arr[j + 1]) {   // out of order?
+                int temp = arr[j];       // swap them
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+
+    for (int i = 0; i &lt; n; i++) cout &lt;&lt; arr[i] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 4 5</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the inner loop compares neighbours and swaps. The <code class="inline">- i</code> skips the values already parked at the end.</p>
+        <p class="note">Two nested loops: about n × n comparisons.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>Selection Sort</h1>
+    <p class="lead">Find the smallest remaining value, and move it into place.</p>
+  </section>
+
+  <!-- 9. SELECTION IDEA -->
+  <section class="slide">
+    <div class="kicker">Part B · The Idea</div>
+    <h2>Find the Smallest, Put It First</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>The rule</h3>
+        <ul>
+          <li>Look through the unsorted part and find the <b>smallest</b> value.</li>
+          <li><b>Swap</b> it with the first unsorted position.</li>
+          <li>That position is now finished; move one step right.</li>
+          <li>Repeat until the whole array is sorted.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>The difference</h3>
+        <p style="margin:0;">Bubble sort swaps <b>many</b> times per pass. Selection sort searches first, then makes <b>one</b> swap per pass.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Key point:</b> the array grows sorted from the <b>left</b>.</p>
+  </section>
+
+  <!-- 10. SELECTION TRACE FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part B · Trace</div>
+    <h2>Selection Sort Step by Step</h2>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="Selection sort passes on 5 1 4 2">
+      <!-- row 1 -->
+      <text class="rowlbl" x="160" y="46">start</text>
+      <rect class="cell"    x="180" y="22" width="60" height="42" rx="6"/><text class="num" x="210" y="50">5</text>
+      <rect class="cellMin" x="250" y="22" width="60" height="42" rx="6"/><text class="num" x="280" y="50">1</text>
+      <rect class="cell"    x="320" y="22" width="60" height="42" rx="6"/><text class="num" x="350" y="50">4</text>
+      <rect class="cell"    x="390" y="22" width="60" height="42" rx="6"/><text class="num" x="420" y="50">2</text>
+      <text class="ambT" x="545" y="50">min = 1 → swap with pos 0</text>
+      <!-- row 2 -->
+      <text class="rowlbl" x="160" y="112">pass 2</text>
+      <rect class="cellDone" x="180" y="88" width="60" height="42" rx="6"/><text class="numDone" x="210" y="116">1</text>
+      <rect class="cell"    x="250" y="88" width="60" height="42" rx="6"/><text class="num" x="280" y="116">5</text>
+      <rect class="cell"    x="320" y="88" width="60" height="42" rx="6"/><text class="num" x="350" y="116">4</text>
+      <rect class="cellMin" x="390" y="88" width="60" height="42" rx="6"/><text class="num" x="420" y="116">2</text>
+      <text class="ambT" x="545" y="116">min = 2 → swap with pos 1</text>
+      <!-- row 3 -->
+      <text class="rowlbl" x="160" y="178">pass 3</text>
+      <rect class="cellDone" x="180" y="154" width="60" height="42" rx="6"/><text class="numDone" x="210" y="182">1</text>
+      <rect class="cellDone" x="250" y="154" width="60" height="42" rx="6"/><text class="numDone" x="280" y="182">2</text>
+      <rect class="cell"    x="320" y="154" width="60" height="42" rx="6"/><text class="num" x="350" y="182">4</text>
+      <rect class="cellMin" x="390" y="154" width="60" height="42" rx="6"/><text class="num" x="420" y="182">5</text>
+      <text class="ambT" x="545" y="182">min = 4 → already in place</text>
+      <!-- row 4 -->
+      <text class="rowlbl" x="160" y="244">done</text>
+      <rect class="cellDone" x="180" y="220" width="60" height="42" rx="6"/><text class="numDone" x="210" y="248">1</text>
+      <rect class="cellDone" x="250" y="220" width="60" height="42" rx="6"/><text class="numDone" x="280" y="248">2</text>
+      <rect class="cellDone" x="320" y="220" width="60" height="42" rx="6"/><text class="numDone" x="350" y="248">4</text>
+      <rect class="cellDone" x="390" y="220" width="60" height="42" rx="6"/><text class="numDone" x="420" y="248">5</text>
+      <text class="grnT" x="520" y="248">sorted ✓</text>
+      <text class="cap" x="300" y="288">the sorted part (green) grows from the left</text>
+    </svg>
+  </section>
+
+  <!-- 11. WORKED 2 SELECTION -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>Selection Sort in C++</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[4] = {5, 1, 4, 2};
+    int n = 4;
+
+    for (int i = 0; i &lt; n - 1; i++) {
+        int minIndex = i;              // assume i is smallest
+
+        // search the rest for something smaller
+        for (int j = i + 1; j &lt; n; j++) {
+            if (arr[j] &lt; arr[minIndex]) {
+                minIndex = j;
+            }
+        }
+
+        if (minIndex != i) {           // one swap per pass
+            int temp = arr[i];
+            arr[i] = arr[minIndex];
+            arr[minIndex] = temp;
+        }
+    }
+
+    for (int i = 0; i &lt; n; i++) cout &lt;&lt; arr[i] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 4 5</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the inner loop <b>finds</b> the smallest value's position. The swap happens once, after the search.</p>
+        <p class="note">Fewer swaps than bubble sort, but the same number of comparisons.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. PART C DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part C</div>
+    <h1>Insertion Sort</h1>
+    <p class="lead">Take the next value and slide it back into its correct place.</p>
+  </section>
+
+  <!-- 13. INSERTION IDEA -->
+  <section class="slide">
+    <div class="kicker">Part C · The Idea</div>
+    <h2>Like Sorting Cards in Your Hand</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>The rule</h3>
+        <ul>
+          <li>Treat the left part of the array as already <b>sorted</b>.</li>
+          <li>Take the next value — the <b>key</b>.</li>
+          <li>Slide larger values one step right to make a gap.</li>
+          <li>Drop the key into the gap.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>The picture</h3>
+        <p style="margin:0;">Exactly how most people sort playing cards: pick up the next card and push it back until it sits in the right spot.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>Key point:</b> insertion sort <b>shifts</b> values rather than swapping pairs.</p>
+  </section>
+
+  <!-- 14. INSERTION TRACE FIGURE -->
+  <section class="slide">
+    <div class="kicker">Part C · Trace</div>
+    <h2>Inserting Each Value</h2>
+    <svg class="fig" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" aria-label="Insertion sort passes on 5 1 4 2">
+      <!-- row 1 -->
+      <text class="rowlbl" x="160" y="46">start</text>
+      <rect class="cellDone" x="180" y="22" width="60" height="42" rx="6"/><text class="numDone" x="210" y="50">5</text>
+      <rect class="cellA"    x="250" y="22" width="60" height="42" rx="6"/><text class="num" x="280" y="50">1</text>
+      <rect class="cell"     x="320" y="22" width="60" height="42" rx="6"/><text class="num" x="350" y="50">4</text>
+      <rect class="cell"     x="390" y="22" width="60" height="42" rx="6"/><text class="num" x="420" y="50">2</text>
+      <text class="accT" x="545" y="50">key = 1 → goes before 5</text>
+      <!-- row 2 -->
+      <text class="rowlbl" x="160" y="112">then</text>
+      <rect class="cellDone" x="180" y="88" width="60" height="42" rx="6"/><text class="numDone" x="210" y="116">1</text>
+      <rect class="cellDone" x="250" y="88" width="60" height="42" rx="6"/><text class="numDone" x="280" y="116">5</text>
+      <rect class="cellA"    x="320" y="88" width="60" height="42" rx="6"/><text class="num" x="350" y="116">4</text>
+      <rect class="cell"     x="390" y="88" width="60" height="42" rx="6"/><text class="num" x="420" y="116">2</text>
+      <text class="accT" x="545" y="116">key = 4 → goes before 5</text>
+      <!-- row 3 -->
+      <text class="rowlbl" x="160" y="178">then</text>
+      <rect class="cellDone" x="180" y="154" width="60" height="42" rx="6"/><text class="numDone" x="210" y="182">1</text>
+      <rect class="cellDone" x="250" y="154" width="60" height="42" rx="6"/><text class="numDone" x="280" y="182">4</text>
+      <rect class="cellDone" x="320" y="154" width="60" height="42" rx="6"/><text class="numDone" x="350" y="182">5</text>
+      <rect class="cellA"    x="390" y="154" width="60" height="42" rx="6"/><text class="num" x="420" y="182">2</text>
+      <text class="accT" x="545" y="182">key = 2 → goes after 1</text>
+      <!-- row 4 -->
+      <text class="rowlbl" x="160" y="244">done</text>
+      <rect class="cellDone" x="180" y="220" width="60" height="42" rx="6"/><text class="numDone" x="210" y="248">1</text>
+      <rect class="cellDone" x="250" y="220" width="60" height="42" rx="6"/><text class="numDone" x="280" y="248">2</text>
+      <rect class="cellDone" x="320" y="220" width="60" height="42" rx="6"/><text class="numDone" x="350" y="248">4</text>
+      <rect class="cellDone" x="390" y="220" width="60" height="42" rx="6"/><text class="numDone" x="420" y="248">5</text>
+      <text class="grnT" x="520" y="248">sorted ✓</text>
+      <text class="cap" x="300" y="288">green = sorted part · teal = the key being inserted</text>
+    </svg>
+  </section>
+
+  <!-- 15. WORKED 3 INSERTION -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Insertion Sort in C++</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[4] = {5, 1, 4, 2};
+    int n = 4;
+
+    for (int i = 1; i &lt; n; i++) {
+        int key = arr[i];       // the value to place
+        int j = i - 1;
+
+        // slide bigger values one step right
+        while (j &gt;= 0 &amp;&amp; arr[j] &gt; key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = key;       // drop it in the gap
+    }
+
+    for (int i = 0; i &lt; n; i++) cout &lt;&lt; arr[i] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 4 5</div>
+        <p style="margin-top:12px;"><b>What it does:</b> the <code class="inline">while</code> loop shifts larger values right until it finds the gap, then places <code class="inline">key</code>.</p>
+        <p class="note">Starts at <code class="inline">i = 1</code>: one item alone is already sorted.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. COMPARISON -->
+  <section class="slide">
+    <div class="kicker">Putting It Together</div>
+    <h2>Comparing the Three</h2>
+    <table class="cmp">
+      <tr><th>Algorithm</th><th>Core idea</th><th>Swaps</th><th>Best case</th><th>Worst case</th></tr>
+      <tr><td>Bubble</td><td>swap neighbours</td><td>many</td><td class="mono-cell">n</td><td class="mono-cell">n × n</td></tr>
+      <tr><td>Selection</td><td>find the smallest</td><td>one per pass</td><td class="mono-cell">n × n</td><td class="mono-cell">n × n</td></tr>
+      <tr><td>Insertion</td><td>insert into sorted part</td><td>shifts</td><td class="mono-cell">n</td><td class="mono-cell">n × n</td></tr>
+    </table>
+    <ul style="margin-top:14px;">
+      <li>All three are <b>slow</b> for large arrays — roughly n × n work.</li>
+      <li><b>Insertion sort</b> is the fastest of the three on data that is already nearly sorted.</li>
+      <li><b>Selection sort</b> makes the fewest swaps — useful when swapping is expensive.</li>
+    </ul>
+    <p class="note">For real work, use the STL: <code class="inline">sort(v.begin(), v.end());</code></p>
+  </section>
+
+  <!-- 17. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Reading past the end</b><br>bubble sort compares <code class="inline">arr[j+1]</code>, so <code class="inline">j</code> must stop at <code class="inline">n-2</code></li>
+          <li><b>Losing a value in a swap</b><br>always use a <code class="inline">temp</code> variable</li>
+          <li><b>Starting insertion sort at <code class="inline">i = 0</code></b><br>begin at <code class="inline">i = 1</code>; the first item is already sorted</li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>Swapping inside the search</b><br>selection sort swaps <b>after</b> finding the minimum</li>
+          <li><b>Forgetting <code class="inline">j &gt;= 0</code></b><br>the insertion <code class="inline">while</code> must not run past the left end</li>
+          <li><b>Tracking the value, not the index</b><br>selection sort stores <code class="inline">minIndex</code>, not the minimum value</li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>Advice:</b> trace each algorithm on paper with four numbers before you trust your code.</p>
+  </section>
+
+  <!-- 18. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Trace <b>bubble sort</b> by hand on <code class="inline">{3, 2, 1}</code>. Write the array after each pass.</li>
+      <li>Write the C++ swap of <code class="inline">arr[i]</code> and <code class="inline">arr[j]</code> using a <code class="inline">temp</code> variable.</li>
+      <li>In <b>selection sort</b>, why do we store <code class="inline">minIndex</code> rather than the smallest value itself?</li>
+    </ul>
+  </section>
+
+  <!-- 19. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Trace <b>insertion sort</b> on <code class="inline">{4, 3, 5}</code>. What is the key at each step?</li>
+      <li>Write a complete <b>selection sort</b> for an array of 5 integers and print the result.</li>
+      <li>Which algorithm is fastest on an array that is <b>already sorted</b>? Explain in one sentence.</li>
+    </ul>
+  </section>
+
+  <!-- 20. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Bubble trace of {3, 2, 1}</h3>
+        <div class="output">start:   3 2 1
+pass 1:  2 1 3
+pass 2:  1 2 3</div>
+        <p style="margin-top:8px;">Pass 1 swaps (3,2) then (3,1), pushing 3 to the end.</p>
+      </div>
+      <div class="scroll">
+        <h3>2 · The swap</h3>
+<pre><code>int temp = arr[i];
+arr[i] = arr[j];
+arr[j] = temp;</code></pre>
+        <h3>3 · Why minIndex?</h3>
+        <p>Because we must <b>swap positions</b>. Knowing the value alone does not tell us where it is, so we remember its <b>index</b>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · Insertion trace of {4, 3, 5}</h3>
+        <div class="output">key = 3:  3 4 5
+key = 5:  3 4 5</div>
+        <p style="margin-top:8px;">3 slides before 4; 5 is already larger, so it stays.</p>
+        <h3>6 · Already sorted</h3>
+        <p><b>Insertion sort.</b> Its <code class="inline">while</code> loop stops immediately on every item, so it makes just one pass.</p>
+      </div>
+      <div class="scroll">
+        <h3>5 · Selection sort, 5 items</h3>
+<pre><code>int arr[5] = {9, 3, 7, 1, 5};
+int n = 5;
+for (int i = 0; i &lt; n - 1; i++) {
+    int minIndex = i;
+    for (int j = i + 1; j &lt; n; j++)
+        if (arr[j] &lt; arr[minIndex]) minIndex = j;
+    int temp = arr[i];
+    arr[i] = arr[minIndex];
+    arr[minIndex] = temp;
+}
+// prints: 1 3 5 7 9</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 22. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li><b>Sorting</b> rearranges an array into order, using only comparisons and swaps.</li>
+      <li><b>Bubble sort:</b> swap neighbours; the largest value bubbles to the right each pass.</li>
+      <li><b>Selection sort:</b> find the smallest remaining value; one swap per pass.</li>
+      <li><b>Insertion sort:</b> slide each new value back into the sorted left part.</li>
+      <li>All three use <b>nested loops</b> and take about <b>n × n</b> steps.</li>
+      <li>Insertion sort wins on nearly-sorted data; selection sort makes the fewest swaps.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Learn these three by hand — they teach how loops, comparisons, and swaps work together.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>
