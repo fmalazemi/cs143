@@ -7,7 +7,7 @@ Design and implement two C++ classes:
 1. A **Matrix** class.
 2. A **Polynomial** class.
 
-Both classes must use **dynamic memory** and support operations that return new objects of the same class.
+Both classes must use **dynamic memory (i.e. Heap Memory)** and support operations that return new objects of the same class.
 
 ---
 
