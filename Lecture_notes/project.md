@@ -1,4 +1,4 @@
-# C++ Project: Dynamic Matrix and Polynomial Classes
+x# C++ Project: Dynamic Matrix and Polynomial Classes
 
 ## Objective
 
@@ -7,7 +7,7 @@ Design and implement two C++ classes:
 1. A **Matrix** class.
 2. A **Polynomial** class.
 
-Both classes must use **dynamic memory (i.e. Heap Memory)** and support operations that return new objects of the same class.
+Both classes must use **dynamic memory** and support operations that return new objects of the same class.
 
 ---
 
@@ -360,6 +360,138 @@ P1 * P2 = x^2 + 3x + 2
 - The polynomial should preferably be stored in descending order of exponent.
 
 ---
+
+# Deep Copy Requirements
+
+Because both classes use dynamically allocated memory, a shallow copy is not sufficient. Each object must own its own independent copy of the allocated data.
+
+A deep copy is required in the following cases.
+
+## 1. Copy Constructor
+
+A deep copy is required when a new object is created from an existing object.
+
+```cpp
+Matrix B = A;
+Polynomial p2 = p1;
+```
+
+The new object must allocate its own memory and copy all matrix values or polynomial terms. Modifying the copied object must not affect the original object.
+
+## 2. Copy-Assignment Operator
+
+A deep copy is required when an existing object is assigned another object.
+
+```cpp
+Matrix B;
+B = A;
+
+Polynomial p2;
+p2 = p1;
+```
+
+The assignment operator should:
+
+- Check for self-assignment.
+- Release the object's old memory.
+- Allocate new memory.
+- Copy the source object's data.
+- Return the current object by reference.
+
+```cpp
+Matrix& operator=(const Matrix& other);
+Polynomial& operator=(const Polynomial& other);
+```
+
+## 3. Returning Objects from Operators
+
+Arithmetic operators return new objects:
+
+```cpp
+Matrix C = A + B;
+Matrix D = A * B;
+
+Polynomial p3 = p1 + p2;
+Polynomial p4 = p1 * p2;
+```
+
+Each returned object must own independent dynamic memory and remain valid after the operator function finishes.
+
+## 4. Passing Objects by Value
+
+Passing an object by value invokes the copy constructor:
+
+```cpp
+void processMatrix(Matrix m);
+void processPolynomial(Polynomial p);
+```
+
+A deep copy is required. When copying is unnecessary, prefer passing by constant reference:
+
+```cpp
+void processMatrix(const Matrix& m);
+void processPolynomial(const Polynomial& p);
+```
+
+## 5. Resizing Dynamic Storage
+
+Deep-copy-like behavior is required whenever internal storage changes.
+
+For a matrix, adding a row or column requires:
+
+1. Allocating a larger memory block.
+2. Copying all existing values.
+3. Adding the new row or column.
+4. Releasing the old memory.
+5. Updating the row and column counts.
+
+For a polynomial, adding or removing a term may require:
+
+1. Allocating a new terms array.
+2. Copying existing terms.
+3. Inserting, updating, or removing a term.
+4. Releasing the old memory.
+5. Updating the number of terms.
+
+## 6. Storing Objects in Arrays or Containers
+
+Copies may also occur when objects are stored in arrays, classes, or containers.
+
+```cpp
+Matrix matrices[3];
+matrices[1] = matrices[0];
+
+std::vector<Polynomial> polynomials;
+polynomials.push_back(p1);
+```
+
+Each copied object must manage its own memory independently.
+
+## Why Shallow Copy Is Incorrect
+
+A shallow copy copies only the pointer address, causing two objects to share the same memory.
+
+This can lead to:
+
+- Changes in one object affecting another.
+- Dangling pointers.
+- Double deletion.
+- Memory corruption.
+- Program crashes or undefined behavior.
+
+With deep copy, each object owns a separate memory block.
+
+## Rule of Three
+
+Both classes must correctly implement:
+
+```cpp
+ClassName(const ClassName& other);
+ClassName& operator=(const ClassName& other);
+~ClassName();
+```
+
+Incorrect deep-copy behavior may cause failed automated tests, memory errors, or incorrect results.
 
 # Testing
 
