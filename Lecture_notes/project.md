@@ -1,5 +1,18 @@
 # C++ Programming Project
 
+## Project Evaluation 
+
+### Deadline 24-Jul-2026 11:59pm
+
+You are required to:
+ - Submit your source file (.h and .cpp) through Moodle.
+ - Do a Demo. 
+ 
+NOTE: During the demonstration, students should be able to explain their design decisions, dynamic memory management, deep-copy implementation, operator overloading, and the functionality of each required method. Students may also be asked to modify or extend parts of their code during the demonstration to verify their understanding. Failure to adequately explain the implementation may result in a reduced grade, even if the program functions correctly.
+
+
+
+
 # Dynamic Matrix and Polynomial Classes
 
 ## 1. Project Objective
@@ -978,27 +991,3 @@ Deep copying is required for:
 - Returning objects from arithmetic operators.
 - Adding or removing matrix rows and columns.
 - Adding or removing polynomial terms.
-
----
-
-# Part IV — Automated Testing
-
-## 27. Input and Output Testing
-
-The project will be tested automatically using files.
-
-- Each test case provides an input file.
-- The program must produce output matching the expected output file.
-- Spaces, line breaks, symbols, and values must match exactly.
-- Do not print interactive prompts unless explicitly required.
-
-Examples of prompts that should not be printed:
-
-```text
-Enter the number of rows:
-Enter the coefficient:
-```
-
-Every required function may be tested independently.
-
-A missing function, changed prototype, memory error, or incorrect output format may cause a test case to fail.
