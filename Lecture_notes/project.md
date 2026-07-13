@@ -556,6 +556,142 @@ ClassName& operator=(const ClassName& other);
 
 Incorrect deep-copy behavior may cause failed automated tests, memory errors, or incorrect results.
 
+
+# Required Function Prototypes
+
+Students must implement the following public interfaces. The internal private helper functions may be designed freely, but the prototypes below must be supported exactly so that the classes can be tested automatically.
+
+## Required `Matrix` Class Interface
+
+```cpp
+class Matrix {
+private:
+    int rows;
+    int columns;
+    int** data;
+
+public:
+    // Constructors, destructor, and deep copying
+    Matrix();
+    Matrix(int rows, int columns);
+    Matrix(const Matrix& other);
+    Matrix& operator=(const Matrix& other);
+    ~Matrix();
+
+    // Matrix dimensions
+    int getRows() const;
+    int getColumns() const;
+
+    // Element access
+    int* operator[](int row);
+    const int* operator[](int row) const;
+
+    // Dynamic resizing
+    void addRow();
+    void addRow(const int values[]);
+    void addColumn();
+    void addColumn(const int values[]);
+
+    // Matrix arithmetic and comparison
+    Matrix operator+(const Matrix& other) const;
+    Matrix operator-(const Matrix& other) const;
+    Matrix operator*(const Matrix& other) const;
+    bool operator==(const Matrix& other) const;
+
+    // File and stream input/output
+    friend std::istream& operator>>(std::istream& input, Matrix& matrix);
+    friend std::ostream& operator<<(std::ostream& output, const Matrix& matrix);
+};
+```
+
+### Matrix Prototype Notes
+
+- `Matrix()` creates an empty matrix.
+- `Matrix(int rows, int columns)` creates a matrix of the requested size and initializes all elements to zero.
+- The copy constructor and copy-assignment operator must perform a deep copy.
+- `operator[]` must support both reading and updating elements using `matrix[row][column]`.
+- `addRow()` and `addColumn()` add a zero-initialized row or column.
+- The overloaded versions receive the values of the new row or column.
+- Arithmetic operators must return new independent `Matrix` objects.
+- The stream operators must work with files as well as `cin` and `cout`.
+
+## Required `Term` Structure
+
+```cpp
+struct Term {
+    double coefficient;
+    int exponent;
+};
+```
+
+## Required `Polynomial` Class Interface
+
+```cpp
+class Polynomial {
+private:
+    Term* terms;
+    int termCount;
+
+public:
+    // Constructor, destructor, and deep copying
+    Polynomial();
+    Polynomial(const Polynomial& other);
+    Polynomial& operator=(const Polynomial& other);
+    ~Polynomial();
+
+    // Polynomial information
+    int getTermCount() const;
+
+    // Dynamic term management
+    void addTerm(double coefficient, int exponent);
+
+    // Polynomial arithmetic and comparison
+    Polynomial operator+(const Polynomial& other) const;
+    Polynomial operator-(const Polynomial& other) const;
+    Polynomial operator*(const Polynomial& other) const;
+    bool operator==(const Polynomial& other) const;
+
+    // Polynomial evaluation
+    double evaluate(double x) const;
+
+    // File and stream input/output
+    friend std::istream& operator>>(std::istream& input, Polynomial& polynomial);
+    friend std::ostream& operator<<(std::ostream& output,
+                                    const Polynomial& polynomial);
+};
+```
+
+### Polynomial Prototype Notes
+
+- `Polynomial()` creates the zero polynomial with no stored terms.
+- The copy constructor and copy-assignment operator must perform a deep copy.
+- `addTerm()` must add a new exponent or combine the coefficient with an existing exponent.
+- If the resulting coefficient is zero, that term must be removed.
+- Polynomial terms should be stored in descending order of exponent.
+- Arithmetic operators must return new independent `Polynomial` objects.
+- `evaluate(x)` returns the polynomial value for the supplied value of `x`.
+- The stream operators must work with files as well as `cin` and `cout`.
+
+## Header Requirement
+
+The class declarations should be placed in header files, for example:
+
+```text
+Matrix.h
+Polynomial.h
+```
+
+Their implementations may be placed in corresponding source files:
+
+```text
+Matrix.cpp
+Polynomial.cpp
+```
+
+Students may add private helper functions when needed, but they must not remove or change the required public prototypes.
+
+---
+
 # Input Validity Assumption
 
 Students may assume that **all input is correct and valid**. No validation or error checking is required before executing any function.
