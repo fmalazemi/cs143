@@ -15,6 +15,7 @@
 
 👉 [Moodle](https://moodle.ku.edu.kw)
 
+👉 [Project](Lecture_notes/project.md)
 
 ---
 
