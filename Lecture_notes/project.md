@@ -598,7 +598,7 @@ public:
     Matrix operator*(const Matrix& other) const;
     bool operator==(const Matrix& other) const;
 
-    // File and stream output
+    // File and stream input/output
     friend std::ostream& operator<<(std::ostream& output, const Matrix& matrix);
 };
 ```
@@ -653,7 +653,7 @@ public:
     // Polynomial evaluation
     double evaluate(double x) const;
 
-    // File and stream output
+    // File and stream input/output
     friend std::ostream& operator<<(std::ostream& output,
                                     const Polynomial& polynomial);
 };
@@ -749,3 +749,296 @@ The program should be designed so that it can be tested automatically.
 ---
 
 Additional requirements, exact function prototypes, input format, output format, and bonus tasks may be announced later.
+
+# Additional Required Matrix Functionality
+
+The following functions are also required in the `Matrix` class:
+
+```cpp
+bool isSquare() const;
+bool isDiagonal() const;
+bool isIdentity() const;
+bool isSymmetric() const;
+
+void swapRows(int row1, int row2);
+void swapColumns(int col1, int col2);
+
+void removeRow(int rowIndex);
+void removeColumn(int columnIndex);
+
+int trace() const;
+
+Matrix operator*(int scalar) const;
+Matrix transpose() const;
+```
+
+## Matrix Property Functions
+
+### `isSquare()`
+
+```cpp
+bool isSquare() const;
+```
+
+Returns `true` when the number of rows is equal to the number of columns.
+
+### `isDiagonal()`
+
+```cpp
+bool isDiagonal() const;
+```
+
+Returns `true` when the matrix is square and every element outside the main diagonal is zero.
+
+### `isIdentity()`
+
+```cpp
+bool isIdentity() const;
+```
+
+Returns `true` when the matrix is square, every main-diagonal element is `1`, and every other element is `0`.
+
+### `isSymmetric()`
+
+```cpp
+bool isSymmetric() const;
+```
+
+Returns `true` when the matrix is square and:
+
+```text
+matrix[i][j] == matrix[j][i]
+```
+
+for every valid row and column.
+
+## Matrix Modification Functions
+
+### `swapRows()`
+
+```cpp
+void swapRows(int row1, int row2);
+```
+
+Exchanges all elements in the two specified rows.
+
+### `swapColumns()`
+
+```cpp
+void swapColumns(int col1, int col2);
+```
+
+Exchanges all elements in the two specified columns.
+
+### `removeRow()`
+
+```cpp
+void removeRow(int rowIndex);
+```
+
+Removes the specified row, preserves all remaining values, reallocates the dynamic memory, and decreases the number of rows by one.
+
+### `removeColumn()`
+
+```cpp
+void removeColumn(int columnIndex);
+```
+
+Removes the specified column, preserves all remaining values, reallocates the dynamic memory, and decreases the number of columns by one.
+
+## Matrix Calculations
+
+### `trace()`
+
+```cpp
+int trace() const;
+```
+
+Returns the sum of the elements on the main diagonal.
+
+Example:
+
+```text
+1 2 3
+4 5 6
+7 8 9
+```
+
+The trace is:
+
+```text
+1 + 5 + 9 = 15
+```
+
+The input matrix may be assumed to be square when this function is called.
+
+### Scalar Multiplication
+
+```cpp
+Matrix operator*(int scalar) const;
+```
+
+Returns a new matrix in which every element is multiplied by the given scalar.
+
+Example:
+
+```cpp
+Matrix B = A * 3;
+```
+
+### `transpose()`
+
+```cpp
+Matrix transpose() const;
+```
+
+Returns a new matrix whose rows become columns and whose columns become rows.
+
+Example:
+
+```text
+Original:
+
+1 2 3
+4 5 6
+
+Transpose:
+
+1 4
+2 5
+3 6
+```
+
+The transpose operation should be implemented using the named function `transpose()`.
+
+> Note: The notation `A^-1` normally represents the inverse of a matrix, not its transpose. Therefore, this project uses `transpose()` to avoid mathematical ambiguity.
+
+---
+
+# Additional Required Polynomial Functionality
+
+The following functions are also required in the `Polynomial` class:
+
+```cpp
+int degree() const;
+double getCoefficient(int exponent) const;
+void removeTerm(int exponent);
+Polynomial derivative() const;
+Polynomial operator*(double scalar) const;
+void simplify();
+```
+
+## Polynomial Functions
+
+### `degree()`
+
+```cpp
+int degree() const;
+```
+
+Returns the highest exponent currently stored in the polynomial.
+
+Example:
+
+```text
+4x^5 + 2x^2 + 1
+```
+
+The degree is:
+
+```text
+5
+```
+
+### `getCoefficient()`
+
+```cpp
+double getCoefficient(int exponent) const;
+```
+
+Returns the coefficient of the term with the specified exponent.
+
+If no term with that exponent exists, the function should return `0`.
+
+Example:
+
+```text
+P(x) = 3x^4 + 2x - 7
+```
+
+Then:
+
+```cpp
+p.getCoefficient(4);  // Returns 3
+p.getCoefficient(1);  // Returns 2
+p.getCoefficient(3);  // Returns 0
+```
+
+### `removeTerm()`
+
+```cpp
+void removeTerm(int exponent);
+```
+
+Removes the term with the specified exponent.
+
+The function must update the dynamically allocated terms array and decrease the number of terms.
+
+### `derivative()`
+
+```cpp
+Polynomial derivative() const;
+```
+
+Returns a new polynomial representing the derivative of the current polynomial.
+
+For each term:
+
+```text
+a*x^n
+```
+
+the derivative is:
+
+```text
+a*n*x^(n-1)
+```
+
+Example:
+
+```text
+P(x)  = 3x^3 + 2x^2 - 5
+P'(x) = 9x^2 + 4x
+```
+
+Constant terms should not appear in the returned polynomial.
+
+### Polynomial Scalar Multiplication
+
+```cpp
+Polynomial operator*(double scalar) const;
+```
+
+Returns a new polynomial in which every coefficient is multiplied by the given scalar.
+
+Example:
+
+```cpp
+Polynomial result = p * 2.5;
+```
+
+### `simplify()`
+
+```cpp
+void simplify();
+```
+
+Simplifies the polynomial by:
+
+- Combining terms with equal exponents.
+- Removing terms whose coefficient is zero.
+- Sorting terms in descending order of exponent.
+- Ensuring that no exponent appears more than once.
+
+The function modifies the current polynomial object.
+
