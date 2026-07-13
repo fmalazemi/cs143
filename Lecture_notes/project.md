@@ -598,7 +598,7 @@ public:
     Matrix operator*(const Matrix& other) const;
     bool operator==(const Matrix& other) const;
 
-    // File and stream input/output
+    // File and stream output
     friend std::ostream& operator<<(std::ostream& output, const Matrix& matrix);
 };
 ```
@@ -653,7 +653,7 @@ public:
     // Polynomial evaluation
     double evaluate(double x) const;
 
-    // File and stream input/output
+    // File and stream output
     friend std::ostream& operator<<(std::ostream& output,
                                     const Polynomial& polynomial);
 };
