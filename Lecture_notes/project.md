@@ -42,7 +42,6 @@ The `Matrix` class must support:
 - Matrix comparison using `operator==`.
 - Input and output operations.
 - Accessing and modifying individual matrix elements.
-- Appropriate error checking for invalid dimensions and indices.
 
 ## Element Access Using `operator[]`
 
@@ -93,24 +92,18 @@ cout << A[0][0] << endl;
 cout << A[2][3] << endl;
 ```
 
-### Bounds Checking
+### Input Assumption
 
-The row index should be checked inside `operator[]`. The design should also provide a safe way to validate the column index.
+Students may assume that every row and column index used with `operator[]` is valid. Therefore, no bounds checking is required.
 
-Students may use one of the following approaches:
-
-- Return a row-proxy object whose second `operator[]` checks the column index.
-- Provide an additional checked function such as `at(row, column)`.
-- Follow another instructor-approved design that prevents invalid memory access.
-
-Example checked function:
+The following implementation is sufficient:
 
 ```cpp
-int& at(int row, int column);
-const int& at(int row, int column) const;
+int* operator[](int row);
+const int* operator[](int row) const;
 ```
 
-Invalid row or column indices must be handled consistently and must not cause silent memory corruption.
+The testing files will not contain invalid indices.
 
 ---
 
@@ -240,7 +233,7 @@ Result:
 - No dangling pointers are allowed.
 - Existing data must not be lost when rows or columns are added.
 - Matrix operators must return a `Matrix` object.
-- Operations with incompatible dimensions must be handled correctly.
+- The testing files will only request operations with compatible matrix dimensions.
 
 ---
 
@@ -563,6 +556,24 @@ ClassName& operator=(const ClassName& other);
 
 Incorrect deep-copy behavior may cause failed automated tests, memory errors, or incorrect results.
 
+# Input Validity Assumption
+
+Students may assume that **all input is correct and valid**. No validation or error checking is required before executing any function.
+
+This includes the following assumptions:
+
+- Matrix dimensions are valid.
+- Matrix dimensions are compatible for addition, subtraction, and multiplication.
+- Row and column indices are within range.
+- Arrays passed to `addRow()` and `addColumn()` contain the correct number of values.
+- Polynomial exponents and coefficients are valid.
+- Every requested operation can be performed correctly.
+- Input files follow the specified format.
+
+The submitted program will not be tested with invalid input. Students should focus on dynamic memory management, deep copying, operator overloading, and producing the correct output.
+
+---
+
 # Testing
 
 All submitted programs will be tested using **input and output files**.
@@ -595,7 +606,6 @@ The program should be designed so that it can be tested automatically.
   - Copy-assignment operator.
   - Destructor.
 - Avoid global variables.
-- Validate indices, dimensions, and exponents where necessary.
 - Use clear function names.
 - Use meaningful variable names.
 - Add comments for important logic.
