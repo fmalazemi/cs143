@@ -1,4 +1,4 @@
-x# C++ Project: Dynamic Matrix and Polynomial Classes
+# C++ Project: Dynamic Matrix and Polynomial Classes
 
 ## Objective
 
