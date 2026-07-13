@@ -1,17 +1,5 @@
 # C++ Programming Project
 
-## Project Evaluation 
-
-### Deadline 24-Jul-2026 11:59pm
-
-You are required to:
- - Submit your source file (.h and .cpp) through Moodle.
- - Do a Demo. 
- 
-NOTE: During the demonstration, students should be able to explain their design decisions, dynamic memory management, deep-copy implementation, operator overloading, and the functionality of each required method. Students may also be asked to modify or extend parts of their code during the demonstration to verify their understanding. Failure to adequately explain the implementation may result in a reduced grade, even if the program functions correctly.
-
-
-
 
 # Dynamic Matrix and Polynomial Classes
 
@@ -23,6 +11,18 @@ Design and implement two C++ classes:
 2. `Polynomial`
 
 Both classes must use dynamic memory and must correctly implement the Rule of Three.
+
+### Evaluation and Deadline
+
+1. Deadline 24-Jul-2026 11:59pm
+
+2. You are required to:
+ - Submit your source file (.h and .cpp) through Moodle.
+ - Do a Demo. 
+ 
+NOTE: During the demonstration, students should be able to explain their design decisions, dynamic memory management, deep-copy implementation, operator overloading, and the functionality of each required method. Students may also be asked to modify or extend parts of their code during the demonstration to verify their understanding. Failure to adequately explain the implementation may result in a reduced grade, even if the program functions correctly.
+
+
 
 ---
 
