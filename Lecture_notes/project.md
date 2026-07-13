@@ -1,5 +1,21 @@
 # C++ Project: Dynamic Matrix and Polynomial Classes
 
+
+## Mandatory Implementation Policy
+
+Every constructor, destructor, operator, method, helper function, and function prototype listed in this document is **mandatory**.
+
+Students must:
+
+- Implement every listed function.
+- Use the exact function names, parameter types, return types, and `const` qualifiers shown.
+- Not remove, rename, replace, or skip any listed function.
+- Ensure that every function compiles and behaves as described.
+- Ensure that all functions are testable through the provided automated input and output files.
+
+A missing or incorrectly declared function may cause compilation failure or failed automated test cases.
+
+
 ## Objective
 
 Design and implement two C++ classes:
@@ -27,7 +43,7 @@ The class should maintain and update:
 
 Whenever a row or column is added, the class must correctly allocate new memory, copy the existing values, initialize the new cells, release the old memory, and update the row and column counts.
 
-## Minimum Required Functionality
+## Mandatory Functionality
 
 The `Matrix` class must support:
 
@@ -111,7 +127,7 @@ The testing files will not contain invalid indices.
 
 Students must implement functions that allow the matrix to grow dynamically.
 
-Suggested function prototypes:
+Mandatory function prototypes:
 
 ```cpp
 void addRow();
@@ -120,7 +136,7 @@ void addColumn();
 void addColumn(const int values[]);
 ```
 
-The exact prototypes may be adjusted depending on the final design.
+Students must implement these prototypes exactly as specified in this document.
 
 ### `addRow()`
 
@@ -268,7 +284,7 @@ A fixed-size array is not allowed.
 
 ## Suggested Term Structure
 
-Students may define a structure such as:
+Students must define the following structure:
 
 ```cpp
 struct Term {
@@ -277,9 +293,9 @@ struct Term {
 };
 ```
 
-The `Polynomial` class may then store a dynamically allocated array of `Term` objects.
+The `Polynomial` class must store its terms using dynamically allocated memory.
 
-## Minimum Required Functionality
+## Mandatory Functionality
 
 The `Polynomial` class must support:
 
@@ -420,7 +436,7 @@ P1 * P2 = x^2 + 3x + 2
 - A term whose coefficient becomes zero must be removed.
 - Polynomial operations must return a `Polynomial` object.
 - No memory leaks or dangling pointers are allowed.
-- The polynomial should preferably be stored in descending order of exponent.
+- The polynomial must be stored in descending order of exponent.
 
 ---
 
@@ -748,11 +764,11 @@ The program should be designed so that it can be tested automatically.
 
 ---
 
-Additional requirements, exact function prototypes, input format, output format, and bonus tasks may be announced later.
+All constructors, methods, operators, and helper functions listed in this document are mandatory and must be implemented exactly as specified.
 
-# Additional Required Matrix Functionality
+# Mandatory Matrix Functionality
 
-The following functions are also required in the `Matrix` class:
+The following functions are mandatory in the `Matrix` class:
 
 ```cpp
 bool isSquare() const;
@@ -915,9 +931,9 @@ The transpose operation should be implemented using the named function `transpos
 
 ---
 
-# Additional Required Polynomial Functionality
+# Mandatory Polynomial Functionality
 
-The following functions are also required in the `Polynomial` class:
+The following functions are mandatory in the `Polynomial` class:
 
 ```cpp
 int degree() const;
