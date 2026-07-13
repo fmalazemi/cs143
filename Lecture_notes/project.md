@@ -44,6 +44,76 @@ The `Matrix` class must support:
 - Accessing and modifying individual matrix elements.
 - Appropriate error checking for invalid dimensions and indices.
 
+## Element Access Using `operator[]`
+
+The `Matrix` class must overload the subscript operator so that students can access matrix elements using two pairs of square brackets:
+
+```cpp
+matrix[row][column]
+```
+
+This syntax must support both reading and updating an element.
+
+### Reading an Element
+
+```cpp
+int value = matrix[1][2];
+```
+
+The expression above reads the element located at row `1` and column `2`.
+
+### Updating an Element
+
+```cpp
+matrix[1][2] = 50;
+```
+
+The expression above changes the element located at row `1` and column `2` to `50`.
+
+### Required Operator Prototypes
+
+A possible implementation is to return a pointer to the selected row:
+
+```cpp
+int* operator[](int row);
+const int* operator[](int row) const;
+```
+
+The first overload allows an element to be modified. The second overload allows elements of a constant matrix to be read without modification.
+
+Example:
+
+```cpp
+Matrix A(3, 4);
+
+A[0][0] = 10;
+A[2][3] = 25;
+
+cout << A[0][0] << endl;
+cout << A[2][3] << endl;
+```
+
+### Bounds Checking
+
+The row index should be checked inside `operator[]`. The design should also provide a safe way to validate the column index.
+
+Students may use one of the following approaches:
+
+- Return a row-proxy object whose second `operator[]` checks the column index.
+- Provide an additional checked function such as `at(row, column)`.
+- Follow another instructor-approved design that prevents invalid memory access.
+
+Example checked function:
+
+```cpp
+int& at(int row, int column);
+const int& at(int row, int column) const;
+```
+
+Invalid row or column indices must be handled consistently and must not cause silent memory corruption.
+
+---
+
 ## Dynamic Row and Column Operations
 
 Students must implement functions that allow the matrix to grow dynamically.
