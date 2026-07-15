@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merge Sort — Divide &amp; Conquer, Step by Step</title>
+<style>
+/* =========================================================================
+   THEME TOKENS
+   Two themes. The algorithm colours (blue/green/yellow/orange/gray/red) are
+   fixed roles used by the legend and never repurposed for decoration.
+   ========================================================================= */
+:root{
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  /* role colours (see legend) */
+  --c-current:#3b82f6;   /* blue   - current recursive call        */
+  --c-sorted:#22c55e;    /* green  - sorted                        */
+  --c-compare:#eab308;   /* yellow - currently comparing           */
+  --c-merge:#f97316;     /* orange - being merged                  */
+  --c-wait:#8a93a6;      /* gray   - waiting                       */
+  --c-pointer:#ef4444;   /* red    - current pointer               */
+}
+html[data-theme="dark"]{
+  --bg:#0d1017;
+  --bg-grid:rgba(255,255,255,.035);
+  --panel:#151a24;
+  --panel-2:#1b2230;
+  --ink:#e8ecf3;
+  --ink-soft:#98a2b6;
+  --line:#2c3547;
+  --accent:#a78bfa;
+  --accent-soft:rgba(167,139,250,.16);
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+html[data-theme="light"]{
+  --bg:#f2f3f7;
+  --bg-grid:rgba(20,30,60,.04);
+  --panel:#ffffff;
+  --panel-2:#f7f8fb;
+  --ink:#141a24;
+  --ink-soft:#5d6879;
+  --line:#dfe3ec;
+  --accent:#6d3bf5;
+  --accent-soft:rgba(109,59,245,.10);
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------------------------------------------------------------- header */
+header.top{
+  display:flex; align-items:flex-end; gap:18px; flex-wrap:wrap;
+  padding:22px 24px 16px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, var(--panel), transparent);
+}
+.brand h1{
+  font-family:var(--font-display);
+  font-weight:400; font-size:30px; letter-spacing:-.015em;
+  margin:0;
+}
+.brand h1 em{font-style:italic; color:var(--accent)}
+.brand p{margin:2px 0 0; color:var(--ink-soft); font-size:13px;
+  font-family:var(--font-mono); letter-spacing:.02em}
+.top .spacer{flex:1}
+
+.icon-btn{
+  font-family:var(--font-mono); font-size:12px;
+  background:var(--panel-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:8px;
+  padding:8px 12px; cursor:pointer;
+}
+.icon-btn:hover{border-color:var(--accent)}
+
+/* ------------------------------------------------------------- structure */
+main{
+  display:grid;
+  grid-template-columns: 1fr 340px;
+  gap:16px;
+  padding:16px 24px 60px;
+  align-items:start;
+}
+@media (max-width: 1040px){ main{grid-template-columns:1fr; padding:14px} }
+
+.col{display:flex; flex-direction:column; gap:16px; min-width:0}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.card > h2{
+  margin:0; padding:11px 14px;
+  font-family:var(--font-mono);
+  font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft);
+  border-bottom:1px solid var(--line);
+  background:var(--panel-2);
+  display:flex; align-items:center; gap:8px;
+}
+.card > h2 .tag{
+  margin-left:auto; color:var(--accent); letter-spacing:.04em; text-transform:none;
+}
+.card .body{padding:14px}
+
+details.card > summary{
+  list-style:none; cursor:pointer;
+  padding:11px 14px;
+  font-family:var(--font-mono);
+  font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft);
+  background:var(--panel-2);
+  border-bottom:1px solid transparent;
+  display:flex; align-items:center; gap:8px;
+}
+details.card[open] > summary{border-bottom-color:var(--line)}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::before{content:"▸"; color:var(--accent); transition:transform .18s}
+details.card[open] > summary::before{transform:rotate(90deg)}
+
+/* --------------------------------------------------------------- controls */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button.ctl{
+  font-family:var(--font-body); font-size:13px; font-weight:600;
+  background:var(--panel-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:9px;
+  padding:9px 13px; cursor:pointer;
+  transition:transform .08s, border-color .15s, background .15s;
+}
+button.ctl:hover:not(:disabled){border-color:var(--accent); background:var(--accent-soft)}
+button.ctl:active:not(:disabled){transform:translateY(1px)}
+button.ctl:disabled{opacity:.38; cursor:not-allowed}
+button.ctl.primary{
+  background:var(--accent); border-color:var(--accent); color:#fff;
+}
+html[data-theme="dark"] button.ctl.primary{color:#12101c}
+button.ctl.primary:hover:not(:disabled){filter:brightness(1.08); background:var(--accent)}
+
+.field{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft);
+  font-family:var(--font-mono)}
+.field input[type=range]{accent-color:var(--accent); width:130px}
+.field select, .field input[type=text], .field input[type=number]{
+  font-family:var(--font-mono); font-size:12px;
+  background:var(--panel-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:7px; padding:6px 8px;
+}
+.divider{width:1px; align-self:stretch; background:var(--line); margin:0 4px}
+.rowgap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px}
+
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ------------------------------------------------------------- array row */
+.array-row{
+  display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+  padding:8px 0 4px; min-height:76px; align-items:center;
+}
+.box{
+  min-width:52px; height:56px; padding:0 8px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:18px; font-weight:600;
+  border-radius:10px; border:2px solid transparent;
+  transition:background .28s, color .28s, border-color .28s, transform .28s;
+  position:relative;
+}
+.box .idx{
+  position:absolute; bottom:-16px; left:0; right:0; text-align:center;
+  font-size:10px; color:var(--ink-soft); font-weight:400;
+}
+.array-row{padding-bottom:22px}
+.s-waiting{background:var(--panel-2); color:var(--ink-soft); border-color:var(--line)}
+.s-sorted {background:color-mix(in srgb, var(--c-sorted) 22%, transparent); color:var(--c-sorted); border-color:var(--c-sorted)}
+.s-current{background:color-mix(in srgb, var(--c-current) 20%, transparent); color:var(--c-current); border-color:var(--c-current)}
+.s-merging{background:color-mix(in srgb, var(--c-merge) 20%, transparent); color:var(--c-merge); border-color:var(--c-merge)}
+.s-compare{background:color-mix(in srgb, var(--c-compare) 24%, transparent); color:var(--c-compare); border-color:var(--c-compare)}
+.s-pointer{background:color-mix(in srgb, var(--c-pointer) 22%, transparent); color:var(--c-pointer); border-color:var(--c-pointer); transform:translateY(-6px)}
+
+/* --------------------------------------------------------- recursion tree
+   The tree is the signature of this page: a real nested structure drawn with
+   CSS connectors, so the picture on screen is the real call structure. */
+.tree-wrap{display:flex; gap:12px; overflow:auto; padding:14px}
+.tree{flex:1; min-width:max-content}
+.tree ul{padding:20px 0 0; position:relative; display:flex; justify-content:center; margin:0}
+.tree li{
+  display:flex; flex-direction:column; align-items:center;
+  list-style:none; position:relative; padding:20px 6px 0;
+}
+.tree li::before, .tree li::after{
+  content:''; position:absolute; top:0; right:50%;
+  border-top:2px solid var(--line); width:50%; height:20px;
+}
+.tree li::after{right:auto; left:50%; border-left:2px solid var(--line)}
+.tree li:only-child::after, .tree li:only-child::before{display:none}
+.tree li:only-child{padding-top:0}
+.tree li:first-child::before, .tree li:last-child::after{border:0 none}
+.tree li:last-child::before{border-right:2px solid var(--line); border-radius:0 6px 0 0}
+.tree li:first-child::after{border-radius:6px 0 0 0}
+.tree ul ul::before{
+  content:''; position:absolute; top:0; left:50%;
+  border-left:2px solid var(--line); width:0; height:20px;
+}
+.node{
+  font-family:var(--font-mono); font-size:12px; white-space:nowrap;
+  padding:6px 9px; border-radius:8px; border:2px solid var(--line);
+  background:var(--panel-2); color:var(--ink-soft);
+  transition:all .25s; cursor:default;
+}
+.node .rng{display:block; font-size:9px; opacity:.7; letter-spacing:.04em}
+.n-active{border-color:var(--c-current); color:var(--c-current);
+  background:color-mix(in srgb, var(--c-current) 18%, transparent);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--c-current) 18%, transparent);
+  animation:pulse 1.4s ease-in-out infinite;}
+.n-merging{border-color:var(--c-merge); color:var(--c-merge);
+  background:color-mix(in srgb, var(--c-merge) 18%, transparent)}
+.n-done{border-color:var(--c-sorted); color:var(--c-sorted);
+  background:color-mix(in srgb, var(--c-sorted) 15%, transparent)}
+@keyframes pulse{50%{box-shadow:0 0 0 9px transparent}}
+
+/* -------------------------------------------------------- merge workbench */
+.merge-lane{margin-bottom:10px}
+.merge-lane .lane-label{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-soft); margin-bottom:5px;
+}
+.cells{display:flex; gap:6px; flex-wrap:wrap; min-height:42px; align-items:center}
+.cell{
+  min-width:40px; height:38px; padding:0 7px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:15px; font-weight:600;
+  border-radius:8px; border:2px solid var(--line);
+  background:var(--panel-2); color:var(--ink-soft);
+  transition:all .22s;
+}
+.cell.used{opacity:.32; text-decoration:line-through}
+.cell.ptr{border-color:var(--c-pointer); color:var(--c-pointer);
+  background:color-mix(in srgb, var(--c-pointer) 18%, transparent)}
+.cell.cmp{border-color:var(--c-compare); color:var(--c-compare);
+  background:color-mix(in srgb, var(--c-compare) 22%, transparent)}
+.cell.res{border-color:var(--c-merge); color:var(--c-merge);
+  background:color-mix(in srgb, var(--c-merge) 18%, transparent)}
+.cell.fresh{animation:drop .32s ease-out}
+@keyframes drop{from{transform:translateY(-14px) scale(.85); opacity:0}}
+.merge-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px; padding:10px 0}
+.arrow{text-align:center; color:var(--ink-soft); font-size:16px; margin:2px 0}
+
+/* ---------------------------------------------------- explanation + code */
+.explain{
+  font-size:15px; line-height:1.6; min-height:70px;
+}
+.explain .kicker{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); display:block; margin-bottom:4px;
+}
+.progress{
+  height:4px; background:var(--panel-2); border-radius:99px; overflow:hidden; margin-top:12px;
+  border:1px solid var(--line);
+}
+.progress i{display:block; height:100%; background:var(--accent); width:0; transition:width .2s}
+.step-counter{font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); margin-top:6px}
+
+pre.code{
+  margin:0; font-family:var(--font-mono); font-size:12.5px; line-height:1.75;
+  counter-reset:l;
+}
+pre.code div{padding:1px 8px; border-radius:5px; border-left:2px solid transparent; white-space:pre}
+pre.code div.hl{
+  background:var(--accent-soft); border-left-color:var(--accent); color:var(--ink);
+  font-weight:600;
+}
+
+/* ------------------------------------------------------------ call stack */
+.stack{display:flex; flex-direction:column-reverse; gap:5px; min-height:60px}
+.frame{
+  font-family:var(--font-mono); font-size:12px;
+  padding:6px 9px; border-radius:7px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft);
+  animation:push .22s ease-out;
+}
+.frame.top{border-color:var(--c-current); color:var(--c-current);
+  background:color-mix(in srgb, var(--c-current) 14%, transparent)}
+@keyframes push{from{transform:translateX(-10px); opacity:0}}
+.stack-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* ------------------------------------------------------------ stats grid */
+.stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line)}
+.stat{background:var(--panel); padding:10px 12px}
+.stat b{display:block; font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--ink)}
+.stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft)}
+
+/* --------------------------------------------------------------- legend */
+.legend{display:flex; flex-direction:column; gap:8px}
+.legend div{display:flex; align-items:center; gap:9px; font-size:12.5px}
+.swatch{display:inline-block; flex:none; width:16px; height:16px; border-radius:5px; border:2px solid}
+.sw-current{border-color:var(--c-current); background:color-mix(in srgb,var(--c-current) 25%,transparent)}
+.sw-sorted{border-color:var(--c-sorted); background:color-mix(in srgb,var(--c-sorted) 25%,transparent)}
+.sw-compare{border-color:var(--c-compare); background:color-mix(in srgb,var(--c-compare) 25%,transparent)}
+.sw-merge{border-color:var(--c-merge); background:color-mix(in srgb,var(--c-merge) 25%,transparent)}
+.sw-wait{border-color:var(--line); background:var(--panel-2)}
+.sw-pointer{border-color:var(--c-pointer); background:color-mix(in srgb,var(--c-pointer) 25%,transparent)}
+
+/* ----------------------------------------------------------- complexity */
+.facts{display:flex; flex-direction:column; gap:0}
+.facts div{
+  display:flex; justify-content:space-between; gap:10px;
+  padding:7px 0; border-bottom:1px dashed var(--line); font-size:13px;
+}
+.facts div:last-child{border-bottom:0}
+.facts b{font-family:var(--font-mono); font-weight:600}
+.facts .yes{color:var(--c-sorted)}
+.facts .no{color:var(--c-pointer)}
+
+/* ---------------------------------------------------------------- notes */
+.notes h3{
+  font-size:13px; margin:14px 0 3px; font-family:var(--font-body); font-weight:700;
+}
+.notes h3:first-child{margin-top:0}
+.notes p{margin:0; font-size:13px; color:var(--ink-soft)}
+
+/* --------------------------------------------------------------- quiz */
+.quiz-q{font-size:14px; font-weight:600; margin:0 0 10px}
+.quiz-a{
+  font-family:var(--font-mono); font-size:13px; padding:9px 11px; border-radius:8px;
+  background:var(--accent-soft); border:1px solid var(--accent); color:var(--ink);
+  margin-top:10px;
+}
+.hidden{display:none !important}
+
+/* ------------------------------------------------------------- summary */
+.summary-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.summary-grid div{background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px}
+.summary-grid b{display:block; font-family:var(--font-mono); font-size:17px}
+.summary-grid span{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft)}
+.summary-arrays{margin-top:12px; font-family:var(--font-mono); font-size:12.5px; word-break:break-word}
+.summary-arrays em{color:var(--ink-soft); font-style:normal}
+
+kbd{
+  font-family:var(--font-mono); font-size:11px;
+  background:var(--panel-2); border:1px solid var(--line); border-bottom-width:2px;
+  border-radius:5px; padding:1px 5px;
+}
+.shortcuts{display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-soft); font-size:12px;
+  padding:0 24px 30px}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Merge Sort, <em>one honest step at a time</em></h1>
+    <p>divide → recurse → merge · nothing skipped, nothing hidden</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" title="Switch between dark and light mode">◐ Light mode</button>
+</header>
+
+<main>
+  <!-- ============================ LEFT COLUMN ============================ -->
+  <div class="col">
+
+    <!-- controls -->
+    <section class="card">
+      <h2>Controls <span class="tag" id="modeTag">idle</span></h2>
+      <div class="body">
+        <div class="controls">
+          <button class="ctl primary" id="startBtn" title="Play the animation from the current step">▶ Start</button>
+          <button class="ctl" id="pauseBtn" title="Pause the animation where it is">⏸ Pause</button>
+          <button class="ctl" id="resumeBtn" title="Continue playing from where you paused">▶ Resume</button>
+          <button class="ctl" id="prevBtn" title="Go back exactly one algorithm operation (Left Arrow)">◀ Previous step</button>
+          <button class="ctl" id="nextBtn" title="Perform exactly one algorithm operation (Right Arrow)">Next step ▶</button>
+          <button class="ctl" id="restartBtn" title="Replay the whole animation on the same array">↻ Restart</button>
+          <button class="ctl" id="resetBtn" title="Clear the run and all statistics, keep the array">✕ Reset</button>
+        </div>
+
+        <div class="rowgap">
+          <label class="field" title="How fast the animation advances">
+            Very slow
+            <input type="range" id="speed" min="1" max="9" value="5">
+            Very fast
+          </label>
+          <span class="divider"></span>
+          <label class="field" title="How many values to sort">
+            Size <input type="range" id="size" min="5" max="30" value="7">
+            <b id="sizeOut" style="color:var(--ink)">7</b>
+          </label>
+        </div>
+
+        <div class="rowgap">
+          <label class="field" title="Pick the shape of the data to sort">
+            Array shape
+            <select id="shape">
+              <option value="random">Random</option>
+              <option value="nearly">Nearly sorted</option>
+              <option value="reverse">Reverse sorted</option>
+              <option value="dupes">Many duplicates</option>
+            </select>
+          </label>
+          <button class="ctl" id="genBtn" title="Build a new array with the chosen size and shape">⚄ Generate random array</button>
+          <span class="divider"></span>
+          <label class="field" title="Type your own numbers, separated by commas or spaces">
+            Custom
+            <input type="text" id="custom" placeholder="38, 27, 43, 3, 9, 82, 10" size="22">
+          </label>
+          <button class="ctl" id="customBtn" title="Use the numbers you typed">Enter custom array</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- array -->
+    <section class="card">
+      <h2>The array <span class="tag" id="arrTag"></span></h2>
+      <div class="body">
+        <div class="array-row" id="arrayRow"></div>
+      </div>
+    </section>
+
+    <!-- explanation -->
+    <section class="card">
+      <h2>What is happening</h2>
+      <div class="body">
+        <div class="explain"><span class="kicker" id="stepKind">ready</span><span id="explain">Generate an array and press Start.</span></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="step-counter" id="counter">step 0 / 0</div>
+      </div>
+    </section>
+
+    <!-- recursion tree -->
+    <section class="card">
+      <h2>Recursion tree <span class="tag">the shape of the problem</span></h2>
+      <div class="tree-wrap">
+        <div class="tree" id="tree"></div>
+      </div>
+    </section>
+
+    <!-- merge workbench -->
+    <section class="card">
+      <h2>Merge workbench <span class="tag" id="mergeTag">not merging</span></h2>
+      <div class="body" id="mergeBody">
+        <div class="merge-empty">Merging starts once two halves have each come back sorted.</div>
+      </div>
+    </section>
+
+    <!-- quiz -->
+    <details class="card" id="quizCard">
+      <summary>Learning challenge</summary>
+      <div class="body">
+        <p class="quiz-q" id="quizQ">Press “Ask me something” at any point in the run.</p>
+        <div class="controls">
+          <button class="ctl" id="quizBtn" title="Get a question about the current state of the run">Ask me something</button>
+          <button class="ctl" id="revealBtn" title="Reveal the correct answer">Show answer</button>
+        </div>
+        <div class="quiz-a hidden" id="quizA"></div>
+      </div>
+    </details>
+
+    <!-- summary -->
+    <section class="card hidden" id="summaryCard">
+      <h2>Run summary <span class="tag">sorted</span></h2>
+      <div class="body">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="summary-arrays" id="summaryArrays"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ RIGHT COLUMN =========================== -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Statistics</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Colour legend</h2>
+      <div class="body legend">
+        <div><i class="swatch sw-current"></i> Blue — current recursive call</div>
+        <div><i class="swatch sw-sorted"></i> Green — sorted</div>
+        <div><i class="swatch sw-compare"></i> Yellow — currently comparing</div>
+        <div><i class="swatch sw-merge"></i> Orange — being merged</div>
+        <div><i class="swatch sw-wait"></i> Gray — waiting</div>
+        <div><i class="swatch sw-pointer"></i> Red — current pointer</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Call stack <span class="tag">top of stack on top</span></h2>
+      <div class="body">
+        <div class="stack" id="stack"><div class="stack-empty">empty</div></div>
+      </div>
+    </section>
+
+    <details class="card" open>
+      <summary>MergeSort() pseudocode</summary>
+      <div class="body"><pre class="code" id="codeMS"></pre></div>
+    </details>
+
+    <details class="card" open>
+      <summary>Merge() pseudocode</summary>
+      <div class="body"><pre class="code" id="codeMG"></pre></div>
+    </details>
+
+    <section class="card">
+      <h2>Complexity</h2>
+      <div class="body facts">
+        <div><span>Best case</span><b>O(n log n)</b></div>
+        <div><span>Average case</span><b>O(n log n)</b></div>
+        <div><span>Worst case</span><b>O(n log n)</b></div>
+        <div><span>Extra space</span><b>O(n)</b></div>
+        <div><span>Stable</span><b class="yes">Yes</b></div>
+        <div><span>In-place</span><b class="no">No</b></div>
+        <div><span>Recursive</span><b class="yes">Yes</b></div>
+      </div>
+    </section>
+
+    <details class="card">
+      <summary>Why it works this way</summary>
+      <div class="body notes">
+        <h3>Divide and conquer</h3>
+        <p>A hard problem (sort n values) is cut into two easier copies of the same problem (sort n/2 values), then the answers are stitched together. Cutting costs nothing; all the real work is in the stitching.</p>
+        <h3>Why recursion</h3>
+        <p>Each half is sorted by exactly the same procedure. Recursion lets you write that once. The halving stops at size 1, which is already sorted — that base case is what keeps it from running forever.</p>
+        <h3>Why merging is needed</h3>
+        <p>Two sorted halves are not a sorted array. Merging walks both halves at once and always takes the smaller front value, so the result comes out in order in a single pass of n steps.</p>
+        <h3>Why it is stable</h3>
+        <p>On a tie the algorithm takes from the left half first (<code>left[i] &lt;= right[j]</code>). Equal values therefore keep their original relative order. Change that to <code>&lt;</code> and stability is gone.</p>
+        <h3>Why extra memory</h3>
+        <p>You cannot merge into the same space you are reading from without overwriting values you still need. Merge copies each half out first, so it uses O(n) additional room — the price for guaranteed n log n behaviour.</p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<div class="shortcuts">
+  <span>Keyboard:</span>
+  <span><kbd>Space</kbd> pause / resume</span>
+  <span><kbd>→</kbd> next step</span>
+  <span><kbd>←</kbd> previous step</span>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   MERGE SORT VISUALIZER
+   --------------------------------------------------------------------------
+   Design: the algorithm is run ONCE up front on the chosen array while an
+   instrumented recorder takes a full snapshot after every single logical
+   operation (call, split, compare, copy, return, ...). Playback is then just
+   "render snapshot #i". That makes Next Step, Previous Step, pause, resume
+   and replay all trivial and perfectly consistent — there is never a
+   half-finished animation to unwind.
+   ========================================================================== */
+
+/* ------------------------------- pseudocode ------------------------------ */
+const MS_CODE = [
+  "MergeSort(A)",
+  "  if size(A) <= 1",
+  "      return",
+  "  mid = size(A) / 2",
+  "  MergeSort(left half)",
+  "  MergeSort(right half)",
+  "  Merge(left, right)"
+];
+const MG_CODE = [
+  "while both halves have elements",
+  "    compare left[i] and right[j]",
+  "    copy the smaller value",
+  "copy remaining left values",
+  "copy remaining right values"
+];
+
+/* --------------------------------- state -------------------------------- */
+let array   = [38, 27, 43, 3, 9, 82, 10]; // the numbers to sort
+let steps   = [];                          // recorded snapshots
+let treeRoot= null;                        // structural recursion tree
+let cursor  = -1;                          // index of the displayed step
+let timer   = null;                        // playback interval id
+let runMs   = 0;                           // measured time of the sort itself
+let nodeDepth = {};                        // nodeId -> depth, for the tree labels
+
+const $ = (id) => document.getElementById(id);
+
+/* ======================================================================== */
+/*  1. ARRAY GENERATION                                                      */
+/* ======================================================================== */
+
+/** Build an array of `n` values in the requested shape. */
+function makeArray(n, shape){
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  let a;
+  switch(shape){
+    case "nearly": // sorted, then a few neighbours swapped
+      a = Array.from({length:n}, (_, i) => (i + 1) * rnd(2, 5));
+      a.sort((x, y) => x - y);
+      for(let k = 0; k < Math.max(1, Math.round(n / 6)); k++){
+        const i = rnd(0, n - 2);
+        [a[i], a[i + 1]] = [a[i + 1], a[i]];
+      }
+      return a;
+    case "reverse":
+      a = Array.from({length:n}, () => rnd(2, 99));
+      return a.sort((x, y) => y - x);
+    case "dupes": // drawn from a small pool, so ties are common
+      { const pool = Array.from({length: Math.max(2, Math.round(n / 3))}, () => rnd(2, 40));
+        return Array.from({length:n}, () => pool[rnd(0, pool.length - 1)]); }
+    default:
+      return Array.from({length:n}, () => rnd(2, 99));
+  }
+}
+
+/* ======================================================================== */
+/*  2. THE INSTRUMENTED ALGORITHM                                            */
+/*     Plain merge sort — with a snap() after every logical operation.        */
+/* ======================================================================== */
+
+/** Build the structural recursion tree (ids + children) ahead of time. */
+function buildTree(lo, hi, depth){
+  const node = { id: lo + "-" + hi, lo, hi, depth, children: [] };
+  if(hi > lo){
+    const mid = (lo + hi) >> 1;
+    node.children = [ buildTree(lo, mid, depth + 1), buildTree(mid + 1, hi, depth + 1) ];
+  }
+  return node;
+}
+
+/** Run merge sort on `input`, recording a snapshot per operation. */
+function record(input){
+  const n     = input.length;
+  const main  = input.slice();          // the array being sorted, in place
+  const out   = [];                     // recorded steps
+  const stack = [];                     // call-stack labels
+  const sorted= new Array(n).fill(false); // index is inside a finished segment
+  const tstate= {};                     // nodeId -> {state, vals}
+  const stats = { comparisons:0, merges:0, depth:0, maxDepth:0, size:n,
+                  calls:0, mergesDone:0 };
+
+  let curRange   = null;   // [lo,hi] of the active recursive call  (blue)
+  let mergeRange = null;   // [lo,hi] currently being merged        (orange)
+  let writeAt    = null;   // main index being written              (red)
+  let view       = null;   // merge workbench contents
+
+  treeRoot = buildTree(0, n - 1, 0);
+  (function init(node){
+    tstate[node.id] = { state:"idle", vals: input.slice(node.lo, node.hi + 1) };
+    node.children.forEach(init);
+  })(treeRoot);
+
+  const label = (lo, hi) => "MergeSort([" + main.slice(lo, hi + 1).join(" ") + "])";
+
+  /** Colour every box according to the fixed legend priority. */
+  function paint(){
+    const s = new Array(n).fill("waiting");
+    if(curRange)  for(let i = curRange[0];  i <= curRange[1];  i++) s[i] = "current";
+    for(let i = 0; i < n; i++) if(sorted[i] && s[i] !== "merging") s[i] = "sorted";
+    if(mergeRange) for(let i = mergeRange[0]; i <= mergeRange[1]; i++) s[i] = "merging";
+    if(writeAt !== null) s[writeAt] = "pointer";
+    return s;
+  }
+
+  /** Freeze the whole world into one step. */
+  function snap(kind, desc, code){
+    out.push({
+      kind, desc, code,
+      main:   main.slice(),
+      states: paint(),
+      tree:   JSON.parse(JSON.stringify(tstate)),
+      stack:  stack.slice(),
+      merge:  view ? JSON.parse(JSON.stringify(view)) : null,
+      stats:  Object.assign({}, stats)
+    });
+  }
+
+  const plural = (k, w) => k + " " + w + (k === 1 ? "" : "s");
+
+  /* ------------------------------- merge ------------------------------- */
+  function merge(lo, mid, hi){
+    const L = main.slice(lo, mid + 1);
+    const R = main.slice(mid + 1, hi + 1);
+    let i = 0, j = 0, k = lo;
+
+    mergeRange = [lo, hi];
+    view = { left:L.slice(), right:R.slice(), result:[], i:0, j:0, cmp:null, fresh:-1 };
+    snap("merge", "Merge time. The left half is [" + L.join(" ") + "] and the right half is ["
+      + R.join(" ") + "]. Both are already sorted; walk them together and always take the smaller front value.",
+      { panel:"mg", line:0 });
+
+    while(i < L.length && j < R.length){
+      stats.comparisons++;
+      view.cmp = [i, j]; view.i = i; view.j = j;
+      snap("compare", "Compare " + L[i] + " (left pointer) and " + R[j] + " (right pointer).",
+        { panel:"mg", line:1 });
+
+      view.cmp = null;
+      let val, side;
+      if(L[i] <= R[j]){
+        val = L[i]; side = "left";
+        main[k] = val; writeAt = k;
+        view.result.push({ v: val, side });
+        view.fresh = view.result.length - 1;
+        i++; view.i = i;
+        const tie = (j < R.length && val === R[j]); // equal values: left wins → stability
+        snap("copy",
+          (tie
+            ? val + " and " + R[j] + " are equal, so the value from the left half goes first — that tie-break is exactly what makes merge sort stable. "
+            : val + " is smaller, so copy it first. ")
+          + "It lands at index " + k + ", and the left pointer moves on.",
+          { panel:"mg", line:2 });
+      } else {
+        val = R[j]; side = "right";
+        main[k] = val; writeAt = k;
+        view.result.push({ v: val, side });
+        view.fresh = view.result.length - 1;
+        j++; view.j = j;
+        snap("copy", val + " is smaller, so copy it first. It lands at index " + k
+          + ", and the right pointer moves on.", { panel:"mg", line:2 });
+      }
+      k++; writeAt = null;
+    }
+
+    if(i < L.length){
+      snap("exhaust", "The right half is exhausted. Everything left over on the left is already "
+        + "in order and larger than everything copied so far — copy it straight across.",
+        { panel:"mg", line:3 });
+      while(i < L.length){
+        main[k] = L[i]; writeAt = k;
+        view.result.push({ v:L[i], side:"left" });
+        view.fresh = view.result.length - 1;
+        i++; view.i = i;
+        snap("copy", "Copy the remaining left value " + L[i - 1] + " to index " + k + ".",
+          { panel:"mg", line:3 });
+        k++; writeAt = null;
+      }
+    }
+    if(j < R.length){
+      snap("exhaust", "The left half is exhausted. Copy the remaining values from the right half.",
+        { panel:"mg", line:4 });
+      while(j < R.length){
+        main[k] = R[j]; writeAt = k;
+        view.result.push({ v:R[j], side:"right" });
+        view.fresh = view.result.length - 1;
+        j++; view.j = j;
+        snap("copy", "Copy the remaining right value " + R[j - 1] + " to index " + k + ".",
+          { panel:"mg", line:4 });
+        k++; writeAt = null;
+      }
+    }
+
+    stats.merges++; stats.mergesDone++;
+    for(let t = lo; t <= hi; t++) sorted[t] = true;
+    tstate[lo + "-" + hi] = { state:"done", vals: main.slice(lo, hi + 1) };
+    mergeRange = null;
+    view.fresh = -1;
+    snap("merge-done", "Merge complete. Indices " + lo + "…" + hi + " now hold ["
+      + main.slice(lo, hi + 1).join(" ") + "], one sorted block.", { panel:"mg", line:4 });
+    view = null;
+  }
+
+  /* ---------------------------- mergesort ------------------------------ */
+  function msort(lo, hi, depth){
+    const id = lo + "-" + hi;
+    stats.calls++;
+    stats.depth = depth;
+    stats.maxDepth = Math.max(stats.maxDepth, depth);
+    stack.push(label(lo, hi));
+    tstate[id].state = "active";
+    tstate[id].vals  = main.slice(lo, hi + 1);
+    curRange = [lo, hi];
+    snap("call", "MergeSort is called on [" + main.slice(lo, hi + 1).join(" ")
+      + "] — indices " + lo + "…" + hi + ", recursion depth " + depth + ".",
+      { panel:"ms", line:0 });
+
+    if(hi <= lo){                                   // base case
+      snap("base", "This piece holds " + plural(hi - lo + 1, "element")
+        + ". A single element is already sorted, so there is nothing to do.",
+        { panel:"ms", line:1 });
+      sorted[lo] = true;
+      tstate[id].state = "done";
+      stack.pop();
+      curRange = null;
+      stats.depth = Math.max(0, depth - 1);
+      snap("return", "Return from MergeSort([" + main[lo] + "]) — base case reached.",
+        { panel:"ms", line:2 });
+      return;
+    }
+
+    const mid = (lo + hi) >> 1;
+    snap("split", "Split at the middle: left half is [" + main.slice(lo, mid + 1).join(" ")
+      + "] (indices " + lo + "…" + mid + "), right half is [" + main.slice(mid + 1, hi + 1).join(" ")
+      + "] (indices " + (mid + 1) + "…" + hi + ").", { panel:"ms", line:3 });
+
+    snap("recurse", "Recursively sort the left half.", { panel:"ms", line:4 });
+    msort(lo, mid, depth + 1);
+
+    curRange = [lo, hi]; stats.depth = depth; tstate[id].state = "active";
+    snap("recurse", "The left half came back sorted as [" + main.slice(lo, mid + 1).join(" ")
+      + "]. Now recursively sort the right half.", { panel:"ms", line:5 });
+    msort(mid + 1, hi, depth + 1);
+
+    curRange = [lo, hi]; stats.depth = depth; tstate[id].state = "merging";
+    snap("recurse", "Both halves are sorted: [" + main.slice(lo, mid + 1).join(" ") + "] and ["
+      + main.slice(mid + 1, hi + 1).join(" ") + "]. Call Merge to combine them.",
+      { panel:"ms", line:6 });
+
+    merge(lo, mid, hi);
+
+    stack.pop();
+    curRange = null;
+    stats.depth = Math.max(0, depth - 1);
+    snap("return", "Return from MergeSort on indices " + lo + "…" + hi
+      + ", handing back the sorted block [" + main.slice(lo, hi + 1).join(" ") + "].",
+      { panel:"ms", line:6 });
+  }
+
+  /* --------------------------- run + bookend --------------------------- */
+  snap("ready", "Ready. The array is unsorted and every value is waiting. "
+    + "Press Start, or step through with Next step.", { panel:"ms", line:0 });
+
+  const t0 = performance.now();
+  if(n > 0) msort(0, n - 1, 0);
+  runMs = performance.now() - t0;
+
+  snap("finished", "Done. The array is sorted: [" + main.join(" ") + "]. "
+    + "Every value is green, the call stack is empty, and the recursion tree is fully resolved.",
+    { panel:"ms", line:0 });
+
+  return out;
+}
+
+/* ======================================================================== */
+/*  3. RENDERING                                                             */
+/* ======================================================================== */
+
+/** Build the array boxes once; only classes/text change per step. */
+function buildArrayRow(){
+  const row = $("arrayRow");
+  row.innerHTML = "";
+  array.forEach((v, i) => {
+    const b = document.createElement("div");
+    b.className = "box s-waiting";
+    b.innerHTML = '<span class="val">' + v + '</span><span class="idx">' + i + "</span>";
+    row.appendChild(b);
+  });
+}
+
+/** Build the recursion tree DOM (structure only; states are painted per step). */
+function buildTreeDom(){
+  const host = $("tree");
+  host.innerHTML = "";
+  if(!treeRoot){ return; }
+
+  nodeDepth = {};
+  function make(node){
+    nodeDepth[node.id] = node.depth;
+    const li = document.createElement("li");
+    const d  = document.createElement("div");
+    d.className = "node";
+    d.id = "node-" + node.id;
+    d.title = "indices " + node.lo + "…" + node.hi + " · depth " + node.depth;
+    li.appendChild(d);
+    if(node.children.length){
+      const ul = document.createElement("ul");
+      node.children.forEach(c => ul.appendChild(make(c)));
+      li.appendChild(ul);
+    }
+    return li;
+  }
+  const rootUl = document.createElement("ul");
+  rootUl.appendChild(make(treeRoot));
+  host.appendChild(rootUl);
+}
+
+/** Render one recorded step. */
+function render(i){
+  const s = steps[i];
+  if(!s) return;
+  cursor = i;
+
+  /* boxes */
+  const boxes = $("arrayRow").children;
+  for(let k = 0; k < boxes.length; k++){
+    boxes[k].className = "box s-" + s.states[k];
+    boxes[k].querySelector(".val").textContent = s.main[k];
+  }
+
+  /* tree */
+  for(const id in s.tree){
+    const el = document.getElementById("node-" + id);
+    if(!el) continue;
+    const t = s.tree[id];
+    el.className = "node" + (t.state === "active" ? " n-active" :
+                             t.state === "merging" ? " n-merging" :
+                             t.state === "done" ? " n-done" : "");
+    el.innerHTML = "[" + t.vals.join(" ") + "]" +
+      '<span class="rng">d' + nodeDepth[id] + " · " + id.replace("-", "…") + "</span>";
+  }
+
+  /* explanation */
+  $("explain").textContent = s.desc;
+  $("stepKind").textContent = ({
+    ready:"ready", call:"recursive call", base:"base case", split:"divide",
+    recurse:"recursion", merge:"merge begins", compare:"comparison",
+    copy:"copy value", exhaust:"one half empty", "merge-done":"merge complete",
+    return:"return", finished:"finished"
+  })[s.kind] || s.kind;
+
+  $("bar").style.width = (i / (steps.length - 1) * 100) + "%";
+  $("counter").textContent = "step " + i + " / " + (steps.length - 1);
+
+  /* code panels */
+  paintCode($("codeMS"), MS_CODE, s.code.panel === "ms" ? s.code.line : -1);
+  paintCode($("codeMG"), MG_CODE, s.code.panel === "mg" ? s.code.line : -1);
+
+  /* call stack */
+  const st = $("stack");
+  if(!s.stack.length){
+    st.innerHTML = '<div class="stack-empty">empty — no call in progress</div>';
+  } else {
+    st.innerHTML = s.stack.map((f, k) =>
+      '<div class="frame' + (k === s.stack.length - 1 ? " top" : "") + '">' + f + "</div>").join("");
+  }
+
+  /* merge workbench */
+  renderMerge(s.merge);
+
+  /* stats */
+  $("stats").innerHTML = [
+    ["Comparisons", s.stats.comparisons],
+    ["Merges completed", s.stats.mergesDone],
+    ["Current depth", s.stats.depth],
+    ["Maximum depth", s.stats.maxDepth],
+    ["Array size", s.stats.size],
+    ["Recursive calls", s.stats.calls]
+  ].map(([k, v]) => '<div class="stat"><b>' + v + "</b><span>" + k + "</span></div>").join("");
+
+  /* summary appears only at the very end */
+  if(s.kind === "finished") showSummary(s); else $("summaryCard").classList.add("hidden");
+
+  syncButtons();
+}
+
+function paintCode(pre, lines, hl){
+  pre.innerHTML = lines.map((l, k) =>
+    "<div" + (k === hl ? ' class="hl"' : "") + ">" + l.replace(/</g, "&lt;") + "</div>").join("");
+}
+
+function renderMerge(m){
+  const host = $("mergeBody");
+  if(!m){
+    $("mergeTag").textContent = "not merging";
+    host.innerHTML = '<div class="merge-empty">Merging starts once two halves have each come back sorted.</div>';
+    return;
+  }
+  $("mergeTag").textContent = "left pointer i=" + m.i + " · right pointer j=" + m.j;
+
+  const lane = (name, vals, ptr, cmpIdx) =>
+    '<div class="merge-lane"><div class="lane-label">' + name + '</div><div class="cells">' +
+    (vals.length ? vals.map((v, k) => {
+      let cls = "cell";
+      if(k < ptr) cls += " used";
+      else if(k === cmpIdx) cls += " cmp";
+      else if(k === ptr) cls += " ptr";
+      return '<div class="' + cls + '">' + v + "</div>";
+    }).join("") : '<span class="merge-empty">empty</span>') + "</div></div>";
+
+  const cmpL = m.cmp ? m.cmp[0] : -1;
+  const cmpR = m.cmp ? m.cmp[1] : -1;
+
+  const result = '<div class="merge-lane"><div class="lane-label">Result</div><div class="cells">' +
+    (m.result.length
+      ? m.result.map((r, k) => '<div class="cell res' + (k === m.fresh ? " fresh" : "") + '" title="came from the '
+          + r.side + ' half">' + r.v + "</div>").join("")
+      : '<span class="merge-empty">nothing copied yet</span>') + "</div></div>";
+
+  host.innerHTML =
+    lane("Left half", m.left, m.i, cmpL) +
+    lane("Right half", m.right, m.j, cmpR) +
+    '<div class="arrow">↓</div>' +
+    result;
+}
+
+function showSummary(s){
+  $("summaryCard").classList.remove("hidden");
+  $("summaryGrid").innerHTML = [
+    ["Total comparisons", s.stats.comparisons],
+    ["Total merges", s.stats.merges],
+    ["Maximum depth", s.stats.maxDepth],
+    ["Recursive calls", s.stats.calls],
+    ["Array size", s.stats.size],
+    ["Sort run time", runMs.toFixed(3) + " ms"]
+  ].map(([k, v]) => "<div><b>" + v + "</b><span>" + k + "</span></div>").join("");
+  $("summaryArrays").innerHTML =
+    "<div><em>Original&nbsp;&nbsp;</em>[" + array.join(", ") + "]</div>" +
+    "<div><em>Sorted&nbsp;&nbsp;&nbsp;&nbsp;</em>[" + s.main.join(", ") + "]</div>";
+}
+
+/* ======================================================================== */
+/*  4. PLAYBACK                                                              */
+/* ======================================================================== */
+
+const delayFor = () => [0, 1600, 1200, 900, 650, 450, 320, 220, 140, 80][+$("speed").value];
+
+function play(){
+  stop();
+  if(cursor >= steps.length - 1) cursor = 0;
+  $("modeTag").textContent = "playing";
+  timer = setInterval(() => {
+    if(cursor >= steps.length - 1){ stop(); $("modeTag").textContent = "finished"; return; }
+    render(cursor + 1);
+  }, delayFor());
+  syncButtons();
+}
+function stop(){
+  if(timer){ clearInterval(timer); timer = null; }
+  syncButtons();
+}
+function pause(){
+  if(timer){ stop(); $("modeTag").textContent = "paused"; }
+}
+function next(){ stop(); if(cursor < steps.length - 1){ render(cursor + 1); $("modeTag").textContent = "stepping"; } }
+function prev(){ stop(); if(cursor > 0){ render(cursor - 1); $("modeTag").textContent = "stepping"; } }
+
+function syncButtons(){
+  const playing = !!timer;
+  $("pauseBtn").disabled  = !playing;
+  $("resumeBtn").disabled = playing || cursor >= steps.length - 1;
+  $("nextBtn").disabled   = cursor >= steps.length - 1;
+  $("prevBtn").disabled   = cursor <= 0;
+  $("startBtn").disabled  = playing;
+}
+
+/* ======================================================================== */
+/*  5. LOADING AN ARRAY                                                      */
+/* ======================================================================== */
+
+function load(arr){
+  stop();
+  array = arr.slice();
+  steps = record(array);
+  buildArrayRow();
+  buildTreeDom();
+  $("arrTag").textContent = "n = " + array.length;
+  $("quizA").classList.add("hidden");
+  $("quizQ").textContent = "Press “Ask me something” at any point in the run.";
+  render(0);
+  $("modeTag").textContent = "idle";
+}
+
+/* ======================================================================== */
+/*  6. LEARNING CHALLENGES                                                   */
+/*     Questions are generated from the real recorded future, never invented. */
+/* ======================================================================== */
+
+let pendingAnswer = "";
+
+function findNext(pred){
+  for(let i = cursor + 1; i < steps.length; i++) if(pred(steps[i])) return steps[i];
+  return null;
+}
+
+function askQuestion(){
+  const s = steps[cursor];
+  const pool = [];
+
+  pool.push({ q: "What is the current recursion depth?", a: "Depth " + s.stats.depth + "." });
+  pool.push({ q: "How many comparisons have been performed so far?",
+              a: s.stats.comparisons + " comparison" + (s.stats.comparisons === 1 ? "" : "s") + "." });
+
+  const nextCopy = findNext(x => x.kind === "copy");
+  if(nextCopy){
+    const r = nextCopy.merge.result;
+    pool.push({ q: "Which value will be copied into the result next?",
+                a: r[r.length - 1].v + " — taken from the " + r[r.length - 1].side + " half." });
+  }
+  const nextSplit = findNext(x => x.kind === "split");
+  if(nextSplit) pool.push({ q: "Where does the next split happen, and into which two halves?", a: nextSplit.desc });
+
+  const nextMerge = findNext(x => x.kind === "merge");
+  if(nextMerge) pool.push({ q: "Which two arrays will be merged next?",
+    a: "[" + nextMerge.merge.left.join(" ") + "] and [" + nextMerge.merge.right.join(" ") + "]." });
+
+  const nextCmp = findNext(x => x.kind === "compare");
+  if(nextCmp) pool.push({ q: "Which two values get compared next — and which one wins?", a: nextCmp.desc });
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $("quizQ").textContent = pick.q;
+  pendingAnswer = pick.a;
+  $("quizA").classList.add("hidden");
+  $("quizCard").open = true;
+}
+
+/* ======================================================================== */
+/*  7. WIRING                                                                */
+/* ======================================================================== */
+
+$("startBtn").onclick   = () => { if(cursor >= steps.length - 1) render(0); play(); };
+$("pauseBtn").onclick   = pause;
+$("resumeBtn").onclick  = play;
+$("nextBtn").onclick     = next;
+$("prevBtn").onclick     = prev;
+$("restartBtn").onclick  = () => { stop(); render(0); play(); };
+$("resetBtn").onclick    = () => { stop(); render(0); $("modeTag").textContent = "idle"; };
+
+$("genBtn").onclick = () => load(makeArray(+$("size").value, $("shape").value));
+$("shape").onchange = () => load(makeArray(+$("size").value, $("shape").value));
+$("size").oninput   = () => { $("sizeOut").textContent = $("size").value; };
+$("size").onchange  = () => load(makeArray(+$("size").value, $("shape").value));
+
+$("customBtn").onclick = () => {
+  const raw = $("custom").value.split(/[\s,]+/).filter(Boolean).map(Number);
+  if(!raw.length || raw.some(isNaN)){
+    $("explain").textContent = "That input has something that is not a number. Use digits separated by commas or spaces, for example: 38, 27, 43, 3.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  if(raw.length < 2 || raw.length > 30){
+    $("explain").textContent = "Use between 2 and 30 values so the tree stays readable.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  $("size").value = raw.length; $("sizeOut").textContent = raw.length;
+  load(raw);
+};
+
+$("speed").onchange = () => { if(timer) play(); }; // restart the interval at the new rate
+
+$("quizBtn").onclick   = askQuestion;
+$("revealBtn").onclick = () => {
+  if(!pendingAnswer) askQuestion();
+  $("quizA").textContent = pendingAnswer;
+  $("quizA").classList.remove("hidden");
+};
+
+$("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  $("themeBtn").textContent = dark ? "◑ Dark mode" : "◐ Light mode";
+};
+
+document.addEventListener("keydown", (e) => {
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if(e.code === "Space"){ e.preventDefault(); timer ? pause() : play(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); next(); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); prev(); }
+});
+
+/* boot with the classic textbook array */
+load(array);
+</script>
+</body>
+</html>
