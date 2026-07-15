@@ -15,7 +15,7 @@
 
 👉 [Moodle](https://moodle.ku.edu.kw)
 
-👉 [Bonus Project](Lecture_notes/project.md) --> Test files [testMatrix.cpp](testMatrix.cpp) [testPolynomial.cpp](testPolynomial.cpp)
+👉 [Bonus Project (two points)](Lecture_notes/project.md) --> Test files [testMatrix.cpp](testMatrix.cpp) [testPolynomial.cpp](testPolynomial.cpp)
 
 ---
 
