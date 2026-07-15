@@ -1,14 +1,13 @@
 # C++ Programming Project
 
-
-# Dynamic Matrix and Polynomial Classes
+# Templated Dynamic Matrix and Polynomial Classes
 
 ## 1. Project Objective
 
 Design and implement two C++ classes:
 
-1. `Matrix`
-2. `Polynomial`
+1. `Matrix<T>` — a **class template**
+2. `Polynomial` — a regular (non-template) class
 
 Both classes must use dynamic memory and must correctly implement the Rule of Three.
 
@@ -18,11 +17,9 @@ Both classes must use dynamic memory and must correctly implement the Rule of Th
 
 2. You are required to:
  - Submit your source file (.h and .cpp) through Moodle.
- - Do a Demo. 
- 
-NOTE: During the demonstration, students should be able to explain their design decisions, dynamic memory management, deep-copy implementation, operator overloading, and the functionality of each required method. Students may also be asked to modify or extend parts of their code during the demonstration to verify their understanding. Failure to adequately explain the implementation may result in a reduced grade, even if the program functions correctly.
+ - Do a Demo.
 
-
+NOTE: During the demonstration, students should be able to explain their design decisions, dynamic memory management, deep-copy implementation, operator overloading, class templates, and the functionality of each required method. Students may also be asked to modify or extend parts of their code during the demonstration to verify their understanding. Failure to adequately explain the implementation may result in a reduced grade, even if the program functions correctly.
 
 ---
 
@@ -30,7 +27,7 @@ NOTE: During the demonstration, students should be able to explain their design 
 
 - Every constructor, destructor, operator, and method listed in this document is mandatory.
 - Students must use the exact required prototypes.
-- Fixed-size arrays and STL containers are not allowed for storing matrix values or polynomial terms.
+- Fixed-size arrays and STL **containers** are not allowed for storing matrix values or polynomial terms. (Including `<type_traits>` for the type restriction is permitted; the rule concerns storage, not utility headers.)
 - Students may assume that all input is valid.
 - No bounds checking or input validation is required.
 - Students may add private helper functions.
@@ -40,13 +37,61 @@ NOTE: During the demonstration, students should be able to explain their design 
 
 ---
 
-# Part I — Matrix Class
+# Part I — Matrix Class Template
 
 ## 3. Matrix Overview
 
-The `Matrix` class represents a two-dimensional matrix whose number of rows and columns may change during program execution.
+The `Matrix` class is a **class template** that represents a two-dimensional matrix whose number of rows and columns may change during program execution.
+
+The element type is given by the template parameter `T`.
 
 The matrix must use dynamically allocated memory.
+
+### 3.1 Permitted Element Types
+
+`Matrix<T>` must support **only** the following four types:
+
+```text
+int, long, float, double
+```
+
+Any attempt to instantiate the template with another type (for example `Matrix<char>` or `Matrix<std::string>`) must **fail to compile**.
+
+Students must enforce this restriction using a `static_assert` inside the class:
+
+```cpp
+#include <type_traits>
+
+template <typename T>
+class Matrix
+{
+    static_assert(std::is_same<T, int>::value ||
+                  std::is_same<T, long>::value ||
+                  std::is_same<T, float>::value ||
+                  std::is_same<T, double>::value,
+                  "Matrix supports only int, long, float, and double.");
+    // ...
+};
+```
+
+### 3.2 Where Template Code Must Live
+
+Template member functions cannot be compiled in a separate `.cpp` file the way ordinary member functions are, because the compiler needs the definition at the point of instantiation.
+
+To keep the required `.h` / `.cpp` split, students must use **explicit instantiation**. Place the definitions in `Matrix.cpp` and add the following lines at the **bottom** of that file:
+
+```cpp
+template class Matrix<int>;
+template class Matrix<long>;
+template class Matrix<float>;
+template class Matrix<double>;
+```
+
+This generates exactly the four permitted versions of the class and produces a link error for any other type.
+
+Students must be prepared to explain, during the demo, **why** this step is necessary.
+
+---
 
 ## 4. Required Matrix Data Members
 
@@ -54,17 +99,18 @@ The class must maintain:
 
 - The number of rows.
 - The number of columns.
-- A dynamically allocated two-dimensional array.
+- A dynamically allocated two-dimensional array of `T`.
 
 A possible design is:
 
 ```cpp
+template <typename T>
 class Matrix
 {
 private:
     int rows;
     int columns;
-    int** data;
+    T** data;
 };
 ```
 
@@ -73,31 +119,38 @@ private:
 ## 5. Required Matrix Interface
 
 ```cpp
+template <typename T>
 class Matrix
 {
+    static_assert(std::is_same<T, int>::value ||
+                  std::is_same<T, long>::value ||
+                  std::is_same<T, float>::value ||
+                  std::is_same<T, double>::value,
+                  "Matrix supports only int, long, float, and double.");
+
 private:
     int rows;
     int columns;
-    int** data;
+    T** data;
 
 public:
     Matrix();
     Matrix(int rows, int columns);
-    Matrix(const Matrix& other);
-    Matrix& operator=(const Matrix& other);
+    Matrix(const Matrix<T>& other);
+    Matrix<T>& operator=(const Matrix<T>& other);
     ~Matrix();
 
     int getRows() const;
     int getColumns() const;
 
-    int* operator[](int row);
-    const int* operator[](int row) const;
+    T* operator[](int row);
+    const T* operator[](int row) const;
 
     void addRow();
-    void addRow(const int values[]);
+    void addRow(const T values[]);
 
     void addColumn();
-    void addColumn(const int values[]);
+    void addColumn(const T values[]);
 
     void removeRow(int rowIndex);
     void removeColumn(int columnIndex);
@@ -105,25 +158,28 @@ public:
     void swapRows(int row1, int row2);
     void swapColumns(int column1, int column2);
 
-    Matrix operator+(const Matrix& other) const;
-    Matrix operator-(const Matrix& other) const;
-    Matrix operator*(const Matrix& other) const;
-    Matrix operator*(int scalar) const;
+    Matrix<T> operator+(const Matrix<T>& other) const;
+    Matrix<T> operator-(const Matrix<T>& other) const;
+    Matrix<T> operator*(const Matrix<T>& other) const;
+    Matrix<T> operator*(T scalar) const;
 
-    bool operator==(const Matrix& other) const;
+    bool operator==(const Matrix<T>& other) const;
 
     bool isSquare() const;
     bool isDiagonal() const;
     bool isIdentity() const;
     bool isSymmetric() const;
 
-    int trace() const;
-    Matrix transpose() const;
+    T trace() const;
+    Matrix<T> transpose() const;
 
+    template <typename U>
     friend std::ostream& operator<<(std::ostream& output,
-                                    const Matrix& matrix);
+                                    const Matrix<U>& matrix);
 };
 ```
+
+**Note on the friend declaration:** the non-template form used for ordinary classes will not work here. The output operator must itself be a template, as shown above.
 
 ---
 
@@ -156,13 +212,13 @@ Creates a matrix with the specified dimensions.
 Required behavior:
 
 - Allocate the required dynamic memory.
-- Initialize every element to zero.
+- Initialize every element to zero, using `T()` rather than a hard-coded literal.
 - Store the row and column counts.
 
 ### 6.3 Copy Constructor
 
 ```cpp
-Matrix(const Matrix& other);
+Matrix(const Matrix<T>& other);
 ```
 
 Creates a new matrix as a deep copy of another matrix.
@@ -176,8 +232,8 @@ Required behavior:
 Example:
 
 ```cpp
-Matrix A(2, 2);
-Matrix B = A;
+Matrix<int> A(2, 2);
+Matrix<int> B = A;
 
 B[0][0] = 100;
 ```
@@ -187,7 +243,7 @@ Changing `B` must not change `A`.
 ### 6.4 Copy-Assignment Operator
 
 ```cpp
-Matrix& operator=(const Matrix& other);
+Matrix<T>& operator=(const Matrix<T>& other);
 ```
 
 Required behavior:
@@ -218,7 +274,7 @@ Required behavior:
 ### Non-Constant Access
 
 ```cpp
-int* operator[](int row);
+T* operator[](int row);
 ```
 
 Allows reading and updating elements:
@@ -231,7 +287,7 @@ int value = A[1][2];
 ### Constant Access
 
 ```cpp
-const int* operator[](int row) const;
+const T* operator[](int row) const;
 ```
 
 Allows read-only access to constant matrix objects.
@@ -288,7 +344,7 @@ After:
 ### 9.2 Add a Row with Values
 
 ```cpp
-void addRow(const int values[]);
+void addRow(const T values[]);
 ```
 
 Example:
@@ -363,7 +419,7 @@ After:
 ### 9.5 Add a Column with Values
 
 ```cpp
-void addColumn(const int values[]);
+void addColumn(const T values[]);
 ```
 
 Example:
@@ -436,7 +492,7 @@ Exchanges every value in the two specified columns.
 ### Addition
 
 ```cpp
-Matrix operator+(const Matrix& other) const;
+Matrix<T> operator+(const Matrix<T>& other) const;
 ```
 
 Returns a new matrix containing the sum.
@@ -444,7 +500,7 @@ Returns a new matrix containing the sum.
 ### Subtraction
 
 ```cpp
-Matrix operator-(const Matrix& other) const;
+Matrix<T> operator-(const Matrix<T>& other) const;
 ```
 
 Returns a new matrix containing the difference.
@@ -452,7 +508,7 @@ Returns a new matrix containing the difference.
 ### Matrix Multiplication
 
 ```cpp
-Matrix operator*(const Matrix& other) const;
+Matrix<T> operator*(const Matrix<T>& other) const;
 ```
 
 Returns the matrix product.
@@ -460,7 +516,7 @@ Returns the matrix product.
 ### Scalar Multiplication
 
 ```cpp
-Matrix operator*(int scalar) const;
+Matrix<T> operator*(T scalar) const;
 ```
 
 Returns a new matrix in which every element is multiplied by the scalar.
@@ -470,10 +526,12 @@ Returns a new matrix in which every element is multiplied by the scalar.
 ## 11. Matrix Comparison
 
 ```cpp
-bool operator==(const Matrix& other) const;
+bool operator==(const Matrix<T>& other) const;
 ```
 
 Returns `true` only when both matrices have identical dimensions and values.
+
+For `float` and `double` instantiations, students may assume that exact comparison is acceptable. Test data will use values that are exactly representable.
 
 ---
 
@@ -524,12 +582,12 @@ for every valid position.
 ### Trace
 
 ```cpp
-int trace() const;
+T trace() const;
 ```
 
-Returns the sum of the main diagonal.
+Returns the sum of the main diagonal. The return type must match the element type.
 
-Example:
+Example — `Matrix<int>`:
 
 ```text
 1 2 3
@@ -543,10 +601,23 @@ Result:
 1 + 5 + 9 = 15
 ```
 
+Example — `Matrix<double>`:
+
+```text
+1.5 2.0
+3.0 4.5
+```
+
+Result:
+
+```text
+1.5 + 4.5 = 6.0
+```
+
 ### Transpose
 
 ```cpp
-Matrix transpose() const;
+Matrix<T> transpose() const;
 ```
 
 Returns a new transposed matrix.
@@ -571,15 +642,38 @@ After:
 ## 14. Matrix Output
 
 ```cpp
+template <typename U>
 friend std::ostream& operator<<(std::ostream& output,
-                                const Matrix& matrix);
+                                const Matrix<U>& matrix);
 ```
 
 Prints the matrix using the required output format.
 
 ---
 
+## 14A. Required Instantiations
+
+The submitted code will be tested with all four of the following:
+
+```cpp
+Matrix<int>
+Matrix<long>
+Matrix<float>
+Matrix<double>
+```
+
+The following must **not** compile, and must produce the message supplied to `static_assert`:
+
+```cpp
+Matrix<char> m;          // rejected
+Matrix<std::string> s;   // rejected
+```
+
+---
+
 # Part II — Polynomial Class
+
+The `Polynomial` class is **not** a template. It remains exactly as specified below.
 
 ## 15. Polynomial Overview
 
