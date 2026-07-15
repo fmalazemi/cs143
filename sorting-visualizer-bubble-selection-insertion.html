@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble, Selection, Insertion — the quadratic three</title>
+<style>
+/* =========================================================================
+   THEME TOKENS — same visual language as the merge sort visualizer, so the
+   two files read as one set. The six algorithm colours are fixed roles used
+   by the legend and are never reused for decoration.
+   ========================================================================= */
+:root{
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --c-current:#3b82f6;   /* blue   - element under consideration */
+  --c-sorted:#22c55e;    /* green  - sorted                      */
+  --c-compare:#eab308;   /* yellow - currently comparing         */
+  --c-move:#f97316;      /* orange - being swapped or shifted    */
+  --c-wait:#8a93a6;      /* gray   - waiting                     */
+  --c-pointer:#ef4444;   /* red    - current pointer             */
+}
+html[data-theme="dark"]{
+  --bg:#0d1017; --bg-grid:rgba(255,255,255,.035);
+  --panel:#151a24; --panel-2:#1b2230;
+  --ink:#e8ecf3; --ink-soft:#98a2b6; --line:#2c3547;
+  --accent:#a78bfa; --accent-soft:rgba(167,139,250,.16);
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+html[data-theme="light"]{
+  --bg:#f2f3f7; --bg-grid:rgba(20,30,60,.04);
+  --panel:#ffffff; --panel-2:#f7f8fb;
+  --ink:#141a24; --ink-soft:#5d6879; --line:#dfe3ec;
+  --accent:#6d3bf5; --accent-soft:rgba(109,59,245,.10);
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    var(--bg);
+  color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------------------------------------------------------------- header */
+header.top{
+  display:flex; align-items:flex-end; gap:18px; flex-wrap:wrap;
+  padding:22px 24px 16px; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, var(--panel), transparent);
+}
+.brand h1{font-family:var(--font-display); font-weight:400; font-size:30px;
+  letter-spacing:-.015em; margin:0}
+.brand h1 em{font-style:italic; color:var(--accent)}
+.brand p{margin:2px 0 0; color:var(--ink-soft); font-size:13px;
+  font-family:var(--font-mono); letter-spacing:.02em}
+.top .spacer{flex:1}
+.icon-btn{font-family:var(--font-mono); font-size:12px; background:var(--panel-2);
+  color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+
+/* --------------------------------------------------------- algorithm tabs
+   The picker is the first thing on the page because everything else on it
+   depends on which algorithm is running. */
+.picker{
+  display:flex; gap:0; padding:0 24px; border-bottom:1px solid var(--line);
+  background:var(--panel); overflow-x:auto;
+}
+.tab{
+  appearance:none; background:none; border:0; cursor:pointer;
+  padding:14px 20px 12px; border-bottom:3px solid transparent;
+  color:var(--ink-soft); text-align:left; white-space:nowrap;
+  font-family:var(--font-body);
+}
+.tab b{display:block; font-size:15px; font-weight:700; letter-spacing:-.01em}
+.tab span{display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+.tab[aria-selected="true"] span{color:var(--accent)}
+
+/* ------------------------------------------------------------- structure */
+main{display:grid; grid-template-columns:1fr 340px; gap:16px; padding:16px 24px 60px; align-items:start}
+@media (max-width:1040px){ main{grid-template-columns:1fr; padding:14px} }
+.col{display:flex; flex-direction:column; gap:16px; min-width:0}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden}
+.card > h2{
+  margin:0; padding:11px 14px; font-family:var(--font-mono); font-size:11px;
+  font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+  border-bottom:1px solid var(--line); background:var(--panel-2);
+  display:flex; align-items:center; gap:8px;
+}
+.card > h2 .tag{margin-left:auto; color:var(--accent); letter-spacing:.04em; text-transform:none}
+.card .body{padding:14px}
+
+details.card > summary{
+  list-style:none; cursor:pointer; padding:11px 14px; font-family:var(--font-mono);
+  font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft); background:var(--panel-2); border-bottom:1px solid transparent;
+  display:flex; align-items:center; gap:8px;
+}
+details.card[open] > summary{border-bottom-color:var(--line)}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::before{content:"▸"; color:var(--accent); transition:transform .18s}
+details.card[open] > summary::before{transform:rotate(90deg)}
+
+/* --------------------------------------------------------------- controls */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button.ctl{
+  font-family:var(--font-body); font-size:13px; font-weight:600;
+  background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:9px; padding:9px 13px; cursor:pointer;
+  transition:transform .08s, border-color .15s, background .15s;
+}
+button.ctl:hover:not(:disabled){border-color:var(--accent); background:var(--accent-soft)}
+button.ctl:active:not(:disabled){transform:translateY(1px)}
+button.ctl:disabled{opacity:.38; cursor:not-allowed}
+button.ctl.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+html[data-theme="dark"] button.ctl.primary{color:#12101c}
+button.ctl.primary:hover:not(:disabled){filter:brightness(1.08); background:var(--accent)}
+.field{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft);
+  font-family:var(--font-mono)}
+.field input[type=range]{accent-color:var(--accent); width:130px}
+.field select, .field input[type=text]{
+  font-family:var(--font-mono); font-size:12px; background:var(--panel-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:7px; padding:6px 8px;
+}
+.divider{width:1px; align-self:stretch; background:var(--line); margin:0 4px}
+.rowgap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ------------------------------------------------------------- array row */
+.array-row{
+  display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+  padding:26px 0 24px; min-height:96px; align-items:center;
+}
+.box{
+  min-width:52px; height:56px; padding:0 8px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:18px; font-weight:600;
+  border-radius:10px; border:2px solid transparent; position:relative;
+  transition:background .25s, color .25s, border-color .25s, transform .25s;
+}
+.box .idx{position:absolute; bottom:-16px; left:0; right:0; text-align:center;
+  font-size:10px; color:var(--ink-soft); font-weight:400}
+.box .badge{
+  position:absolute; top:-18px; left:0; right:0; text-align:center;
+  font-size:10px; font-family:var(--font-mono); font-weight:700; letter-spacing:.06em;
+  color:var(--c-pointer); white-space:nowrap;
+}
+.s-waiting{background:var(--panel-2); color:var(--ink-soft); border-color:var(--line)}
+.s-sorted {background:color-mix(in srgb, var(--c-sorted) 22%, transparent); color:var(--c-sorted); border-color:var(--c-sorted)}
+.s-current{background:color-mix(in srgb, var(--c-current) 20%, transparent); color:var(--c-current); border-color:var(--c-current); transform:translateY(-6px)}
+.s-move   {background:color-mix(in srgb, var(--c-move) 22%, transparent); color:var(--c-move); border-color:var(--c-move)}
+.s-compare{background:color-mix(in srgb, var(--c-compare) 24%, transparent); color:var(--c-compare); border-color:var(--c-compare)}
+.s-pointer{background:color-mix(in srgb, var(--c-pointer) 22%, transparent); color:var(--c-pointer); border-color:var(--c-pointer)}
+.box.moved{animation:nudge .3s ease-out}
+@keyframes nudge{50%{transform:translateY(-10px) scale(1.06)}}
+
+/* ---------------------------------------------------- explanation + code */
+.explain{font-size:15px; line-height:1.6; min-height:70px}
+.explain .kicker{font-family:var(--font-mono); font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); display:block; margin-bottom:4px}
+.progress{height:4px; background:var(--panel-2); border-radius:99px; overflow:hidden;
+  margin-top:12px; border:1px solid var(--line)}
+.progress i{display:block; height:100%; background:var(--accent); width:0; transition:width .2s}
+.step-counter{font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); margin-top:6px}
+
+pre.code{margin:0; font-family:var(--font-mono); font-size:12.5px; line-height:1.75}
+pre.code div{padding:1px 8px; border-radius:5px; border-left:2px solid transparent; white-space:pre}
+pre.code div.hl{background:var(--accent-soft); border-left-color:var(--accent); color:var(--ink); font-weight:600}
+
+/* -------------------------------------------------------- variable watch */
+.watch{display:flex; flex-wrap:wrap; gap:8px}
+.chip{
+  font-family:var(--font-mono); font-size:12.5px; padding:6px 10px; border-radius:8px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft);
+}
+.chip b{color:var(--ink); font-weight:600}
+.chip.hot{border-color:var(--accent); background:var(--accent-soft)}
+.chip.key{border-color:var(--c-current); color:var(--c-current)}
+.chip.key b{color:var(--c-current)}
+.watch-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* ------------------------------------------------------------- pass log
+   The signature panel: every completed outer-loop pass is kept, so students
+   can see the sorted region grow one row at a time — the thing all three of
+   these algorithms actually have in common. */
+.passlog{display:flex; flex-direction:column; gap:6px; max-height:320px; overflow:auto; padding:14px}
+.passrow{display:flex; align-items:center; gap:10px}
+.passrow .lbl{
+  font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft);
+  min-width:118px; text-align:right; flex:none;
+}
+.passrow .mini{display:flex; gap:3px; flex-wrap:wrap}
+.mini i{
+  font-style:normal; font-family:var(--font-mono); font-size:11px;
+  min-width:24px; padding:2px 4px; text-align:center; border-radius:4px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft);
+}
+.mini i.done{border-color:var(--c-sorted); color:var(--c-sorted);
+  background:color-mix(in srgb,var(--c-sorted) 15%,transparent)}
+.passlog-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* ------------------------------------------------------------ stats grid */
+.stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line)}
+.stat{background:var(--panel); padding:10px 12px}
+.stat b{display:block; font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--ink)}
+.stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft)}
+
+/* --------------------------------------------------------------- legend */
+.legend{display:flex; flex-direction:column; gap:8px}
+.legend div{display:flex; align-items:center; gap:9px; font-size:12.5px}
+.swatch{display:inline-block; flex:none; width:16px; height:16px; border-radius:5px; border:2px solid}
+.sw-current{border-color:var(--c-current); background:color-mix(in srgb,var(--c-current) 25%,transparent)}
+.sw-sorted{border-color:var(--c-sorted); background:color-mix(in srgb,var(--c-sorted) 25%,transparent)}
+.sw-compare{border-color:var(--c-compare); background:color-mix(in srgb,var(--c-compare) 25%,transparent)}
+.sw-move{border-color:var(--c-move); background:color-mix(in srgb,var(--c-move) 25%,transparent)}
+.sw-wait{border-color:var(--line); background:var(--panel-2)}
+.sw-pointer{border-color:var(--c-pointer); background:color-mix(in srgb,var(--c-pointer) 25%,transparent)}
+
+/* ----------------------------------------------------------- complexity */
+.facts{display:flex; flex-direction:column; gap:0}
+.facts div{display:flex; justify-content:space-between; gap:10px; padding:7px 0;
+  border-bottom:1px dashed var(--line); font-size:13px}
+.facts div:last-child{border-bottom:0}
+.facts b{font-family:var(--font-mono); font-weight:600}
+.facts .yes{color:var(--c-sorted)}
+.facts .no{color:var(--c-pointer)}
+
+/* ---------------------------------------------------------------- notes */
+.notes h3{font-size:13px; margin:14px 0 3px; font-family:var(--font-body); font-weight:700}
+.notes h3:first-child{margin-top:0}
+.notes p{margin:0; font-size:13px; color:var(--ink-soft)}
+.notes code{font-family:var(--font-mono); font-size:12px}
+
+/* ----------------------------------------------------------------- quiz */
+.quiz-q{font-size:14px; font-weight:600; margin:0 0 10px}
+.quiz-a{font-family:var(--font-mono); font-size:13px; padding:9px 11px; border-radius:8px;
+  background:var(--accent-soft); border:1px solid var(--accent); color:var(--ink); margin-top:10px}
+.hidden{display:none !important}
+
+/* -------------------------------------------------------------- summary */
+.summary-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.summary-grid div{background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px}
+.summary-grid b{display:block; font-family:var(--font-mono); font-size:17px}
+.summary-grid span{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft)}
+.summary-arrays{margin-top:12px; font-family:var(--font-mono); font-size:12.5px; word-break:break-word}
+.summary-arrays em{color:var(--ink-soft); font-style:normal}
+
+kbd{font-family:var(--font-mono); font-size:11px; background:var(--panel-2);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 5px}
+.shortcuts{display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-soft); font-size:12px;
+  padding:0 24px 30px}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>The quadratic three, <em>one honest step at a time</em></h1>
+    <p>bubble · selection · insertion — nothing skipped, nothing hidden</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" title="Switch between dark and light mode">◐ Light mode</button>
+</header>
+
+<!-- algorithm picker -->
+<div class="picker" role="tablist" aria-label="Choose an algorithm">
+  <button class="tab" role="tab" data-algo="bubble" aria-selected="true"
+     title="Repeatedly swap neighbours that are out of order">
+    <b>Bubble sort</b><span>swap neighbours until nothing moves</span></button>
+  <button class="tab" role="tab" data-algo="selection" aria-selected="false"
+     title="Repeatedly pick the smallest remaining value">
+    <b>Selection sort</b><span>find the smallest, put it in place</span></button>
+  <button class="tab" role="tab" data-algo="insertion" aria-selected="false"
+     title="Insert each value into the sorted region on its left">
+    <b>Insertion sort</b><span>insert each value where it belongs</span></button>
+</div>
+
+<main>
+  <!-- ============================ LEFT COLUMN ============================ -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Controls <span class="tag" id="modeTag">idle</span></h2>
+      <div class="body">
+        <div class="controls">
+          <button class="ctl primary" id="startBtn" title="Play the animation from the current step">▶ Start</button>
+          <button class="ctl" id="pauseBtn" title="Pause the animation where it is">⏸ Pause</button>
+          <button class="ctl" id="resumeBtn" title="Continue playing from where you paused">▶ Resume</button>
+          <button class="ctl" id="prevBtn" title="Go back exactly one algorithm operation (Left Arrow)">◀ Previous step</button>
+          <button class="ctl" id="nextBtn" title="Perform exactly one algorithm operation (Right Arrow)">Next step ▶</button>
+          <button class="ctl" id="restartBtn" title="Replay the whole animation on the same array">↻ Restart</button>
+          <button class="ctl" id="resetBtn" title="Clear the run and all statistics, keep the array">✕ Reset</button>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="How fast the animation advances">
+            Very slow <input type="range" id="speed" min="1" max="9" value="5"> Very fast
+          </label>
+          <span class="divider"></span>
+          <label class="field" title="How many values to sort">
+            Size <input type="range" id="size" min="5" max="30" value="8">
+            <b id="sizeOut" style="color:var(--ink)">8</b>
+          </label>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="Pick the shape of the data to sort">
+            Array shape
+            <select id="shape">
+              <option value="random">Random</option>
+              <option value="nearly">Nearly sorted</option>
+              <option value="reverse">Reverse sorted</option>
+              <option value="dupes">Many duplicates</option>
+            </select>
+          </label>
+          <button class="ctl" id="genBtn" title="Build a new array with the chosen size and shape">⚄ Generate random array</button>
+          <span class="divider"></span>
+          <label class="field" title="Type your own numbers, separated by commas or spaces">
+            Custom <input type="text" id="custom" placeholder="38, 27, 43, 3, 9, 82, 10" size="22">
+          </label>
+          <button class="ctl" id="customBtn" title="Use the numbers you typed">Enter custom array</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>The array <span class="tag" id="arrTag"></span></h2>
+      <div class="body"><div class="array-row" id="arrayRow"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>What is happening</h2>
+      <div class="body">
+        <div class="explain"><span class="kicker" id="stepKind">ready</span><span id="explain">Pick an algorithm and press Start.</span></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="step-counter" id="counter">step 0 / 0</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Pass log <span class="tag">the sorted region, growing</span></h2>
+      <div class="passlog" id="passlog"><div class="passlog-empty">Each completed pass gets a row here.</div></div>
+    </section>
+
+    <details class="card" id="quizCard">
+      <summary>Learning challenge</summary>
+      <div class="body">
+        <p class="quiz-q" id="quizQ">Press “Ask me something” at any point in the run.</p>
+        <div class="controls">
+          <button class="ctl" id="quizBtn" title="Get a question about the current state of the run">Ask me something</button>
+          <button class="ctl" id="revealBtn" title="Reveal the correct answer">Show answer</button>
+        </div>
+        <div class="quiz-a hidden" id="quizA"></div>
+      </div>
+    </details>
+
+    <section class="card hidden" id="summaryCard">
+      <h2>Run summary <span class="tag">sorted</span></h2>
+      <div class="body">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="summary-arrays" id="summaryArrays"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ RIGHT COLUMN =========================== -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Statistics</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Colour legend</h2>
+      <div class="body legend">
+        <div><i class="swatch sw-current"></i> Blue — element under consideration</div>
+        <div><i class="swatch sw-sorted"></i> Green — sorted</div>
+        <div><i class="swatch sw-compare"></i> Yellow — currently comparing</div>
+        <div><i class="swatch sw-move"></i> Orange — being swapped or shifted</div>
+        <div><i class="swatch sw-wait"></i> Gray — waiting</div>
+        <div><i class="swatch sw-pointer"></i> Red — current pointer</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Variable watch <span class="tag" id="watchTag"></span></h2>
+      <div class="body"><div class="watch" id="watch"><span class="watch-empty">not running</span></div></div>
+    </section>
+
+    <details class="card" open>
+      <summary><span id="codeTitle">Pseudocode</span></summary>
+      <div class="body"><pre class="code" id="code"></pre></div>
+    </details>
+
+    <section class="card">
+      <h2>Complexity <span class="tag" id="cxTag"></span></h2>
+      <div class="body facts" id="facts"></div>
+    </section>
+
+    <details class="card" open>
+      <summary>Why it works this way</summary>
+      <div class="body notes" id="notes"></div>
+    </details>
+
+    <details class="card">
+      <summary>How the three compare</summary>
+      <div class="body notes">
+        <h3>All three are quadratic — but not for the same reason</h3>
+        <p>Selection sort always makes n(n−1)/2 comparisons, no matter what the data looks like. Bubble and insertion sort adapt: on data that is already nearly sorted they finish in close to n steps. Try the “Nearly sorted” shape on all three and watch the comparison counter.</p>
+        <h3>Movement is the real difference</h3>
+        <p>Selection sort makes at most n−1 swaps — the fewest of the three — because it only writes once per pass. Bubble sort can swap on almost every comparison. Insertion sort shifts rather than swaps, which is one write per moved element instead of three.</p>
+        <h3>Which one would you actually use</h3>
+        <p>Insertion sort. It is fast on small and nearly sorted inputs, it is stable, and it is what real libraries fall back to for tiny sub-arrays inside quicksort or merge sort. Bubble sort survives only as a teaching example.</p>
+        <h3>What they all share</h3>
+        <p>Each pass places at least one value permanently, and each pass costs a scan. n passes × n work = n². Merge sort escapes this by making the passes cost log n instead of n.</p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<div class="shortcuts">
+  <span>Keyboard:</span>
+  <span><kbd>Space</kbd> pause / resume</span>
+  <span><kbd>→</kbd> next step</span>
+  <span><kbd>←</kbd> previous step</span>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   BUBBLE / SELECTION / INSERTION SORT VISUALIZER
+   --------------------------------------------------------------------------
+   Same architecture as the merge sort visualizer: the chosen algorithm is run
+   ONCE up front on the chosen array while an instrumented recorder takes a
+   full snapshot after every single logical operation (compare, swap, shift,
+   pass boundary, ...). Playback is then just "render snapshot #i", so Next
+   Step, Previous Step, pause, resume and replay are all exact.
+   ========================================================================== */
+
+/* ======================================================================== */
+/*  1. ALGORITHM DEFINITIONS (pseudocode, complexity, notes)                 */
+/* ======================================================================== */
+
+const ALGOS = {
+  bubble: {
+    name: "Bubble sort",
+    code: [
+      "BubbleSort(A)",
+      "  repeat",
+      "    swapped = false",
+      "    for j = 0 to n - 2 - passes",
+      "      if A[j] > A[j+1]",
+      "          swap A[j], A[j+1]",
+      "          swapped = true",
+      "  until swapped = false"
+    ],
+    facts: [
+      ["Best case", "O(n)", ""], ["Average case", "O(n²)", ""], ["Worst case", "O(n²)", ""],
+      ["Extra space", "O(1)", ""], ["Stable", "Yes", "yes"], ["In-place", "Yes", "yes"],
+      ["Adaptive", "Yes", "yes"], ["Swaps (worst)", "O(n²)", ""]
+    ],
+    notes: [
+      ["How it thinks", "Look at two neighbours at a time. If they are out of order, swap them. Repeat until a whole pass goes by with no swaps."],
+      ["Why the big values arrive first", "Inside one pass, a large value keeps winning every comparison it takes part in, so it gets carried all the way to the right end — it bubbles up. After pass k, the last k slots are final, which is why each pass can be one comparison shorter."],
+      ["Why the best case is O(n)", "The <code>swapped</code> flag is an early exit. On already-sorted data the first pass makes no swaps, so the algorithm stops after n−1 comparisons."],
+      ["Why it is stable", "The swap only happens on a strict <code>&gt;</code>. Equal neighbours are left alone, so equal values never cross each other."],
+      ["Why nobody uses it", "It does the same amount of comparing as insertion sort but moves data far more, because every step out of place costs a full swap (three writes) instead of a shift."]
+    ]
+  },
+  selection: {
+    name: "Selection sort",
+    code: [
+      "SelectionSort(A)",
+      "  for i = 0 to n - 2",
+      "    min = i",
+      "    for j = i + 1 to n - 1",
+      "      if A[j] < A[min]",
+      "          min = j",
+      "    swap A[i], A[min]"
+    ],
+    facts: [
+      ["Best case", "O(n²)", ""], ["Average case", "O(n²)", ""], ["Worst case", "O(n²)", ""],
+      ["Extra space", "O(1)", ""], ["Stable", "No", "no"], ["In-place", "Yes", "yes"],
+      ["Adaptive", "No", "no"], ["Swaps (worst)", "O(n)", ""]
+    ],
+    notes: [
+      ["How it thinks", "Scan the whole unsorted part, remember where the smallest value is, and swap it into the first unsorted slot. Repeat from the next slot."],
+      ["Why it never gets faster", "The inner scan has to look at every remaining value before it can be sure it found the minimum. Sorted input, reversed input, all the same: n(n−1)/2 comparisons. Nothing about the data can shorten the scan, so it is not adaptive."],
+      ["Why it is not stable", "The swap throws a value across the array. Sort <code>3a 3b 1</code> and the first 3 is flung to the back, landing behind the second 3. Their original order is lost. Shifting instead of swapping would fix it, at the cost of O(n²) writes."],
+      ["Its one real strength", "It performs at most n−1 swaps — fewer writes than any other simple sort. That matters when a write is genuinely expensive, such as on memory that wears out."],
+      ["The invariant", "After pass i, the first i+1 slots hold the i+1 smallest values in final order. Everything green is finished for good, and it never gets touched again."]
+    ]
+  },
+  insertion: {
+    name: "Insertion sort",
+    code: [
+      "InsertionSort(A)",
+      "  for i = 1 to n - 1",
+      "    key = A[i]",
+      "    j = i - 1",
+      "    while j >= 0 and A[j] > key",
+      "        A[j+1] = A[j]",
+      "        j = j - 1",
+      "    A[j+1] = key"
+    ],
+    facts: [
+      ["Best case", "O(n)", ""], ["Average case", "O(n²)", ""], ["Worst case", "O(n²)", ""],
+      ["Extra space", "O(1)", ""], ["Stable", "Yes", "yes"], ["In-place", "Yes", "yes"],
+      ["Adaptive", "Yes", "yes"], ["Writes (worst)", "O(n²)", ""]
+    ],
+    notes: [
+      ["How it thinks", "Exactly how you sort a hand of playing cards. Keep the left part in order, pick up the next card, and slide it back through the sorted part until it fits."],
+      ["Why the key is held aside", "To make room, each larger value is copied one slot to the right — which overwrites the slot the key came from. So the key is saved in a variable first. Watch the array during a shift: you will briefly see the same value twice, and the duplicate disappears when the key is dropped into its slot."],
+      ["Why the best case is O(n)", "On sorted data the <code>while</code> test fails immediately every time: one comparison per element, no shifts at all. That is why it beats every O(n log n) sort on nearly sorted input."],
+      ["Why it is stable", "The loop stops as soon as it meets a value that is not strictly greater than the key. An equal value blocks the key, so the key settles behind it and ties keep their original order."],
+      ["Where it is used for real", "Inside industrial sorts. Once merge sort or quicksort has cut a sub-array down to roughly 10–30 elements, they stop recursing and finish with insertion sort, because at that size it is genuinely the fastest thing available."]
+    ]
+  }
+};
+
+/* --------------------------------- state -------------------------------- */
+let algo    = "bubble";
+let array   = [38, 27, 43, 3, 9, 82, 10, 5];
+let steps   = [];
+let cursor  = -1;
+let timer   = null;
+let runMs   = 0;
+
+const $ = (id) => document.getElementById(id);
+
+/* ======================================================================== */
+/*  2. ARRAY GENERATION                                                      */
+/* ======================================================================== */
+
+function makeArray(n, shape){
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  let a;
+  switch(shape){
+    case "nearly":
+      a = Array.from({length:n}, (_, i) => (i + 1) * rnd(2, 5)).sort((x, y) => x - y);
+      for(let k = 0; k < Math.max(1, Math.round(n / 6)); k++){
+        const i = rnd(0, n - 2);
+        [a[i], a[i + 1]] = [a[i + 1], a[i]];
+      }
+      return a;
+    case "reverse":
+      return Array.from({length:n}, () => rnd(2, 99)).sort((x, y) => y - x);
+    case "dupes":
+      { const pool = Array.from({length: Math.max(2, Math.round(n / 3))}, () => rnd(2, 40));
+        return Array.from({length:n}, () => pool[rnd(0, pool.length - 1)]); }
+    default:
+      return Array.from({length:n}, () => rnd(2, 99));
+  }
+}
+
+/* ======================================================================== */
+/*  3. THE INSTRUMENTED ALGORITHMS                                           */
+/*     Ordinary textbook code — with a snap() after every logical operation. */
+/* ======================================================================== */
+
+function record(input, which){
+  const n      = input.length;
+  const a      = input.slice();
+  const out    = [];
+  const sorted = new Array(n).fill(false);
+  const passes = [];                       // completed passes, for the pass log
+  const stats  = { comparisons:0, swaps:0, writes:0, passes:0, pass:0, size:n };
+
+  // transient highlight state — set right before a snap, consumed by it
+  let cmp = [], move = [], ptr = [], cur = [], vars = { n };
+
+  /** Colour every box according to the fixed legend priority. */
+  function paint(){
+    const s = new Array(n).fill("waiting");
+    for(let i = 0; i < n; i++) if(sorted[i]) s[i] = "sorted";
+    cur.forEach(i => { if(i >= 0 && i < n) s[i] = "current"; });
+    move.forEach(i => { if(i >= 0 && i < n) s[i] = "move"; });
+    cmp.forEach(i => { if(i >= 0 && i < n) s[i] = "compare"; });
+    ptr.forEach(i => { if(i >= 0 && i < n) s[i] = "pointer"; });
+    return s;
+  }
+
+  /** Pointer labels drawn above the boxes, derived from the live variables. */
+  function badges(){
+    const b = {};
+    const add = (i, t) => { if(i >= 0 && i < n) b[i] = b[i] ? b[i] + " " + t : t; };
+    if(vars.i !== undefined) add(vars.i, "i");
+    if(vars.j !== undefined) add(vars.j, "j");
+    if(vars.min !== undefined) add(vars.min, "min");
+    return b;
+  }
+
+  /** Freeze the whole world into one step. */
+  function snap(kind, desc, line){
+    out.push({
+      kind, desc, line,
+      main:    a.slice(),
+      states:  paint(),
+      badges:  badges(),
+      moved:   move.slice(),
+      vars:    Object.assign({}, vars),
+      passes:  passes.map(p => ({ label:p.label, vals:p.vals.slice(), from:p.from, to:p.to })),
+      stats:   Object.assign({}, stats)
+    });
+    cmp = []; move = []; ptr = []; cur = [];
+  }
+
+  const A = (i) => "A[" + i + "]=" + a[i];
+
+  /* ------------------------------- bubble ------------------------------ */
+  function bubble(){
+    snap("ready", "Bubble sort compares neighbours and swaps the ones that are out of order. "
+      + "It repeats that until a whole pass goes by without a single swap.", 0);
+
+    let pass = 0, swapped = true;
+    while(swapped && pass < n - 1){
+      swapped = false;
+      stats.pass = pass + 1;
+      vars = { n, pass: pass + 1, swapped: false };
+      snap("pass", "Pass " + (pass + 1) + " begins. Reset swapped to false — if it is still false at "
+        + "the end of this pass, the array must already be sorted.", 2);
+
+      for(let j = 0; j + 1 < n - pass; j++){
+        vars.j = j;
+        cmp = [j, j + 1]; stats.comparisons++;
+        snap("compare", "Compare the neighbours " + A(j) + " and " + A(j + 1) + ".", 4);
+
+        if(a[j] > a[j + 1]){
+          const big = a[j], small = a[j + 1];
+          move = [j, j + 1];
+          [a[j], a[j + 1]] = [a[j + 1], a[j]];
+          stats.swaps++; stats.writes += 2;
+          swapped = true; vars.swapped = true;
+          snap("swap", big + " is bigger than " + small + ", so swap them. " + big
+            + " moves one slot to the right — that is the bubbling.", 5);
+        } else {
+          snap("noswap", a[j] + " is not bigger than " + a[j + 1]
+            + ", so this pair is already in order. Leave it and move on.", 4);
+        }
+      }
+
+      sorted[n - 1 - pass] = true;
+      delete vars.j;                       // the inner loop is over: no j pointer any more
+      pass++; stats.passes = pass;
+      passes.push({ label: "Pass " + pass, vals: a.slice(), from: n - pass, to: n - 1 });
+      snap("pass-done", "Pass " + pass + " is finished. The largest remaining value has reached index "
+        + (n - pass) + ", so that slot is final and the next pass can be one comparison shorter.", 7);
+
+      if(!swapped){
+        for(let i = 0; i < n; i++) sorted[i] = true;
+        snap("early", "No swaps happened during that pass, so every neighbour is already in order — "
+          + "which means the whole array is sorted. Bubble sort stops early. This is its best case.", 7);
+      }
+    }
+    for(let i = 0; i < n; i++) sorted[i] = true;
+  }
+
+  /* ------------------------------ selection ---------------------------- */
+  function selection(){
+    snap("ready", "Selection sort scans the unsorted part for the smallest value, then swaps it into "
+      + "the first unsorted slot. One swap per pass, and the sorted region grows from the left.", 0);
+
+    for(let i = 0; i < n - 1; i++){
+      stats.pass = i + 1;
+      vars = { n, i };
+      cur = [i];
+      snap("outer", "Pass " + (i + 1) + ": find the smallest value among indices " + i + "…" + (n - 1)
+        + ", so it can be placed at index " + i + ".", 1);
+
+      let min = i; vars.min = min;
+      cur = [i]; ptr = [];
+      snap("min", "Assume " + A(i) + " is the smallest for now, so min = " + i + ".", 2);
+
+      for(let j = i + 1; j < n; j++){
+        vars.j = j;
+        cmp = [min]; ptr = [j]; stats.comparisons++;
+        snap("compare", "Compare " + A(j) + " with the smallest found so far, " + A(min) + ".", 4);
+
+        if(a[j] < a[min]){
+          min = j; vars.min = min;
+          cmp = [min];
+          snap("newmin", a[j] + " is smaller, so min moves to index " + j + ". Nothing is swapped yet — "
+            + "selection sort only remembers where the minimum is.", 5);
+        } else {
+          cmp = [min];
+          snap("keepmin", a[j] + " is not smaller than " + a[min] + ", so min stays at index " + min + ".", 4);
+        }
+      }
+
+      if(min !== i){
+        const v = a[min];
+        move = [i, min];
+        [a[i], a[min]] = [a[min], a[i]];
+        stats.swaps++; stats.writes += 2;
+        snap("swap", "The scan is over. The smallest value is " + v + " at index " + min
+          + ", so swap it into index " + i + ". Notice this single swap can throw a value a long way — "
+          + "that is why selection sort is not stable.", 6);
+      } else {
+        cur = [i];
+        snap("noswap", "The smallest value was already sitting at index " + i + ", so no swap is needed.", 6);
+      }
+
+      sorted[i] = true;
+      delete vars.j; delete vars.min;      // the scan is over: those pointers are gone
+      stats.passes = i + 1;
+      passes.push({ label: "Pass " + (i + 1), vals: a.slice(), from: 0, to: i });
+      snap("pass-done", "Index " + i + " now holds " + a[i] + " and is final — it is never touched again. "
+        + "The green region has grown to " + (i + 1) + " value" + (i ? "s" : "") + ".", 6);
+    }
+    sorted[n - 1] = true;
+    stats.passes = Math.max(stats.passes, n - 1);
+  }
+
+  /* ------------------------------ insertion ---------------------------- */
+  function insertion(){
+    snap("ready", "Insertion sort works exactly like sorting a hand of cards: keep the left part in "
+      + "order, pick up the next value, and slide it back until it fits.", 0);
+
+    sorted[0] = true;
+    vars = { n };
+    snap("base", "A single element on its own is already a sorted list of one, so index 0 starts green. "
+      + "The sorted region will grow one value at a time.", 1);
+
+    for(let i = 1; i < n; i++){
+      stats.pass = i;
+      const key = a[i];
+      vars = { n, i, key };
+      cur = [i];
+      snap("key", "Pick up " + A(i) + " as the key and hold it in a variable. The green region on its "
+        + "left is sorted; the key has to slide back into it.", 2);
+
+      let j = i - 1; vars.j = j;
+      cur = [i]; ptr = [j];
+      snap("setj", "Start at index " + j + ", the rightmost value of the sorted region, and walk left "
+        + "from there.", 3);
+
+      while(j >= 0 && a[j] > key){
+        cmp = [j]; stats.comparisons++;
+        snap("compare", "Is " + A(j) + " greater than the key " + key + "? Yes — so it has to move one "
+          + "slot right to make room.", 4);
+
+        const v = a[j];
+        a[j + 1] = a[j]; stats.writes++;
+        move = [j + 1]; ptr = [j];
+        snap("shift", "Shift " + v + " from index " + j + " to index " + (j + 1) + ". The array now shows "
+          + v + " twice — the copy at index " + j + " is stale, and the key will land on it.", 5);
+
+        j--; vars.j = j;
+        ptr = j >= 0 ? [j] : [];
+        snap("decj", j >= 0 ? "Step left to index " + j + " and test again."
+          : "There is nothing left of index 0, so the key belongs at the very front.", 6);
+      }
+
+      if(j >= 0){
+        cmp = [j]; stats.comparisons++;
+        snap("compare-stop", "Is " + A(j) + " greater than the key " + key + "? No — so the key belongs "
+          + "immediately after it. Stop walking."
+          + (a[j] === key ? " They are equal, and an equal value blocks the key rather than moving — that is what keeps insertion sort stable." : ""), 4);
+      }
+
+      a[j + 1] = key; stats.writes++;
+      move = [j + 1];
+      sorted[i] = true;
+      snap("insert", "Drop the key " + key + " into index " + (j + 1) + ". The sorted region is now "
+        + (i + 1) + " values long.", 7);
+
+      delete vars.j; delete vars.key;      // the key has landed: it is an ordinary array value now
+      stats.passes = i;
+      passes.push({ label: "Inserted " + key, vals: a.slice(), from: 0, to: i });
+      snap("pass-done", "Indices 0…" + i + " hold [" + a.slice(0, i + 1).join(" ")
+        + "], sorted. Move on to the next value.", 1);
+    }
+    for(let i = 0; i < n; i++) sorted[i] = true;
+  }
+
+  /* --------------------------- run + bookend --------------------------- */
+  const t0 = performance.now();
+  if(n > 1){
+    if(which === "bubble") bubble();
+    else if(which === "selection") selection();
+    else insertion();
+  } else {
+    for(let i = 0; i < n; i++) sorted[i] = true;
+  }
+  runMs = performance.now() - t0;
+
+  vars = { n };
+  snap("finished", "Done. The array is sorted: [" + a.join(" ") + "]. Every value is green and no "
+    + "pointer is left running.", ALGOS[which].code.length - 1);
+
+  return out;
+}
+
+/* ======================================================================== */
+/*  4. RENDERING                                                             */
+/* ======================================================================== */
+
+function buildArrayRow(){
+  const row = $("arrayRow");
+  row.innerHTML = "";
+  array.forEach((v, i) => {
+    const b = document.createElement("div");
+    b.className = "box s-waiting";
+    b.innerHTML = '<span class="badge"></span><span class="val">' + v +
+                  '</span><span class="idx">' + i + "</span>";
+    row.appendChild(b);
+  });
+}
+
+function render(i){
+  const s = steps[i];
+  if(!s) return;
+  cursor = i;
+
+  /* boxes */
+  const boxes = $("arrayRow").children;
+  for(let k = 0; k < boxes.length; k++){
+    const b = boxes[k];
+    b.className = "box s-" + s.states[k] + (s.moved.indexOf(k) >= 0 ? " moved" : "");
+    b.querySelector(".val").textContent = s.main[k];
+    b.querySelector(".badge").textContent = s.badges[k] || "";
+  }
+
+  /* explanation */
+  $("explain").textContent = s.desc;
+  $("stepKind").textContent = ({
+    ready:"ready", base:"starting point", pass:"new pass", outer:"new pass",
+    compare:"comparison", "compare-stop":"comparison", noswap:"already in order",
+    swap:"swap", min:"remember the minimum", newmin:"new minimum", keepmin:"minimum unchanged",
+    key:"pick up the key", setj:"set the pointer", shift:"shift right", decj:"move the pointer",
+    insert:"insert the key", "pass-done":"pass complete", early:"early exit", finished:"finished"
+  })[s.kind] || s.kind;
+
+  $("bar").style.width = (i / (steps.length - 1) * 100) + "%";
+  $("counter").textContent = "step " + i + " / " + (steps.length - 1);
+
+  /* pseudocode */
+  paintCode(ALGOS[algo].code, s.line);
+
+  /* variable watch */
+  const v = s.vars, chips = [];
+  const chip = (k, val, cls) => '<span class="chip ' + (cls || "") + '">' + k + " = <b>" + val + "</b></span>";
+  chips.push(chip("n", v.n));
+  if(v.pass !== undefined) chips.push(chip("pass", v.pass, "hot"));
+  if(v.i !== undefined) chips.push(chip("i", v.i, "hot"));
+  if(v.j !== undefined) chips.push(chip("j", v.j, "hot"));
+  if(v.min !== undefined) chips.push(chip("min", v.min, "hot"));
+  if(v.key !== undefined) chips.push(chip("key", v.key, "key"));
+  if(v.swapped !== undefined) chips.push(chip("swapped", v.swapped));
+  $("watch").innerHTML = chips.join("");
+  $("watchTag").textContent = ALGOS[algo].name.toLowerCase();
+
+  /* pass log */
+  const pl = $("passlog");
+  if(!s.passes.length){
+    pl.innerHTML = '<div class="passlog-empty">Each completed pass gets a row here.</div>';
+  } else {
+    pl.innerHTML = s.passes.map(p =>
+      '<div class="passrow"><span class="lbl">' + p.label + '</span><span class="mini">' +
+      p.vals.map((val, k) =>
+        "<i" + (k >= p.from && k <= p.to ? ' class="done"' : "") + ">" + val + "</i>").join("") +
+      "</span></div>").join("");
+    pl.scrollTop = pl.scrollHeight;
+  }
+
+  /* stats */
+  $("stats").innerHTML = [
+    ["Comparisons", s.stats.comparisons],
+    ["Swaps", s.stats.swaps],
+    ["Writes to array", s.stats.writes],
+    ["Passes completed", s.stats.passes],
+    ["Current pass", s.stats.pass],
+    ["Array size", s.stats.size]
+  ].map(([k, val]) => '<div class="stat"><b>' + val + "</b><span>" + k + "</span></div>").join("");
+
+  if(s.kind === "finished") showSummary(s); else $("summaryCard").classList.add("hidden");
+  syncButtons();
+}
+
+function paintCode(lines, hl){
+  $("code").innerHTML = lines.map((l, k) =>
+    "<div" + (k === hl ? ' class="hl"' : "") + ">" + l.replace(/</g, "&lt;") + "</div>").join("");
+}
+
+function showSummary(s){
+  $("summaryCard").classList.remove("hidden");
+  $("summaryGrid").innerHTML = [
+    ["Total comparisons", s.stats.comparisons],
+    ["Total swaps", s.stats.swaps],
+    ["Total writes", s.stats.writes],
+    ["Passes", s.stats.passes],
+    ["Array size", s.stats.size],
+    ["Sort run time", runMs.toFixed(3) + " ms"]
+  ].map(([k, v]) => "<div><b>" + v + "</b><span>" + k + "</span></div>").join("");
+  $("summaryArrays").innerHTML =
+    "<div><em>Algorithm&nbsp;</em>" + ALGOS[algo].name + "</div>" +
+    "<div><em>Original&nbsp;&nbsp;</em>[" + array.join(", ") + "]</div>" +
+    "<div><em>Sorted&nbsp;&nbsp;&nbsp;&nbsp;</em>[" + s.main.join(", ") + "]</div>";
+}
+
+/** Panels that change only when the chosen algorithm changes. */
+function renderAlgoPanels(){
+  const A = ALGOS[algo];
+  $("codeTitle").textContent = A.name + " pseudocode";
+  $("cxTag").textContent = A.name.toLowerCase();
+  $("facts").innerHTML = A.facts.map(([k, v, cls]) =>
+    "<div><span>" + k + "</span><b" + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</b></div>").join("");
+  $("notes").innerHTML = A.notes.map(([h, p]) => "<h3>" + h + "</h3><p>" + p + "</p>").join("");
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-selected", t.dataset.algo === algo ? "true" : "false"));
+}
+
+/* ======================================================================== */
+/*  5. PLAYBACK                                                              */
+/* ======================================================================== */
+
+const delayFor = () => [0, 1600, 1200, 900, 650, 450, 320, 220, 140, 80][+$("speed").value];
+
+function play(){
+  stop();
+  if(cursor >= steps.length - 1) cursor = 0;
+  $("modeTag").textContent = "playing";
+  timer = setInterval(() => {
+    if(cursor >= steps.length - 1){ stop(); $("modeTag").textContent = "finished"; return; }
+    render(cursor + 1);
+  }, delayFor());
+  syncButtons();
+}
+function stop(){ if(timer){ clearInterval(timer); timer = null; } syncButtons(); }
+function pause(){ if(timer){ stop(); $("modeTag").textContent = "paused"; } }
+function next(){ stop(); if(cursor < steps.length - 1){ render(cursor + 1); $("modeTag").textContent = "stepping"; } }
+function prev(){ stop(); if(cursor > 0){ render(cursor - 1); $("modeTag").textContent = "stepping"; } }
+
+function syncButtons(){
+  const playing = !!timer;
+  $("pauseBtn").disabled  = !playing;
+  $("resumeBtn").disabled = playing || cursor >= steps.length - 1;
+  $("nextBtn").disabled   = cursor >= steps.length - 1;
+  $("prevBtn").disabled   = cursor <= 0;
+  $("startBtn").disabled  = playing;
+}
+
+/* ======================================================================== */
+/*  6. LOADING                                                               */
+/* ======================================================================== */
+
+function load(arr){
+  stop();
+  array = arr.slice();
+  steps = record(array, algo);
+  buildArrayRow();
+  renderAlgoPanels();
+  $("arrTag").textContent = "n = " + array.length + " · " + ALGOS[algo].name.toLowerCase();
+  $("quizA").classList.add("hidden");
+  $("quizQ").textContent = "Press “Ask me something” at any point in the run.";
+  pendingAnswer = "";
+  render(0);
+  $("modeTag").textContent = "idle";
+}
+
+/* ======================================================================== */
+/*  7. LEARNING CHALLENGES                                                   */
+/*     Questions are answered from the real recorded future, never invented. */
+/* ======================================================================== */
+
+let pendingAnswer = "";
+
+function findNext(pred){
+  for(let i = cursor + 1; i < steps.length; i++) if(pred(steps[i])) return steps[i];
+  return null;
+}
+
+function askQuestion(){
+  const s = steps[cursor];
+  const pool = [];
+
+  pool.push({ q: "How many comparisons have been performed so far?",
+              a: s.stats.comparisons + " comparison" + (s.stats.comparisons === 1 ? "" : "s") + "." });
+  pool.push({ q: "Which part of the array is already final, and how do you know?",
+              a: (() => {
+                   const g = s.states.map((x, k) => x === "sorted" ? k : -1).filter(k => k >= 0);
+                   return g.length ? "Indices " + g.join(", ") + " — the green ones."
+                                   : "None yet — no value has been fixed in place.";
+                 })() });
+
+  const nextCmp = findNext(x => x.kind === "compare" || x.kind === "compare-stop");
+  if(nextCmp) pool.push({ q: "Which two values get compared next?", a: nextCmp.desc });
+
+  if(algo === "bubble"){
+    const nc = findNext(x => x.kind === "swap" || x.kind === "noswap");
+    if(nc) pool.push({ q: "Will the next comparison cause a swap?",
+                       a: (nc.kind === "swap" ? "Yes. " : "No. ") + nc.desc });
+    const pd = findNext(x => x.kind === "pass-done");
+    if(pd) pool.push({ q: "What will the array look like at the end of this pass?",
+                       a: "[" + pd.main.join(" ") + "]" });
+  }
+  if(algo === "selection"){
+    const pd = findNext(x => x.kind === "swap" || x.kind === "noswap");
+    if(pd) pool.push({ q: "Which value will be placed at the front of the unsorted part this pass?",
+                       a: pd.main[pd.vars.i] + " goes to index " + pd.vars.i + "." });
+    if(s.vars.min !== undefined)
+      pool.push({ q: "What is the smallest value found so far in this pass?",
+                  a: s.main[s.vars.min] + ", at index " + s.vars.min + "." });
+  }
+  if(algo === "insertion"){
+    const ins = findNext(x => x.kind === "insert");
+    if(ins) pool.push({ q: "Where will the current key end up?",
+                        a: "At index " + (ins.vars.j + 1) + ". " + ins.desc });
+    const sh = findNext(x => x.kind === "shift" || x.kind === "insert");
+    if(sh) pool.push({ q: "How many values still have to shift right before the key lands?",
+                       a: (() => {
+                            let c = 0;
+                            for(let i = cursor + 1; i < steps.length; i++){
+                              if(steps[i].kind === "shift") c++;
+                              if(steps[i].kind === "insert") break;
+                            }
+                            return c + " shift" + (c === 1 ? "" : "s") + ".";
+                          })() });
+  }
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $("quizQ").textContent = pick.q;
+  pendingAnswer = pick.a;
+  $("quizA").classList.add("hidden");
+  $("quizCard").open = true;
+}
+
+/* ======================================================================== */
+/*  8. WIRING                                                                */
+/* ======================================================================== */
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => { algo = t.dataset.algo; load(array); }; // same data, new algorithm
+});
+
+$("startBtn").onclick  = () => { if(cursor >= steps.length - 1) render(0); play(); };
+$("pauseBtn").onclick  = pause;
+$("resumeBtn").onclick = play;
+$("nextBtn").onclick    = next;
+$("prevBtn").onclick    = prev;
+$("restartBtn").onclick = () => { stop(); render(0); play(); };
+$("resetBtn").onclick   = () => { stop(); render(0); $("modeTag").textContent = "idle"; };
+
+$("genBtn").onclick = () => load(makeArray(+$("size").value, $("shape").value));
+$("shape").onchange = () => load(makeArray(+$("size").value, $("shape").value));
+$("size").oninput   = () => { $("sizeOut").textContent = $("size").value; };
+$("size").onchange  = () => load(makeArray(+$("size").value, $("shape").value));
+
+$("customBtn").onclick = () => {
+  const raw = $("custom").value.split(/[\s,]+/).filter(Boolean).map(Number);
+  if(!raw.length || raw.some(isNaN)){
+    $("explain").textContent = "That input has something that is not a number. Use digits separated by commas or spaces, for example: 38, 27, 43, 3.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  if(raw.length < 2 || raw.length > 30){
+    $("explain").textContent = "Use between 2 and 30 values so the array stays readable.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  $("size").value = raw.length; $("sizeOut").textContent = raw.length;
+  load(raw);
+};
+
+$("speed").onchange = () => { if(timer) play(); };
+
+$("quizBtn").onclick   = askQuestion;
+$("revealBtn").onclick = () => {
+  if(!pendingAnswer) askQuestion();
+  $("quizA").textContent = pendingAnswer;
+  $("quizA").classList.remove("hidden");
+};
+
+$("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  $("themeBtn").textContent = dark ? "◑ Dark mode" : "◐ Light mode";
+};
+
+document.addEventListener("keydown", (e) => {
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if(e.code === "Space"){ e.preventDefault(); timer ? pause() : play(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); next(); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); prev(); }
+});
+
+load(array);
+</script>
+</body>
+</html>

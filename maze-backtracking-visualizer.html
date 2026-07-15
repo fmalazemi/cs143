@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maze backtracking — try, fail, undo, try again</title>
+<style>
+/* =========================================================================
+   THEME TOKENS — same visual language as the merge sort, quadratic-three,
+   binary search and quicksort visualizers, so all five read as one set. The
+   colours below are fixed roles used by the legend, never decoration.
+   ========================================================================= */
+:root{
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --c-current:#3b82f6;   /* blue   - the cell this call is standing on */
+  --c-solution:#22c55e;  /* green  - a path that reaches the exit      */
+  --c-trying:#eab308;    /* yellow - the neighbour being tried         */
+  --c-undo:#f97316;      /* orange - backtracking: undoing a choice    */
+  --c-open:#8a93a6;      /* gray   - open, not visited                 */
+  --c-reject:#ef4444;    /* red    - move rejected                     */
+  --c-path:#e879f9;      /* pink   - on the current path (the trail)   */
+}
+html[data-theme="dark"]{
+  --bg:#0d1017; --bg-grid:rgba(255,255,255,.035);
+  --panel:#151a24; --panel-2:#1b2230; --wall:#2a3244;
+  --ink:#e8ecf3; --ink-soft:#98a2b6; --line:#2c3547;
+  --accent:#a78bfa; --accent-soft:rgba(167,139,250,.16);
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+html[data-theme="light"]{
+  --bg:#f2f3f7; --bg-grid:rgba(20,30,60,.04);
+  --panel:#ffffff; --panel-2:#f7f8fb; --wall:#2f3746;
+  --ink:#141a24; --ink-soft:#5d6879; --line:#dfe3ec;
+  --accent:#6d3bf5; --accent-soft:rgba(109,59,245,.10);
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+  --c-path:#c026d3;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    var(--bg);
+  color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------------------------------------------------------------- header */
+header.top{display:flex; align-items:flex-end; gap:18px; flex-wrap:wrap;
+  padding:22px 24px 16px; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, var(--panel), transparent)}
+.brand h1{font-family:var(--font-display); font-weight:400; font-size:30px;
+  letter-spacing:-.015em; margin:0}
+.brand h1 em{font-style:italic; color:var(--accent)}
+.brand p{margin:2px 0 0; color:var(--ink-soft); font-size:13px;
+  font-family:var(--font-mono); letter-spacing:.02em}
+.top .spacer{flex:1}
+.icon-btn{font-family:var(--font-mono); font-size:12px; background:var(--panel-2);
+  color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+
+/* -------------------------------------------------------------- variants */
+.picker{display:flex; padding:0 24px; border-bottom:1px solid var(--line);
+  background:var(--panel); overflow-x:auto}
+.tab{appearance:none; background:none; border:0; cursor:pointer;
+  padding:14px 20px 12px; border-bottom:3px solid transparent;
+  color:var(--ink-soft); text-align:left; white-space:nowrap; font-family:var(--font-body)}
+.tab b{display:block; font-size:15px; font-weight:700; letter-spacing:-.01em}
+.tab span{display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+.tab[aria-selected="true"] span{color:var(--accent)}
+
+/* ------------------------------------------------------------- structure */
+main{display:grid; grid-template-columns:1fr 340px; gap:16px; padding:16px 24px 60px; align-items:start}
+@media (max-width:1040px){ main{grid-template-columns:1fr; padding:14px} }
+.col{display:flex; flex-direction:column; gap:16px; min-width:0}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden}
+.card > h2{margin:0; padding:11px 14px; font-family:var(--font-mono); font-size:11px;
+  font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+  border-bottom:1px solid var(--line); background:var(--panel-2);
+  display:flex; align-items:center; gap:8px}
+.card > h2 .tag{margin-left:auto; color:var(--accent); letter-spacing:.04em; text-transform:none}
+.card .body{padding:14px}
+
+details.card > summary{list-style:none; cursor:pointer; padding:11px 14px;
+  font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft); background:var(--panel-2);
+  border-bottom:1px solid transparent; display:flex; align-items:center; gap:8px}
+details.card[open] > summary{border-bottom-color:var(--line)}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::before{content:"▸"; color:var(--accent); transition:transform .18s}
+details.card[open] > summary::before{transform:rotate(90deg)}
+
+/* --------------------------------------------------------------- controls */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button.ctl{font-family:var(--font-body); font-size:13px; font-weight:600;
+  background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:9px; padding:9px 13px; cursor:pointer;
+  transition:transform .08s, border-color .15s, background .15s}
+button.ctl:hover:not(:disabled){border-color:var(--accent); background:var(--accent-soft)}
+button.ctl:active:not(:disabled){transform:translateY(1px)}
+button.ctl:disabled{opacity:.38; cursor:not-allowed}
+button.ctl.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+html[data-theme="dark"] button.ctl.primary{color:#12101c}
+button.ctl.primary:hover:not(:disabled){filter:brightness(1.08); background:var(--accent)}
+.field{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft);
+  font-family:var(--font-mono)}
+.field input[type=range]{accent-color:var(--accent); width:120px}
+.field select{font-family:var(--font-mono); font-size:12px; background:var(--panel-2);
+  color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:6px 8px}
+.divider{width:1px; align-self:stretch; background:var(--line); margin:0 4px}
+.rowgap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ---------------------------------------------------------------- maze */
+.maze-wrap{display:flex; justify-content:center; padding:18px 14px}
+.maze{display:grid; gap:3px}
+.cell{
+  position:relative; display:flex; align-items:center; justify-content:center;
+  border-radius:6px; border:2px solid transparent; cursor:pointer;
+  font-family:var(--font-mono); font-weight:700; line-height:1;
+  transition:background .22s, border-color .22s, color .22s, transform .22s;
+}
+.cell .corner{position:absolute; top:1px; left:3px; font-size:9px; opacity:.85; font-weight:700}
+.c-wall     {background:var(--wall); border-color:var(--wall); cursor:pointer}
+.c-open     {background:var(--panel-2); border-color:var(--line); color:var(--ink-soft)}
+.c-abandoned{background:var(--panel-2); border-color:var(--line); color:var(--ink-soft); opacity:.55}
+.c-path     {background:color-mix(in srgb, var(--c-path) 24%, transparent); border-color:var(--c-path); color:var(--c-path)}
+.c-current  {background:color-mix(in srgb, var(--c-current) 30%, transparent); border-color:var(--c-current); color:var(--c-current); transform:scale(1.06)}
+.c-trying   {background:color-mix(in srgb, var(--c-trying) 30%, transparent); border-color:var(--c-trying); color:var(--c-trying)}
+.c-reject   {background:color-mix(in srgb, var(--c-reject) 30%, transparent); border-color:var(--c-reject); color:var(--c-reject); animation:shake .3s}
+.c-undo     {background:color-mix(in srgb, var(--c-undo) 32%, transparent); border-color:var(--c-undo); color:var(--c-undo); animation:fade .4s}
+.c-solution {background:color-mix(in srgb, var(--c-solution) 30%, transparent); border-color:var(--c-solution); color:var(--c-solution)}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@keyframes fade{40%{transform:scale(1.16); opacity:.6}}
+.maze-hint{text-align:center; font-family:var(--font-mono); font-size:11px;
+  color:var(--ink-soft); padding:0 14px 14px}
+
+/* ---------------------------------------------------------- the compass
+   The signature panel: what the algorithm can actually see from where it is
+   standing. Four neighbours, a fixed try order, and a verdict for each. */
+.compass-wrap{padding:16px; display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+  justify-content:center}
+.compass{display:grid; grid-template-columns:repeat(3, 66px); grid-template-rows:repeat(3, 58px); gap:5px}
+.slot{border-radius:8px; border:2px dashed var(--line); background:transparent;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:10px; color:var(--ink-soft); text-align:center;
+  padding:2px; position:relative; transition:all .2s}
+.slot.blank{border:0}
+.slot .big{font-size:17px; font-weight:700; line-height:1.1}
+.slot .ord{position:absolute; top:2px; left:4px; font-size:9px; opacity:.7}
+.slot.here{border-style:solid; border-color:var(--c-current); color:var(--c-current);
+  background:color-mix(in srgb,var(--c-current) 16%,transparent)}
+.slot.pending{border-style:dashed}
+.slot.trying{border-style:solid; border-color:var(--c-trying); color:var(--c-trying);
+  background:color-mix(in srgb,var(--c-trying) 18%,transparent)}
+.slot.rejected{border-style:solid; border-color:var(--c-reject); color:var(--c-reject);
+  background:color-mix(in srgb,var(--c-reject) 14%,transparent)}
+.slot.failed{border-style:solid; border-color:var(--c-undo); color:var(--c-undo);
+  background:color-mix(in srgb,var(--c-undo) 12%,transparent)}
+.slot.success{border-style:solid; border-color:var(--c-solution); color:var(--c-solution);
+  background:color-mix(in srgb,var(--c-solution) 16%,transparent)}
+.compass-key{font-size:12.5px; color:var(--ink-soft); max-width:280px}
+.compass-key b{color:var(--ink)}
+.compass-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px; padding:14px}
+
+/* ---------------------------------------------------- explanation + code */
+.explain{font-size:15px; line-height:1.6; min-height:70px}
+.explain .kicker{font-family:var(--font-mono); font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); display:block; margin-bottom:4px}
+.progress{height:4px; background:var(--panel-2); border-radius:99px; overflow:hidden;
+  margin-top:12px; border:1px solid var(--line)}
+.progress i{display:block; height:100%; background:var(--accent); width:0; transition:width .2s}
+.step-counter{font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); margin-top:6px}
+
+pre.code{margin:0; font-family:var(--font-mono); font-size:12px; line-height:1.7}
+pre.code div{padding:1px 8px; border-radius:5px; border-left:2px solid transparent; white-space:pre}
+pre.code div.hl{background:var(--accent-soft); border-left-color:var(--accent); color:var(--ink); font-weight:600}
+
+/* -------------------------------------------------------- variable watch */
+.watch{display:flex; flex-wrap:wrap; gap:8px}
+.chip{font-family:var(--font-mono); font-size:12.5px; padding:6px 10px; border-radius:8px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft)}
+.chip b{color:var(--ink); font-weight:600}
+.chip.hot{border-color:var(--accent); background:var(--accent-soft)}
+
+/* ------------------------------------------------------------ call stack */
+.stack{display:flex; flex-direction:column-reverse; gap:4px; max-height:240px; overflow:auto}
+.frame{font-family:var(--font-mono); font-size:12px; padding:5px 9px; border-radius:7px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft);
+  animation:push .2s ease-out}
+.frame.top{border-color:var(--c-current); color:var(--c-current);
+  background:color-mix(in srgb, var(--c-current) 14%, transparent)}
+@keyframes push{from{transform:translateX(-10px); opacity:0}}
+.stack-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* ------------------------------------------------------------ stats grid */
+.stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line)}
+.stat{background:var(--panel); padding:10px 12px}
+.stat b{display:block; font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--ink)}
+.stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft)}
+
+/* --------------------------------------------------------------- legend */
+.legend{display:flex; flex-direction:column; gap:8px}
+.legend div{display:flex; align-items:center; gap:9px; font-size:12.5px}
+.swatch{display:inline-block; flex:none; width:16px; height:16px; border-radius:5px; border:2px solid}
+.sw-current{border-color:var(--c-current); background:color-mix(in srgb,var(--c-current) 25%,transparent)}
+.sw-path{border-color:var(--c-path); background:color-mix(in srgb,var(--c-path) 25%,transparent)}
+.sw-trying{border-color:var(--c-trying); background:color-mix(in srgb,var(--c-trying) 25%,transparent)}
+.sw-reject{border-color:var(--c-reject); background:color-mix(in srgb,var(--c-reject) 25%,transparent)}
+.sw-undo{border-color:var(--c-undo); background:color-mix(in srgb,var(--c-undo) 25%,transparent)}
+.sw-solution{border-color:var(--c-solution); background:color-mix(in srgb,var(--c-solution) 25%,transparent)}
+.sw-open{border-color:var(--line); background:var(--panel-2)}
+.sw-wall{border-color:var(--wall); background:var(--wall)}
+
+/* ----------------------------------------------------------- complexity */
+.facts{display:flex; flex-direction:column; gap:0}
+.facts div{display:flex; justify-content:space-between; gap:10px; padding:7px 0;
+  border-bottom:1px dashed var(--line); font-size:13px}
+.facts div:last-child{border-bottom:0}
+.facts b{font-family:var(--font-mono); font-weight:600; text-align:right}
+.facts .yes{color:var(--c-solution)}
+.facts .no{color:var(--c-reject)}
+
+/* ---------------------------------------------------------------- notes */
+.notes h3{font-size:13px; margin:14px 0 3px; font-family:var(--font-body); font-weight:700}
+.notes h3:first-child{margin-top:0}
+.notes p{margin:0; font-size:13px; color:var(--ink-soft)}
+.notes code{font-family:var(--font-mono); font-size:12px}
+
+/* ----------------------------------------------------------------- quiz */
+.quiz-q{font-size:14px; font-weight:600; margin:0 0 10px}
+.quiz-a{font-family:var(--font-mono); font-size:13px; padding:9px 11px; border-radius:8px;
+  background:var(--accent-soft); border:1px solid var(--accent); color:var(--ink); margin-top:10px}
+.hidden{display:none !important}
+
+/* -------------------------------------------------------------- summary */
+.summary-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.summary-grid div{background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px}
+.summary-grid b{display:block; font-family:var(--font-mono); font-size:17px}
+.summary-grid span{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft)}
+.verdict{margin-top:12px; padding:10px 12px; border-radius:9px; font-size:13.5px;
+  border:1px solid var(--line); background:var(--panel-2)}
+.verdict.bad{border-color:var(--c-reject); color:var(--c-reject);
+  background:color-mix(in srgb,var(--c-reject) 10%,transparent)}
+.verdict.good{border-color:var(--c-solution); color:var(--c-solution);
+  background:color-mix(in srgb,var(--c-solution) 10%,transparent)}
+
+kbd{font-family:var(--font-mono); font-size:11px; background:var(--panel-2);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 5px}
+.shortcuts{display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-soft); font-size:12px;
+  padding:0 24px 30px}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Backtracking, <em>one honest step at a time</em></h1>
+    <p>try a direction · fail · undo the choice · try the next one</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" title="Switch between dark and light mode">◐ Light mode</button>
+</header>
+
+<div class="picker" role="tablist" aria-label="Choose a version">
+  <button class="tab" role="tab" data-algo="one" aria-selected="true"
+    title="The classic rat in a maze: stop at the first path found">
+    <b>Find one path</b><span>four directions, stop when it works</span></button>
+  <button class="tab" role="tab" data-algo="all" aria-selected="false"
+    title="Never stop early: explore every possible route">
+    <b>Find every path</b><span>exhaustive — the undo becomes essential</span></button>
+  <button class="tab" role="tab" data-algo="dr" aria-selected="false"
+    title="The simplified textbook version: you may only move down or right">
+    <b>Down &amp; Right only</b><span>the simplified version, no revisits possible</span></button>
+</div>
+
+<main>
+  <!-- ============================ LEFT COLUMN ============================ -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Controls <span class="tag" id="modeTag">idle</span></h2>
+      <div class="body">
+        <div class="controls">
+          <button class="ctl primary" id="startBtn" title="Play the animation from the current step">▶ Start</button>
+          <button class="ctl" id="pauseBtn" title="Pause the animation where it is">⏸ Pause</button>
+          <button class="ctl" id="resumeBtn" title="Continue playing from where you paused">▶ Resume</button>
+          <button class="ctl" id="prevBtn" title="Go back exactly one operation (Left Arrow)">◀ Previous step</button>
+          <button class="ctl" id="nextBtn" title="Perform exactly one operation (Right Arrow)">Next step ▶</button>
+          <button class="ctl" id="restartBtn" title="Replay the whole search">↻ Restart</button>
+          <button class="ctl" id="resetBtn" title="Clear the run and all statistics, keep the maze">✕ Reset</button>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="How fast the animation advances">
+            Very slow <input type="range" id="speed" min="1" max="9" value="6"> Very fast
+          </label>
+          <span class="divider"></span>
+          <label class="field" title="How big the grid is">
+            Grid <input type="range" id="size" min="5" max="13" step="2" value="9">
+            <b id="sizeOut" style="color:var(--ink)">9×9</b>
+          </label>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="What kind of maze to build">
+            Maze
+            <select id="shape">
+              <option value="perfect">Perfect maze (exactly one route)</option>
+              <option value="rooms">Random walls (may be unsolvable)</option>
+              <option value="comb">Comb (one long forced corridor)</option>
+              <option value="open">Open room (no walls at all)</option>
+            </select>
+          </label>
+          <button class="ctl" id="genBtn" title="Build a new maze of the chosen kind">⚄ Generate maze</button>
+          <button class="ctl" id="clearBtn" title="Remove every wall so you can draw your own">Clear walls</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>The maze <span class="tag" id="mazeTag"></span></h2>
+      <div class="maze-wrap"><div class="maze" id="maze"></div></div>
+      <div class="maze-hint">Click any cell to add or remove a wall and the search re-runs from scratch.
+        The rat starts at <b>S</b> (top-left) and wants <b>E</b> (bottom-right).</div>
+    </section>
+
+    <section class="card">
+      <h2>What is happening</h2>
+      <div class="body">
+        <div class="explain"><span class="kicker" id="stepKind">ready</span><span id="explain">Press Start.</span></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="step-counter" id="counter">step 0 / 0</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>What the rat can see from here <span class="tag" id="compassTag">nowhere yet</span></h2>
+      <div id="compassHost"><div class="compass-empty">The local view appears once the search steps onto a cell.</div></div>
+    </section>
+
+    <details class="card" id="quizCard">
+      <summary>Learning challenge</summary>
+      <div class="body">
+        <p class="quiz-q" id="quizQ">Press “Ask me something” at any point in the run.</p>
+        <div class="controls">
+          <button class="ctl" id="quizBtn" title="Get a question about the current state of the search">Ask me something</button>
+          <button class="ctl" id="revealBtn" title="Reveal the correct answer">Show answer</button>
+        </div>
+        <div class="quiz-a hidden" id="quizA"></div>
+      </div>
+    </details>
+
+    <section class="card hidden" id="summaryCard">
+      <h2>Run summary <span class="tag" id="summaryTag"></span></h2>
+      <div class="body">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="verdict" id="verdict"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ RIGHT COLUMN =========================== -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Statistics</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Colour legend</h2>
+      <div class="body legend">
+        <div><i class="swatch sw-current"></i> Blue — the cell this call stands on</div>
+        <div><i class="swatch sw-path"></i> Pink — on the current path (the trail)</div>
+        <div><i class="swatch sw-trying"></i> Yellow — the neighbour being tried</div>
+        <div><i class="swatch sw-reject"></i> Red — move rejected</div>
+        <div><i class="swatch sw-undo"></i> Orange — undoing a choice</div>
+        <div><i class="swatch sw-solution"></i> Green — a path that reaches the exit</div>
+        <div><i class="swatch sw-open"></i> Gray — open; dimmed means tried and abandoned</div>
+        <div><i class="swatch sw-wall"></i> Solid — wall</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Variable watch <span class="tag" id="watchTag"></span></h2>
+      <div class="body"><div class="watch" id="watch"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>Call stack <span class="tag">this IS the path</span></h2>
+      <div class="body"><div class="stack" id="stack"></div></div>
+    </section>
+
+    <details class="card" open>
+      <summary><span id="codeTitle">Pseudocode</span></summary>
+      <div class="body"><pre class="code" id="code"></pre></div>
+    </details>
+
+    <section class="card">
+      <h2>Complexity <span class="tag" id="cxTag"></span></h2>
+      <div class="body facts" id="facts"></div>
+    </section>
+
+    <details class="card" open>
+      <summary>Why it works this way</summary>
+      <div class="body notes" id="notes"></div>
+    </details>
+
+    <details class="card">
+      <summary>The backtracking recipe</summary>
+      <div class="body notes">
+        <h3>Three lines, every time</h3>
+        <p>Choose, explore, un-choose. Mark the cell, recurse, unmark the cell. Every backtracking problem you will ever meet — N-queens, sudoku, permutations, subsets, graph colouring — is those same three lines with a different notion of “choice” and a different test for “valid”.</p>
+        <h3>The undo is the whole idea</h3>
+        <p>Without the unmark, the state you leave behind belongs to a branch that failed, and it poisons every branch tried afterwards. The recursion has to hand back the world exactly as it received it. Watch the orange steps: that is the algorithm cleaning up after itself.</p>
+        <h3>Pruning is where the speed is</h3>
+        <p>The three rejections here — off the grid, a wall, already on the path — kill a branch before a single recursive call is made. Every rejected move is an entire sub-tree of futures never explored. Better pruning beats a faster computer every time.</p>
+        <h3>It is depth-first, and it shows</h3>
+        <p>Backtracking commits hard to one guess and only reconsiders when reality says no. That is why the first path found is almost never the shortest — it is just the first one the try-order happened to walk into. If you need the shortest path, you want breadth-first search, not this.</p>
+        <h3>Try-order changes everything (and nothing)</h3>
+        <p>This page tries Down, Right, Up, Left. Change that order and you get a different path, different dead ends, a different number of steps — but the same answer to “is there a path?”. The order is a heuristic, not part of the correctness.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>Things worth trying</summary>
+      <div class="body notes">
+        <h3>The point of a “perfect” maze</h3>
+        <p>Generate a perfect maze and run “Find every path”. The answer comes back as exactly 1 — that is the definition of perfect: between any two cells there is one route and no loops. The same maze under “Find one path” finds that same route.</p>
+        <h3>Watch an exponential blow up</h3>
+        <p>Set the maze to “Open room” and run “Find every path” on 5×5. There is no cleverness left to save you: the number of routes is the answer, and the answer is enormous. The run will hit this page's step limit and say so. That is not a bug in the code — it is the shape of the problem.</p>
+        <h3>Proving a negative</h3>
+        <p>Pick “Random walls” until you get an unsolvable maze, or just wall off the exit yourself by clicking. The search visits everything it can reach and returns false. “No path exists” is a real answer, and exhaustive search is how you earn it.</p>
+        <h3>The comb: all pruning, no backtracking</h3>
+        <p>The comb is one long snake with no branches at all, so its dead-end counter finishes on <b>zero</b> — there is never a choice to regret. Yet a 9×9 comb still rejects about 40 moves across 89 calls. That is the honest lesson: most of what a backtracking search does is not backtracking, it is testing moves and throwing them away. Compare it with a perfect maze of the same size, which hits roughly 13 dead ends.</p>
+        <h3>Draw your own trap</h3>
+        <p>Click cells to build a corridor that looks promising and dead-ends at the last moment. Watch how much work the algorithm does before it discovers what you already know.</p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<div class="shortcuts">
+  <span>Keyboard:</span>
+  <span><kbd>Space</kbd> pause / resume</span>
+  <span><kbd>→</kbd> next step</span>
+  <span><kbd>←</kbd> previous step</span>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   MAZE BACKTRACKING VISUALIZER
+   --------------------------------------------------------------------------
+   Same architecture as the rest of this set: the search runs ONCE up front
+   while an instrumented recorder takes a full snapshot after every logical
+   operation (call, rejection, mark, try a direction, backtrack, return).
+   Playback is then just "render snapshot #i", so Next Step, Previous Step,
+   pause, resume and replay are all exact.
+
+   Backtracking is genuinely exponential, so the recorder has a hard step
+   limit. Hitting it is not an error — it is the lesson, and it is reported
+   as such rather than hidden.
+   ========================================================================== */
+
+const MAX_STEPS = 14000;              // a hard cap: backtracking can be endless
+function Abort(){}                    // sentinel thrown when the cap is reached
+
+/* four directions, in the order the algorithm tries them */
+const DIRS = [
+  { name:"Down",  dr: 1, dc: 0, ch:"↓" },
+  { name:"Right", dr: 0, dc: 1, ch:"→" },
+  { name:"Up",    dr:-1, dc: 0, ch:"↑" },
+  { name:"Left",  dr: 0, dc:-1, ch:"←" }
+];
+
+const ALGOS = {
+  one: {
+    name: "Find one path",
+    dirs: 4,
+    code: [
+      "SolveMaze(r, c)",
+      "  if (r, c) is off the grid       return false",
+      "  if maze[r][c] is a wall         return false",
+      "  if (r, c) is already on path    return false",
+      "  mark (r, c) as on the path",
+      "  if (r, c) is the exit           return true",
+      "  for each direction in D, R, U, L",
+      "      if SolveMaze(next cell)     return true",
+      "  unmark (r, c)      // BACKTRACK",
+      "  return false"
+    ],
+    facts: [
+      ["Strategy", "depth-first + undo", ""],
+      ["Time (worst)", "O(4^(n²))", "no"],
+      ["Time (if you never unmark)", "O(n²)", "yes"],
+      ["Space", "O(n²)", ""],
+      ["Finds shortest path", "No", "no"],
+      ["Proves “no path”", "Yes", "yes"],
+      ["Recursive", "Yes", "yes"]
+    ],
+    notes: [
+      ["How it thinks", "Stand on a cell. Try to go Down; if that whole direction eventually fails, try Right, then Up, then Left. If every direction fails, this cell is a dead end — step off it, undo the mark, and report failure to whoever sent you here. A <code>true</code> anywhere in the chain shoots straight back to the top and the search stops."],
+      ["Why mark cells at all", "Without it, the rat walks Down then Up then Down forever. The mark says “I am already standing on this cell higher up the stack”, and it is what turns an infinite walk into a finite search. It is not an optimisation, it is the termination argument."],
+      ["Why the unmark is honest but wasteful here", "Undoing on failure is the textbook rat-in-a-maze, and it is what makes “backtracking” backtracking. But for the single question <em>is there a path</em>, unmarking is not needed: a failed cell fails again from any other route. Leave the marks permanent and this becomes plain depth-first search at O(n²) instead of exponential. The unmark only earns its keep when you need every path, or paths with extra constraints."],
+      ["Why the first path is not the shortest", "The try order decides everything. Down comes first, so the rat dives to the bottom of the maze before it ever considers going Right. The path it hands back is simply the first one it stumbled into — often a wandering mess. Shortest paths need breadth-first search."],
+      ["What the return value carries", "Only <code>true</code> or <code>false</code>. The path itself is never returned — it is the set of cells still marked when <code>true</code> reaches the top, which is exactly the chain of frames on the call stack. The stack IS the path."]
+    ]
+  },
+  all: {
+    name: "Find every path",
+    dirs: 4,
+    code: [
+      "CountPaths(r, c)",
+      "  if (r, c) is off the grid       return 0",
+      "  if maze[r][c] is a wall         return 0",
+      "  if (r, c) is already on path    return 0",
+      "  mark (r, c) as on the path",
+      "  if (r, c) is the exit",
+      "      record this path",
+      "      unmark (r, c)",
+      "      return 1",
+      "  total = 0",
+      "  for each direction in D, R, U, L",
+      "      total += CountPaths(next cell)",
+      "  unmark (r, c)      // BACKTRACK",
+      "  return total"
+    ],
+    facts: [
+      ["Strategy", "exhaustive + undo", ""],
+      ["Time", "Θ(paths × length)", "no"],
+      ["Time (worst)", "O(4^(n²))", "no"],
+      ["Space", "O(n²)", ""],
+      ["Can early-exit", "No", "no"],
+      ["Unmark required", "Yes", "yes"],
+      ["Recursive", "Yes", "yes"]
+    ],
+    notes: [
+      ["How it differs", "One line: it never returns early on success. Finding the exit records a path and then keeps going, because a different route might reach it too. The result is a count instead of a yes/no."],
+      ["Now the unmark is mandatory", "In the single-path version, unmarking was optional. Here it is the whole thing. A cell used by path #1 must be free for path #2 to walk through, so it has to be released the moment its branch is done. Delete the unmark and this reports 1 path and stops being correct."],
+      ["Why it unmarks after a success too", "Look at the code: the exit gets marked, counted, and unmarked before returning 1. Every branch leaves the board exactly as it found it — no exceptions, not even the winning one. That symmetry is what makes the recursion trustworthy."],
+      ["Why it is genuinely exponential", "Here you cannot blame the algorithm. The <em>answer</em> is exponential: an open 5×5 grid has thousands of corner-to-corner routes, and any program that lists them all must do that much work. Try “Open room” and watch this page hit its step limit — that is the problem's shape, not the code's fault."],
+      ["When this is what you want", "Counting solutions, not finding one: how many ways to make change, how many valid sudoku grids, how many placements of n queens. Same skeleton, same three lines, and no shortcut exists."]
+    ]
+  },
+  dr: {
+    name: "Down & Right only",
+    dirs: 2,
+    code: [
+      "SolveMaze(r, c)",
+      "  if (r, c) is off the grid       return false",
+      "  if maze[r][c] is a wall         return false",
+      "  mark (r, c) as on the path",
+      "  if (r, c) is the exit           return true",
+      "  if SolveMaze(r + 1, c)          return true   // Down",
+      "  if SolveMaze(r, c + 1)          return true   // Right",
+      "  unmark (r, c)      // BACKTRACK",
+      "  return false"
+    ],
+    facts: [
+      ["Strategy", "depth-first + undo", ""],
+      ["Time (worst)", "O(2^(2n))", "no"],
+      ["Time (with memoisation)", "O(n²)", "yes"],
+      ["Space", "O(n²)", ""],
+      ["“Visited” check needed", "No", "yes"],
+      ["Path length", "always 2n − 1 cells", ""],
+      ["Recursive", "Yes", "yes"]
+    ],
+    notes: [
+      ["The version most textbooks start with", "Two moves instead of four. Everything gets simpler, and one thing disappears entirely: there is no “already visited” test in the code, and there does not need to be."],
+      ["Why no visited check is needed", "Every move increases r or c, and neither ever decreases. So the walk can never return to a cell it has already been on — a cycle is arithmetically impossible. The mark here exists only to draw the trail; delete it and the algorithm still works. Compare that with the four-direction version, where dropping the check hangs forever."],
+      ["Why every path is the same length", "From (0,0) to (n−1,n−1) you must make exactly n−1 downs and n−1 rights, in some order. Every route is 2n−1 cells long. So the first path found <em>is</em> a shortest path — the only version on this page where that is true, and only by accident."],
+      ["Why this one becomes dynamic programming", "It is still exponential, because it re-solves the same cell through every route that reaches it. But the answer for a cell depends only on the cell, not on how you arrived — so cache it. That cache is exactly the classic “count paths in a grid” DP, and it turns O(2^(2n)) into O(n²). The four-direction version cannot be memoised this way: there, the answer <em>does</em> depend on the path taken to get there."],
+      ["When it fails and the other version does not", "Any maze needing a detour up or left is unsolvable to this version even when a path plainly exists. Draw one with a click and watch it give up while you can see the way through."]
+    ]
+  }
+};
+
+/* --------------------------------- state -------------------------------- */
+let algo   = "one";
+let N      = 9;
+let grid   = [];      // 1 = wall, 0 = open
+let steps  = [];
+let cursor = -1;
+let timer  = null;
+let runMs  = 0;
+
+const $ = (id) => document.getElementById(id);
+
+/* ======================================================================== */
+/*  1. MAZE GENERATION                                                       */
+/* ======================================================================== */
+
+function makeMaze(n, shape){
+  const g = Array.from({length:n}, () => new Array(n).fill(0));
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+  if(shape === "open"){ /* no walls at all */ }
+
+  else if(shape === "rooms"){
+    for(let r = 0; r < n; r++) for(let c = 0; c < n; c++)
+      if(Math.random() < 0.30) g[r][c] = 1;
+  }
+
+  else if(shape === "comb"){
+    // vertical teeth with a single gap, alternating bottom and top: the Down-first
+    // try order walks straight into every tooth
+    for(let c = 1; c < n; c += 2){
+      const gap = (c % 4 === 1) ? n - 1 : 0;
+      for(let r = 0; r < n; r++) if(r !== gap) g[r][c] = 1;
+    }
+  }
+
+  else {
+    // Perfect maze by randomised Prim's: a spanning tree over the even-indexed
+    // cells, so exactly one route joins any two of them.
+    //
+    // Prim's, not the recursive backtracker, on purpose. The recursive
+    // backtracker is biased toward long winding corridors with very few
+    // junctions — pretty, but a maze with no branches gives a backtracking
+    // search nothing to back out of. Prim's grows outward from the start and
+    // leaves junctions and short dead ends everywhere, which is exactly what
+    // this page is here to show.
+    for(let r = 0; r < n; r++) for(let c = 0; c < n; c++) g[r][c] = 1;
+    const inMaze = Array.from({length:n}, () => new Array(n).fill(false));
+    const jumps = [[2,0],[0,2],[-2,0],[0,-2]];
+    const inGrid = (r, c) => r >= 0 && c >= 0 && r < n && c < n;
+
+    g[0][0] = 0; inMaze[0][0] = true;
+    const frontier = jumps.map(([dr, dc]) => [0 + dr, 0 + dc]).filter(([r, c]) => inGrid(r, c));
+
+    while(frontier.length){
+      const pick = rnd(0, frontier.length - 1);
+      const [fr, fc] = frontier[pick];
+      frontier.splice(pick, 1);
+      if(inMaze[fr][fc]) continue;
+
+      // join the frontier cell to a neighbour that is already part of the maze
+      const anchors = jumps.map(([dr, dc]) => [fr + dr, fc + dc])
+        .filter(([r, c]) => inGrid(r, c) && inMaze[r][c]);
+      if(!anchors.length) continue;
+      const [ar, ac] = anchors[rnd(0, anchors.length - 1)];
+      g[(fr + ar) / 2][(fc + ac) / 2] = 0;    // knock down the wall between
+      g[fr][fc] = 0; inMaze[fr][fc] = true;
+
+      jumps.map(([dr, dc]) => [fr + dr, fc + dc])
+        .filter(([r, c]) => inGrid(r, c) && !inMaze[r][c])
+        .forEach(cell => frontier.push(cell));
+    }
+  }
+
+  g[0][0] = 0; g[n - 1][n - 1] = 0;           // the entrance and the exit are never walls
+  return g;
+}
+
+/* ======================================================================== */
+/*  2. THE INSTRUMENTED SEARCH                                               */
+/*     Textbook backtracking — with a snap() after every logical operation.  */
+/* ======================================================================== */
+
+function record(g, mode){
+  const n      = g.length;
+  const dirs   = DIRS.slice(0, ALGOS[mode].dirs);
+  const out    = [];
+  const stack  = [];
+  const onPath = Array.from({length:n}, () => new Array(n).fill(false));
+  const gone   = Array.from({length:n}, () => new Array(n).fill(false)); // tried, abandoned
+  const arrow  = Array.from({length:n}, () => new Array(n).fill(""));
+  const stats  = { calls:0, marks:0, tries:0, rejects:0, deadEnds:0, depth:0, maxDepth:0,
+                   pathLen:0, maxPathLen:0, solutions:0, cells:n * n,
+                   open: g.flat().filter(v => v === 0).length };
+
+  // transient highlight state — set right before a snap, consumed by it
+  let cur = null, trying = null, rejected = null, undoing = null;
+  let solution = null;        // cells to paint green
+  let compass = null;
+  let vars = { n };
+  let lastReason = "";        // why the call that just returned gave up
+  let aborted = false;
+  let result = { ok:false, paths:0, path:null };
+
+  const isExit = (r, c) => r === n - 1 && c === n - 1;
+
+  /** Colour every cell according to the fixed legend priority. */
+  function paint(){
+    const s = [], gl = [];
+    for(let r = 0; r < n; r++) for(let c = 0; c < n; c++){
+      let st;
+      if(g[r][c] === 1) st = "wall";
+      else if(onPath[r][c]) st = "path";
+      else if(gone[r][c]) st = "abandoned";
+      else st = "open";
+      s.push(st);
+      gl.push(g[r][c] === 1 ? "" : (arrow[r][c] || (gone[r][c] && !onPath[r][c] ? "·" : "")));
+    }
+    if(cur)      s[cur[0] * n + cur[1]] = "current";
+    if(trying)   s[trying[0] * n + trying[1]] = "trying";
+    if(rejected && rejected[0] >= 0 && rejected[0] < n && rejected[1] >= 0 && rejected[1] < n)
+      s[rejected[0] * n + rejected[1]] = "reject";
+    if(undoing)  s[undoing[0] * n + undoing[1]] = "undo";
+    if(solution) solution.forEach(([r, c]) => { s[r * n + c] = "solution"; });
+    return { s, gl };
+  }
+
+  function snap(kind, desc, line){
+    if(out.length >= MAX_STEPS){ aborted = true; throw new Abort(); }
+    const p = paint();
+    out.push({
+      kind, desc, line,
+      cells:   p.s,
+      glyphs:  p.gl,
+      compass: compass ? JSON.parse(JSON.stringify(compass)) : null,
+      vars:    Object.assign({}, vars),
+      stack:   stack.slice(),
+      stats:   Object.assign({}, stats),
+      result:  Object.assign({}, result)
+    });
+    trying = null; rejected = null; undoing = null; solution = null;
+  }
+
+  /* ------------------------------ the search --------------------------- */
+  /** Returns true (mode "one"/"dr") or a path count (mode "all"). */
+  function solve(r, c, depth, from){
+    stats.calls++;
+    stats.depth = depth;
+    stats.maxDepth = Math.max(stats.maxDepth, depth);
+    const label = "Solve(" + r + "," + c + ")";
+    stack.push(label);
+    vars = { n, r, c, depth };
+
+    // ---- the three rejection tests, exactly as the pseudocode has them ----
+    if(r < 0 || c < 0 || r >= n || c >= n){
+      rejected = [r, c]; stats.rejects++;
+      snap("reject-oob", "Solve(" + r + "," + c + ") — that is off the grid entirely"
+        + (from ? " (" + from.name + " from the last cell walked out of the maze)" : "")
+        + ". Reject it immediately and return.", 1);
+      stack.pop(); stats.depth = Math.max(0, depth - 1);
+      lastReason = "off the grid";
+      return mode === "all" ? 0 : false;
+    }
+    if(g[r][c] === 1){
+      rejected = [r, c]; stats.rejects++;
+      snap("reject-wall", "Solve(" + r + "," + c + ") — that cell is a wall. Reject it and return. "
+        + "No recursive work happens here at all: the whole branch dies on one test.", 2);
+      stack.pop(); stats.depth = Math.max(0, depth - 1);
+      lastReason = "a wall";
+      return mode === "all" ? 0 : false;
+    }
+    if(mode !== "dr" && onPath[r][c]){
+      rejected = [r, c]; stats.rejects++;
+      snap("reject-visited", "Solve(" + r + "," + c + ") — the rat is already standing on that cell "
+        + "further up the call stack. Walking back onto it would loop forever, so reject it. This "
+        + "test is the reason the search terminates at all.", 3);
+      stack.pop(); stats.depth = Math.max(0, depth - 1);
+      lastReason = "already on the path";
+      return mode === "all" ? 0 : false;
+    }
+
+    // ---- choose: step onto the cell ----
+    const markLine = mode === "dr" ? 3 : 4;
+    onPath[r][c] = true;
+    arrow[r][c] = from ? from.ch : "";
+    stats.marks++;                        // a real step onto a cell, unlike a rejected call
+    stats.pathLen = depth + 1;
+    stats.maxPathLen = Math.max(stats.maxPathLen, stats.pathLen);
+    cur = [r, c];
+    snap("mark", "Step onto (" + r + "," + c + ") and mark it as part of the current path. The path is "
+      + "now " + stats.pathLen + " cell" + (stats.pathLen === 1 ? "" : "s") + " long — and it is exactly "
+      + "the chain of frames sitting on the call stack.", markLine);
+
+    // ---- the base case: the exit ----
+    if(isExit(r, c)){
+      // every marked cell = the path. Collected row-major, so this is a SET used for
+      // painting and for its length — the ORDERED route is the call stack, which the
+      // stack panel already shows.
+      const cells = [];
+      for(let a = 0; a < n; a++) for(let b = 0; b < n; b++) if(onPath[a][b]) cells.push([a, b]);
+      stats.solutions++;
+      solution = cells; cur = [r, c];
+      if(mode === "all"){
+        snap("found", "The exit. Path number " + stats.solutions + " found, " + cells.length
+          + " cells long. Record it — and then keep looking, because another route might reach the "
+          + "exit too.", 6);
+        onPath[r][c] = false; gone[r][c] = true; arrow[r][c] = "";
+        undoing = [r, c]; cur = null;
+        snap("undo-win", "Unmark the exit and return 1. Even the winning branch hands the board back "
+          + "exactly as it found it — otherwise the next path could not use this cell.", 7);
+        stack.pop(); stats.depth = Math.max(0, depth - 1);
+        lastReason = "a completed path";
+        return 1;
+      }
+      result = { ok:true, paths:1, path:cells };
+      snap("found", "The exit. There is a path, and this is it — " + cells.length + " cells, still "
+        + "marked, still sitting on the call stack. Return true, and that true will now shoot straight "
+        + "back down the stack without anything else being tried.",
+        mode === "dr" ? 4 : 5);
+      stack.pop(); stats.depth = Math.max(0, depth - 1);
+      lastReason = "the exit";
+      return true;
+    }
+
+    // ---- explore: try each direction in order ----
+    const myCompass = {
+      r, c,
+      dirs: dirs.map((d, k) => ({ name:d.name, ch:d.ch, order:k + 1, dr:d.dr, dc:d.dc,
+                                  status:"pending", note:"not tried yet" }))
+    };
+    let total = 0;
+
+    for(let k = 0; k < dirs.length; k++){
+      const d = dirs[k];
+      const nr = r + d.dr, nc = c + d.dc;
+      stats.tries++;
+      myCompass.dirs[k].status = "trying";
+      myCompass.dirs[k].note = "trying…";
+      compass = myCompass; cur = [r, c];
+      trying = (nr >= 0 && nc >= 0 && nr < n && nc < n) ? [nr, nc] : null;
+      vars = { n, r, c, depth, dir:d.name };
+      snap("try", "From (" + r + "," + c + ") try " + d.name + " " + d.ch + " → cell (" + nr + ","
+        + nc + "). This is choice " + (k + 1) + " of " + dirs.length + " in the fixed order "
+        + dirs.map(x => x.name[0]).join(", ") + ".",
+        mode === "dr" ? (k === 0 ? 5 : 6) : (mode === "all" ? 11 : 7));
+
+      const got = solve(nr, nc, depth + 1, d);
+
+      stats.depth = depth;
+      compass = myCompass; cur = [r, c]; vars = { n, r, c, depth };
+
+      if(mode === "all"){
+        total += got;
+        myCompass.dirs[k].status = got > 0 ? "success" : (lastReason === "off the grid"
+          || lastReason === "a wall" || lastReason === "already on the path" ? "rejected" : "failed");
+        myCompass.dirs[k].note = got > 0 ? got + " path" + (got === 1 ? "" : "s")
+                                         : lastReason;
+        snap("back", d.name + " came back with " + got + " path" + (got === 1 ? "" : "s")
+          + " (" + lastReason + "). Running total from (" + r + "," + c + "): " + total
+          + ". Carry on with the next direction — there is no early exit here.", 11);
+      } else {
+        if(got){
+          myCompass.dirs[k].status = "success";
+          myCompass.dirs[k].note = "leads to the exit";
+          snap("success", d.name + " leads to the exit. Return true straight away — the remaining "
+            + "directions are never even looked at, and every frame below this one will do the same.",
+            mode === "dr" ? (k === 0 ? 5 : 6) : 7);
+          stack.pop(); stats.depth = Math.max(0, depth - 1);
+          lastReason = "the exit";
+          return true;
+        }
+        const wasRejected = (lastReason === "off the grid" || lastReason === "a wall"
+                             || lastReason === "already on the path");
+        myCompass.dirs[k].status = wasRejected ? "rejected" : "failed";
+        myCompass.dirs[k].note = lastReason;
+        snap("back", d.name + " is no good — " + lastReason + ". "
+          + (k + 1 < dirs.length ? "Try the next direction." : "That was the last direction to try."),
+          mode === "dr" ? (k === 0 ? 5 : 6) : 7);
+      }
+    }
+
+    // ---- un-choose: THE backtrack ----
+    onPath[r][c] = false;
+    gone[r][c] = true;
+    arrow[r][c] = "";
+    stats.deadEnds++;
+    stats.pathLen = depth;
+    undoing = [r, c]; cur = null; compass = myCompass;
+    const undoLine = mode === "dr" ? 7 : (mode === "all" ? 12 : 8);
+    snap("backtrack", "Every direction from (" + r + "," + c + ") failed, so this cell leads nowhere "
+      + (mode === "all" ? "new" : "") + ". Unmark it, step back off it, and return "
+      + (mode === "all" ? total + "" : "false") + " to whoever called. THIS is the backtrack: the "
+      + "choice is undone and the board is handed back untouched.", undoLine);
+
+    stack.pop();
+    stats.depth = Math.max(0, depth - 1);
+    compass = null;
+    lastReason = "a dead end";
+    return mode === "all" ? total : false;
+  }
+
+  /* --------------------------- run + bookend --------------------------- */
+  vars = { n };
+  snap("ready", "The rat starts at S (0,0) and wants E (" + (n - 1) + "," + (n - 1) + "). At every "
+    + "cell it tries " + (dirs.length === 4 ? "Down, Right, Up, Left" : "Down, then Right")
+    + " in that order, and undoes any choice that leads nowhere.", 0);
+
+  const t0 = performance.now();
+  let r0;
+  try {
+    r0 = solve(0, 0, 0, null);
+  } catch(e){
+    if(!(e instanceof Abort)) throw e;
+  }
+  runMs = performance.now() - t0;
+
+  if(aborted){
+    // the cap is not an error: it IS the exponential lesson, so say so plainly
+    cur = null; trying = null; rejected = null; undoing = null; compass = null;
+    const p = paint();
+    out.push({
+      kind:"aborted", line:0,
+      desc: "Step limit reached: " + MAX_STEPS.toLocaleString() + " recorded operations and the search "
+        + "is still going. Nothing is broken — this maze simply has more routes than can be walked "
+        + "here. That is what exponential means, and it is exactly why backtracking needs pruning, "
+        + "memoisation, or a different algorithm. So far: " + stats.calls.toLocaleString() + " calls, "
+        + stats.deadEnds.toLocaleString() + " dead ends, " + stats.solutions.toLocaleString()
+        + " path" + (stats.solutions === 1 ? "" : "s") + " found.",
+      cells:p.s, glyphs:p.gl, compass:null, vars:{ n },
+      stack:[], stats:Object.assign({}, stats),
+      result:{ ok:stats.solutions > 0, paths:stats.solutions, path:null, aborted:true }
+    });
+    return out;
+  }
+
+  if(mode === "all"){
+    result = { ok: r0 > 0, paths: r0, path:null };
+    cur = null; compass = null;
+    snap("finished", r0 === 0
+      ? "Done. There is no route from S to E at all. The search proved it the only way it can: by "
+        + "trying every option and running out. It stepped onto " + stats.marks + " cells and hit "
+        + stats.deadEnds + " dead ends to earn that answer."
+      : "Done. There " + (r0 === 1 ? "is exactly 1 route" : "are " + r0 + " different routes")
+        + " from S to E. The board is back to how it started — every mark that was ever made has been "
+        + "undone, which is the sign of a well-behaved backtracking search.", 13);
+  } else {
+    if(r0){
+      solution = result.path;
+      cur = null; compass = null;
+      snap("finished", "Done. A path was found: " + result.path.length + " cells, shown in green. Note "
+        + "it is not necessarily the shortest one — it is the first one the Down-first try order "
+        + "walked into. " + stats.marks + " cells stepped on, " + stats.deadEnds + " dead ends, "
+        + stats.rejects + " moves rejected on sight.", mode === "dr" ? 4 : 5);
+    } else {
+      result = { ok:false, paths:0, path:null };
+      cur = null; compass = null;
+      snap("finished", "Done. There is no path from S to E"
+        + (mode === "dr" ? " using only Down and Right moves — there may well be one if the rat were "
+            + "allowed to go up or left. Switch to “Find one path” and see." : " at all.")
+        + " The search proved it by exhausting every option: " + stats.marks + " cells stepped on, "
+        + stats.deadEnds + " dead ends, and the board is back exactly as it started.",
+        mode === "dr" ? 8 : 9);
+    }
+  }
+
+  return out;
+}
+
+/* ======================================================================== */
+/*  3. RENDERING                                                             */
+/* ======================================================================== */
+
+function buildGrid(){
+  const host = $("maze");
+  const px = Math.max(26, Math.min(46, Math.floor(520 / N)));
+  host.innerHTML = "";
+  host.style.gridTemplateColumns = "repeat(" + N + ", " + px + "px)";
+  for(let r = 0; r < N; r++) for(let c = 0; c < N; c++){
+    const d = document.createElement("div");
+    d.className = "cell c-open";
+    d.style.width = px + "px"; d.style.height = px + "px";
+    d.style.fontSize = Math.round(px * 0.46) + "px";
+    d.dataset.r = r; d.dataset.c = c;
+    d.title = "(" + r + "," + c + ") — click to toggle a wall";
+    const corner = (r === 0 && c === 0) ? "S" : (r === N - 1 && c === N - 1) ? "E" : "";
+    d.innerHTML = (corner ? '<span class="corner">' + corner + "</span>" : "") + '<span class="glyph"></span>';
+    d.onclick = () => toggleWall(r, c);
+    host.appendChild(d);
+  }
+}
+
+function toggleWall(r, c){
+  if((r === 0 && c === 0) || (r === N - 1 && c === N - 1)){
+    $("explain").textContent = "The entrance and the exit are always open — walling one off would make "
+      + "the question meaningless. Try any other cell.";
+    $("stepKind").textContent = "not that one";
+    return;
+  }
+  grid[r][c] = grid[r][c] ? 0 : 1;
+  load(grid);
+}
+
+function render(i){
+  const s = steps[i];
+  if(!s) return;
+  cursor = i;
+
+  const cells = $("maze").children;
+  for(let k = 0; k < cells.length; k++){
+    cells[k].className = "cell c-" + s.cells[k];
+    cells[k].querySelector(".glyph").textContent = s.glyphs[k];
+  }
+
+  $("explain").textContent = s.desc;
+  $("stepKind").textContent = ({
+    ready:"the setup", "reject-oob":"off the grid", "reject-wall":"a wall",
+    "reject-visited":"already on the path", mark:"choose: step on", try:"try a direction",
+    back:"that way failed", success:"it leads to the exit", found:"the exit",
+    "undo-win":"undo, even on a win", backtrack:"un-choose: BACKTRACK",
+    finished:"finished", aborted:"step limit"
+  })[s.kind] || s.kind;
+
+  $("bar").style.width = (i / (steps.length - 1) * 100) + "%";
+  $("counter").textContent = "step " + i + " / " + (steps.length - 1);
+
+  paintCode(ALGOS[algo].code, s.line);
+
+  /* the compass: what the algorithm can see from where it stands */
+  const host = $("compassHost");
+  if(!s.compass){
+    $("compassTag").textContent = "nowhere yet";
+    host.innerHTML = '<div class="compass-empty">The local view appears once the search steps onto a cell.</div>';
+  } else {
+    $("compassTag").textContent = "standing on (" + s.compass.r + "," + s.compass.c + ")";
+    const at = {};
+    s.compass.dirs.forEach(d => { at[d.dr + "," + d.dc] = d; });
+    const slot = (dr, dc) => {
+      if(dr === 0 && dc === 0)
+        return '<div class="slot here"><span class="big">◉</span>here (' + s.compass.r + ","
+             + s.compass.c + ")</div>";
+      const d = at[dr + "," + dc];
+      if(!d) return '<div class="slot blank"></div>';
+      return '<div class="slot ' + d.status + '"><span class="ord">' + d.order + '</span>'
+           + '<span class="big">' + d.ch + "</span>" + d.name + "<br>" + d.note + "</div>";
+    };
+    host.innerHTML =
+      '<div class="compass-wrap"><div class="compass">' +
+        '<div class="slot blank"></div>' + slot(-1, 0) + '<div class="slot blank"></div>' +
+        slot(0, -1) + slot(0, 0) + slot(0, 1) +
+        '<div class="slot blank"></div>' + slot(1, 0) + '<div class="slot blank"></div>' +
+      '</div><div class="compass-key">The number in each corner is the <b>try order</b>. The algorithm '
+      + 'has no map — from this cell it can only test its neighbours one at a time, in that fixed '
+      + 'order, and believe whatever the recursion reports back.</div></div>';
+  }
+
+  /* variable watch */
+  const v = s.vars, chips = [];
+  const chip = (k, val, cls) => '<span class="chip ' + (cls || "") + '">' + k + " = <b>" + val + "</b></span>";
+  chips.push(chip("grid", v.n + "×" + v.n));
+  if(v.r !== undefined) chips.push(chip("r", v.r, "hot"));
+  if(v.c !== undefined) chips.push(chip("c", v.c, "hot"));
+  if(v.depth !== undefined) chips.push(chip("depth", v.depth));
+  if(v.dir !== undefined) chips.push(chip("trying", v.dir, "hot"));
+  $("watch").innerHTML = chips.join("");
+  $("watchTag").textContent = ALGOS[algo].name.toLowerCase();
+
+  /* call stack — which is literally the path */
+  $("stack").innerHTML = s.stack.length
+    ? s.stack.map((f, k) => '<div class="frame' + (k === s.stack.length - 1 ? " top" : "") + '">'
+        + f + "</div>").join("")
+    : '<div class="stack-empty">empty — no call in progress</div>';
+
+  /* stats */
+  $("stats").innerHTML = [
+    ["Cells stepped on", s.stats.marks],
+    ["Recursive calls", s.stats.calls],
+    ["Moves rejected", s.stats.rejects],
+    ["Dead ends (backtracks)", s.stats.deadEnds],
+    ["Current path length", s.stats.pathLen],
+    [algo === "all" ? "Paths found" : "Longest path tried", algo === "all" ? s.stats.solutions : s.stats.maxPathLen]
+  ].map(([k, val]) => '<div class="stat"><b>' + val + "</b><span>" + k + "</span></div>").join("");
+
+  if(s.kind === "finished" || s.kind === "aborted") showSummary(s);
+  else $("summaryCard").classList.add("hidden");
+  syncButtons();
+}
+
+function paintCode(lines, hl){
+  $("code").innerHTML = lines.map((l, k) =>
+    "<div" + (k === hl ? ' class="hl"' : "") + ">" + l.replace(/</g, "&lt;") + "</div>").join("");
+}
+
+function showSummary(s){
+  $("summaryCard").classList.remove("hidden");
+  const st = s.stats;
+  $("summaryTag").textContent = s.result.aborted ? "step limit"
+    : s.result.ok ? (algo === "all" ? s.result.paths + " paths" : "solved") : "no path exists";
+  $("summaryGrid").innerHTML = [
+    ["Cells stepped on", st.marks],
+    ["Recursive calls", st.calls],
+    ["Moves rejected", st.rejects],
+    ["Deepest recursion", st.maxDepth],
+    [algo === "all" ? "Paths found" : "Path length", algo === "all" ? st.solutions
+      : (s.result.path ? s.result.path.length : "—")],
+    ["Search run time", runMs.toFixed(2) + " ms"]
+  ].map(([k, v]) => "<div><b>" + v + "</b><span>" + k + "</span></div>").join("");
+
+  const el = $("verdict");
+  if(s.result.aborted){
+    el.className = "verdict bad";
+    el.textContent = "The search was cut off at " + MAX_STEPS.toLocaleString() + " recorded steps. "
+      + "This is the honest face of exponential growth: with " + st.open + " open cells there are more "
+      + "routes than can be enumerated, and no amount of tidy code changes that. Use a smaller grid, "
+      + "or a maze with fewer choices, to see the search finish.";
+  } else if(!s.result.ok){
+    el.className = "verdict bad";
+    el.textContent = "No path exists" + (algo === "dr" ? " using only Down and Right moves" : "")
+      + " — and the search proved it. It stepped onto " + st.marks + " cells, hit " + st.deadEnds
+      + " dead ends, and undid every mark it ever made. Exhausting the options is the only way to be "
+      + "sure of a negative.";
+  } else if(algo === "all"){
+    el.className = "verdict good";
+    el.textContent = st.solutions + (st.solutions === 1 ? " route" : " different routes") + " from S to E, "
+      + "found by exploring " + st.tries + " moves and undoing every one of them. "
+      + (st.solutions === 1 ? "Exactly one route is the signature of a perfect maze: no loops, no choices "
+         + "that matter." : "Every extra loop in the maze multiplies this number.");
+  } else {
+    el.className = "verdict good";
+    const len = s.result.path.length;
+    el.textContent = "Found a path of " + len + " cells after stepping onto " + st.marks
+      + " and backing out of " + st.deadEnds + ". Remember it is the FIRST path the try order found, "
+      + "not the shortest — a shortest-path search would need breadth-first, not backtracking.";
+  }
+}
+
+function renderAlgoPanels(){
+  const A = ALGOS[algo];
+  $("codeTitle").textContent = A.name + " pseudocode";
+  $("cxTag").textContent = A.name.toLowerCase();
+  $("facts").innerHTML = A.facts.map(([k, v, cls]) =>
+    "<div><span>" + k + "</span><b" + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</b></div>").join("");
+  $("notes").innerHTML = A.notes.map(([h, p]) => "<h3>" + h + "</h3><p>" + p + "</p>").join("");
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-selected", t.dataset.algo === algo ? "true" : "false"));
+}
+
+/* ======================================================================== */
+/*  4. PLAYBACK                                                              */
+/* ======================================================================== */
+
+const delayFor = () => [0, 1400, 1000, 750, 520, 360, 240, 150, 90, 45][+$("speed").value];
+
+function play(){
+  stop();
+  if(cursor >= steps.length - 1) cursor = 0;
+  $("modeTag").textContent = "playing";
+  timer = setInterval(() => {
+    if(cursor >= steps.length - 1){ stop(); $("modeTag").textContent = "finished"; return; }
+    render(cursor + 1);
+  }, delayFor());
+  syncButtons();
+}
+function stop(){ if(timer){ clearInterval(timer); timer = null; } syncButtons(); }
+function pause(){ if(timer){ stop(); $("modeTag").textContent = "paused"; } }
+function next(){ stop(); if(cursor < steps.length - 1){ render(cursor + 1); $("modeTag").textContent = "stepping"; } }
+function prev(){ stop(); if(cursor > 0){ render(cursor - 1); $("modeTag").textContent = "stepping"; } }
+
+function syncButtons(){
+  const playing = !!timer;
+  $("pauseBtn").disabled  = !playing;
+  $("resumeBtn").disabled = playing || cursor >= steps.length - 1;
+  $("nextBtn").disabled   = cursor >= steps.length - 1;
+  $("prevBtn").disabled   = cursor <= 0;
+  $("startBtn").disabled  = playing;
+}
+
+/* ======================================================================== */
+/*  5. LOADING                                                               */
+/* ======================================================================== */
+
+function load(g){
+  stop();
+  grid = g.map(row => row.slice());
+  N = grid.length;
+  steps = record(grid, algo);
+  buildGrid();
+  renderAlgoPanels();
+  const open = grid.flat().filter(v => v === 0).length;
+  $("mazeTag").textContent = N + "×" + N + " · " + open + " open cells · " + ALGOS[algo].name.toLowerCase();
+  $("quizA").classList.add("hidden");
+  $("quizQ").textContent = "Press “Ask me something” at any point in the run.";
+  pendingAnswer = "";
+  render(0);
+  $("modeTag").textContent = "idle";
+}
+
+/* ======================================================================== */
+/*  6. LEARNING CHALLENGES                                                   */
+/*     Answered from the real recorded future, never invented.               */
+/* ======================================================================== */
+
+let pendingAnswer = "";
+
+function findNext(pred){
+  for(let i = cursor + 1; i < steps.length; i++) if(pred(steps[i])) return steps[i];
+  return null;
+}
+
+function askQuestion(){
+  const s = steps[cursor];
+  const pool = [];
+
+  pool.push({ q: "How long is the current path, and how deep is the recursion?",
+              a: "Path length " + s.stats.pathLen + ", recursion depth " + s.stats.depth
+                 + ". They are the same thing counted differently — the path IS the call stack." });
+  pool.push({ q: "How many dead ends has the search hit so far?",
+              a: s.stats.deadEnds + " dead end" + (s.stats.deadEnds === 1 ? "" : "s")
+                 + ", after stepping onto " + s.stats.marks + " cells and trying " + s.stats.tries
+                 + " moves." });
+
+  const nextTry = findNext(x => x.kind === "try");
+  if(nextTry) pool.push({ q: "Which direction gets tried next, and from which cell?", a: nextTry.desc });
+
+  const nextRej = findNext(x => x.kind.indexOf("reject") === 0);
+  if(nextRej) pool.push({ q: "What is the next move to be rejected, and why?", a: nextRej.desc });
+
+  const nextBack = findNext(x => x.kind === "backtrack");
+  if(nextBack) pool.push({ q: "Which cell gets abandoned next — and how do you know before it happens?",
+                           a: nextBack.desc });
+
+  if(s.compass){
+    const pend = s.compass.dirs.filter(d => d.status === "pending").map(d => d.name);
+    pool.push({ q: "From the cell the rat is on, which directions has it not tried yet?",
+                a: pend.length ? pend.join(", ") + " — in that order."
+                               : "None: every direction from here has been tried already, so this cell "
+                                 + "is about to be undone." });
+  }
+
+  const end = steps[steps.length - 1];
+  pool.push({ q: "Will this search succeed — and how much work will it take?",
+              a: (end.result.aborted ? "It never finishes here: it hits the step limit. "
+                  : end.result.ok ? (algo === "all" ? "Yes — " + end.result.paths + " route(s) exist. "
+                                                    : "Yes, a path exists. ")
+                                  : "No, there is no path. ")
+                 + "Final tally: " + end.stats.marks + " cells stepped on, " + end.stats.deadEnds
+                 + " dead ends." });
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $("quizQ").textContent = pick.q;
+  pendingAnswer = pick.a;
+  $("quizA").classList.add("hidden");
+  $("quizCard").open = true;
+}
+
+/* ======================================================================== */
+/*  7. WIRING                                                                */
+/* ======================================================================== */
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => { algo = t.dataset.algo; load(grid); };   // same maze, other version
+});
+
+$("startBtn").onclick  = () => { if(cursor >= steps.length - 1) render(0); play(); };
+$("pauseBtn").onclick  = pause;
+$("resumeBtn").onclick = play;
+$("nextBtn").onclick    = next;
+$("prevBtn").onclick    = prev;
+$("restartBtn").onclick = () => { stop(); render(0); play(); };
+$("resetBtn").onclick   = () => { stop(); render(0); $("modeTag").textContent = "idle"; };
+
+$("genBtn").onclick = () => load(makeMaze(+$("size").value, $("shape").value));
+$("shape").onchange = () => load(makeMaze(+$("size").value, $("shape").value));
+$("size").oninput   = () => { $("sizeOut").textContent = $("size").value + "×" + $("size").value; };
+$("size").onchange  = () => load(makeMaze(+$("size").value, $("shape").value));
+$("clearBtn").onclick = () => load(makeMaze(+$("size").value, "open"));
+
+$("speed").onchange = () => { if(timer) play(); };
+
+$("quizBtn").onclick   = askQuestion;
+$("revealBtn").onclick = () => {
+  if(!pendingAnswer) askQuestion();
+  $("quizA").textContent = pendingAnswer;
+  $("quizA").classList.remove("hidden");
+};
+
+$("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  $("themeBtn").textContent = dark ? "◑ Dark mode" : "◐ Light mode";
+};
+
+document.addEventListener("keydown", (e) => {
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if(e.code === "Space"){ e.preventDefault(); timer ? pause() : play(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); next(); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); prev(); }
+});
+
+load(makeMaze(9, "perfect"));
+</script>
+</body>
+</html>

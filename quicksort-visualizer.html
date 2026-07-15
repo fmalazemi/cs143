@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quicksort — the pivot decides everything</title>
+<style>
+/* =========================================================================
+   THEME TOKENS — same visual language as the merge sort, quadratic-three and
+   binary search visualizers, so all four files read as one set. The colours
+   below are fixed roles used by the legend, never reused for decoration.
+   ========================================================================= */
+:root{
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --c-range:#3b82f6;    /* blue   - the sub-array this call owns   */
+  --c-sorted:#22c55e;   /* green  - in its final position          */
+  --c-cmp:#eab308;      /* yellow - currently comparing            */
+  --c-mov:#f97316;      /* orange - being swapped                  */
+  --c-out:#8a93a6;      /* gray   - not part of this call          */
+  --c-ptr:#ef4444;      /* red    - current pointer (i / j)        */
+  --c-pivot:#e879f9;    /* pink   - the pivot                      */
+}
+html[data-theme="dark"]{
+  --bg:#0d1017; --bg-grid:rgba(255,255,255,.035);
+  --panel:#151a24; --panel-2:#1b2230;
+  --ink:#e8ecf3; --ink-soft:#98a2b6; --line:#2c3547;
+  --accent:#a78bfa; --accent-soft:rgba(167,139,250,.16);
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+html[data-theme="light"]{
+  --bg:#f2f3f7; --bg-grid:rgba(20,30,60,.04);
+  --panel:#ffffff; --panel-2:#f7f8fb;
+  --ink:#141a24; --ink-soft:#5d6879; --line:#dfe3ec;
+  --accent:#6d3bf5; --accent-soft:rgba(109,59,245,.10);
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+  --c-pivot:#c026d3;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    var(--bg);
+  color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------------------------------------------------------------- header */
+header.top{display:flex; align-items:flex-end; gap:18px; flex-wrap:wrap;
+  padding:22px 24px 16px; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, var(--panel), transparent)}
+.brand h1{font-family:var(--font-display); font-weight:400; font-size:30px;
+  letter-spacing:-.015em; margin:0}
+.brand h1 em{font-style:italic; color:var(--accent)}
+.brand p{margin:2px 0 0; color:var(--ink-soft); font-size:13px;
+  font-family:var(--font-mono); letter-spacing:.02em}
+.top .spacer{flex:1}
+.icon-btn{font-family:var(--font-mono); font-size:12px; background:var(--panel-2);
+  color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+
+/* ------------------------------------------------------------ scheme tabs */
+.picker{display:flex; padding:0 24px; border-bottom:1px solid var(--line);
+  background:var(--panel); overflow-x:auto}
+.tab{appearance:none; background:none; border:0; cursor:pointer;
+  padding:14px 20px 12px; border-bottom:3px solid transparent;
+  color:var(--ink-soft); text-align:left; white-space:nowrap; font-family:var(--font-body)}
+.tab b{display:block; font-size:15px; font-weight:700; letter-spacing:-.01em}
+.tab span{display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+.tab[aria-selected="true"] span{color:var(--accent)}
+
+/* ------------------------------------------------------------- structure */
+main{display:grid; grid-template-columns:1fr 340px; gap:16px; padding:16px 24px 60px; align-items:start}
+@media (max-width:1040px){ main{grid-template-columns:1fr; padding:14px} }
+.col{display:flex; flex-direction:column; gap:16px; min-width:0}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden}
+.card > h2{margin:0; padding:11px 14px; font-family:var(--font-mono); font-size:11px;
+  font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+  border-bottom:1px solid var(--line); background:var(--panel-2);
+  display:flex; align-items:center; gap:8px}
+.card > h2 .tag{margin-left:auto; color:var(--accent); letter-spacing:.04em; text-transform:none}
+.card .body{padding:14px}
+
+details.card > summary{list-style:none; cursor:pointer; padding:11px 14px;
+  font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft); background:var(--panel-2);
+  border-bottom:1px solid transparent; display:flex; align-items:center; gap:8px}
+details.card[open] > summary{border-bottom-color:var(--line)}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::before{content:"▸"; color:var(--accent); transition:transform .18s}
+details.card[open] > summary::before{transform:rotate(90deg)}
+
+/* --------------------------------------------------------------- controls */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button.ctl{font-family:var(--font-body); font-size:13px; font-weight:600;
+  background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:9px; padding:9px 13px; cursor:pointer;
+  transition:transform .08s, border-color .15s, background .15s}
+button.ctl:hover:not(:disabled){border-color:var(--accent); background:var(--accent-soft)}
+button.ctl:active:not(:disabled){transform:translateY(1px)}
+button.ctl:disabled{opacity:.38; cursor:not-allowed}
+button.ctl.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+html[data-theme="dark"] button.ctl.primary{color:#12101c}
+button.ctl.primary:hover:not(:disabled){filter:brightness(1.08); background:var(--accent)}
+.field{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft);
+  font-family:var(--font-mono)}
+.field input[type=range]{accent-color:var(--accent); width:130px}
+.field select, .field input[type=text]{font-family:var(--font-mono); font-size:12px;
+  background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:7px; padding:6px 8px}
+.divider{width:1px; align-self:stretch; background:var(--line); margin:0 4px}
+.rowgap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ------------------------------------------------------------- array row */
+.array-row{display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+  padding:26px 0 24px; min-height:96px; align-items:center}
+.box{min-width:48px; height:54px; padding:0 7px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:17px; font-weight:600;
+  border-radius:10px; border:2px solid transparent; position:relative;
+  transition:background .28s, color .28s, border-color .28s, transform .28s, opacity .28s}
+.box .idx{position:absolute; bottom:-16px; left:0; right:0; text-align:center;
+  font-size:10px; color:var(--ink-soft); font-weight:400}
+.box .badge{position:absolute; top:-18px; left:0; right:0; text-align:center;
+  font-size:10px; font-family:var(--font-mono); font-weight:700; letter-spacing:.06em;
+  color:var(--c-ptr); white-space:nowrap}
+.box .badge.pv{color:var(--c-pivot)}
+.s-out   {background:transparent; color:var(--ink-soft); border-color:var(--line); opacity:.45}
+.s-sorted{background:color-mix(in srgb, var(--c-sorted) 22%, transparent); color:var(--c-sorted); border-color:var(--c-sorted)}
+.s-range {background:color-mix(in srgb, var(--c-range) 18%, transparent); color:var(--c-range); border-color:var(--c-range)}
+.s-pivot {background:color-mix(in srgb, var(--c-pivot) 22%, transparent); color:var(--c-pivot); border-color:var(--c-pivot); transform:translateY(-7px)}
+.s-ptr   {background:color-mix(in srgb, var(--c-ptr) 20%, transparent); color:var(--c-ptr); border-color:var(--c-ptr)}
+.s-cmp   {background:color-mix(in srgb, var(--c-cmp) 24%, transparent); color:var(--c-cmp); border-color:var(--c-cmp)}
+.s-mov   {background:color-mix(in srgb, var(--c-mov) 24%, transparent); color:var(--c-mov); border-color:var(--c-mov)}
+.box.moved{animation:nudge .32s ease-out}
+@keyframes nudge{50%{transform:translateY(-12px) scale(1.07)}}
+.box.placed{animation:lock .5s ease-out}
+@keyframes lock{40%{transform:translateY(-10px) scale(1.12)}}
+
+/* ------------------------------------------------------- partition strip
+   The signature panel: the loop invariant, drawn. Quicksort is nothing but
+   this one claim holding true from one comparison to the next. */
+.strip{padding:14px}
+.zones{display:flex; height:26px; border-radius:6px; overflow:hidden;
+  border:1px solid var(--line); background:var(--panel-2)}
+.zone{display:flex; align-items:center; justify-content:center; overflow:hidden;
+  font-family:var(--font-mono); font-size:10px; white-space:nowrap;
+  transition:flex-grow .3s; border-right:1px solid var(--line)}
+.zone:last-child{border-right:0}
+.z-le{background:color-mix(in srgb,var(--c-range) 30%,transparent); color:var(--c-range)}
+.z-gt{background:color-mix(in srgb,var(--c-mov) 26%,transparent); color:var(--c-mov)}
+.z-un{background:transparent; color:var(--ink-soft)}
+.z-pv{background:color-mix(in srgb,var(--c-pivot) 34%,transparent); color:var(--c-pivot)}
+.zone-key{display:flex; gap:14px; flex-wrap:wrap; margin-top:9px;
+  font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft)}
+.strip-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* --------------------------------------------------------- recursion tree */
+.tree-wrap{overflow:auto; padding:14px; max-height:440px}
+.tree{min-width:max-content}
+.tree ul{padding:20px 0 0; position:relative; display:flex; justify-content:center; margin:0}
+.tree li{display:flex; flex-direction:column; align-items:center; list-style:none;
+  position:relative; padding:20px 6px 0}
+.tree li::before, .tree li::after{content:''; position:absolute; top:0; right:50%;
+  border-top:2px solid var(--line); width:50%; height:20px}
+.tree li::after{right:auto; left:50%; border-left:2px solid var(--line)}
+.tree li:only-child::after, .tree li:only-child::before{display:none}
+.tree li:only-child{padding-top:0}
+.tree li:first-child::before, .tree li:last-child::after{border:0 none}
+.tree li:last-child::before{border-right:2px solid var(--line); border-radius:0 6px 0 0}
+.tree li:first-child::after{border-radius:6px 0 0 0}
+.tree ul ul::before{content:''; position:absolute; top:0; left:50%;
+  border-left:2px solid var(--line); width:0; height:20px}
+.node{font-family:var(--font-mono); font-size:12px; white-space:nowrap;
+  padding:6px 9px; border-radius:8px; border:2px solid var(--line);
+  background:var(--panel-2); color:var(--ink-soft); transition:all .25s}
+.node .sub{display:block; font-size:9px; opacity:.75; letter-spacing:.04em}
+.n-active{border-color:var(--c-range); color:var(--c-range);
+  background:color-mix(in srgb, var(--c-range) 18%, transparent);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--c-range) 18%, transparent);
+  animation:pulse 1.4s ease-in-out infinite}
+.n-part{border-color:var(--c-pivot); color:var(--c-pivot);
+  background:color-mix(in srgb, var(--c-pivot) 16%, transparent)}
+.n-done{border-color:var(--c-sorted); color:var(--c-sorted);
+  background:color-mix(in srgb, var(--c-sorted) 15%, transparent)}
+@keyframes pulse{50%{box-shadow:0 0 0 9px transparent}}
+
+/* ---------------------------------------------------- explanation + code */
+.explain{font-size:15px; line-height:1.6; min-height:70px}
+.explain .kicker{font-family:var(--font-mono); font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); display:block; margin-bottom:4px}
+.progress{height:4px; background:var(--panel-2); border-radius:99px; overflow:hidden;
+  margin-top:12px; border:1px solid var(--line)}
+.progress i{display:block; height:100%; background:var(--accent); width:0; transition:width .2s}
+.step-counter{font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); margin-top:6px}
+
+pre.code{margin:0; font-family:var(--font-mono); font-size:12.5px; line-height:1.75}
+pre.code div{padding:1px 8px; border-radius:5px; border-left:2px solid transparent; white-space:pre}
+pre.code div.hl{background:var(--accent-soft); border-left-color:var(--accent); color:var(--ink); font-weight:600}
+
+/* -------------------------------------------------------- variable watch */
+.watch{display:flex; flex-wrap:wrap; gap:8px}
+.chip{font-family:var(--font-mono); font-size:12.5px; padding:6px 10px; border-radius:8px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft)}
+.chip b{color:var(--ink); font-weight:600}
+.chip.hot{border-color:var(--accent); background:var(--accent-soft)}
+.chip.pv{border-color:var(--c-pivot); color:var(--c-pivot)}
+.chip.pv b{color:var(--c-pivot)}
+
+/* ------------------------------------------------------------ call stack */
+.stack{display:flex; flex-direction:column-reverse; gap:5px; min-height:44px}
+.frame{font-family:var(--font-mono); font-size:12px; padding:6px 9px; border-radius:7px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft);
+  animation:push .22s ease-out}
+.frame.top{border-color:var(--c-range); color:var(--c-range);
+  background:color-mix(in srgb, var(--c-range) 14%, transparent)}
+@keyframes push{from{transform:translateX(-10px); opacity:0}}
+.stack-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* ------------------------------------------------------------ stats grid */
+.stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line)}
+.stat{background:var(--panel); padding:10px 12px}
+.stat b{display:block; font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--ink)}
+.stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft)}
+
+/* --------------------------------------------------------------- legend */
+.legend{display:flex; flex-direction:column; gap:8px}
+.legend div{display:flex; align-items:center; gap:9px; font-size:12.5px}
+.swatch{display:inline-block; flex:none; width:16px; height:16px; border-radius:5px; border:2px solid}
+.sw-range{border-color:var(--c-range); background:color-mix(in srgb,var(--c-range) 25%,transparent)}
+.sw-sorted{border-color:var(--c-sorted); background:color-mix(in srgb,var(--c-sorted) 25%,transparent)}
+.sw-cmp{border-color:var(--c-cmp); background:color-mix(in srgb,var(--c-cmp) 25%,transparent)}
+.sw-mov{border-color:var(--c-mov); background:color-mix(in srgb,var(--c-mov) 25%,transparent)}
+.sw-out{border-color:var(--line); background:transparent; opacity:.6}
+.sw-ptr{border-color:var(--c-ptr); background:color-mix(in srgb,var(--c-ptr) 25%,transparent)}
+.sw-pivot{border-color:var(--c-pivot); background:color-mix(in srgb,var(--c-pivot) 25%,transparent)}
+
+/* ----------------------------------------------------------- complexity */
+.facts{display:flex; flex-direction:column; gap:0}
+.facts div{display:flex; justify-content:space-between; gap:10px; padding:7px 0;
+  border-bottom:1px dashed var(--line); font-size:13px}
+.facts div:last-child{border-bottom:0}
+.facts b{font-family:var(--font-mono); font-weight:600}
+.facts .yes{color:var(--c-sorted)}
+.facts .no{color:var(--c-ptr)}
+
+/* ---------------------------------------------------------------- notes */
+.notes h3{font-size:13px; margin:14px 0 3px; font-family:var(--font-body); font-weight:700}
+.notes h3:first-child{margin-top:0}
+.notes p{margin:0; font-size:13px; color:var(--ink-soft)}
+.notes code{font-family:var(--font-mono); font-size:12px}
+
+/* ----------------------------------------------------------------- quiz */
+.quiz-q{font-size:14px; font-weight:600; margin:0 0 10px}
+.quiz-a{font-family:var(--font-mono); font-size:13px; padding:9px 11px; border-radius:8px;
+  background:var(--accent-soft); border:1px solid var(--accent); color:var(--ink); margin-top:10px}
+.hidden{display:none !important}
+
+/* -------------------------------------------------------------- summary */
+.summary-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.summary-grid div{background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px}
+.summary-grid b{display:block; font-family:var(--font-mono); font-size:17px}
+.summary-grid span{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft)}
+.summary-arrays{margin-top:12px; font-family:var(--font-mono); font-size:12.5px; word-break:break-word}
+.summary-arrays em{color:var(--ink-soft); font-style:normal}
+.verdict{margin-top:12px; padding:10px 12px; border-radius:9px; font-size:13.5px;
+  border:1px solid var(--line); background:var(--panel-2)}
+.verdict.bad{border-color:var(--c-ptr); color:var(--c-ptr);
+  background:color-mix(in srgb,var(--c-ptr) 10%,transparent)}
+.verdict.good{border-color:var(--c-sorted); color:var(--c-sorted);
+  background:color-mix(in srgb,var(--c-sorted) 10%,transparent)}
+
+kbd{font-family:var(--font-mono); font-size:11px; background:var(--panel-2);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 5px}
+.shortcuts{display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-soft); font-size:12px;
+  padding:0 24px 30px}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Quicksort, <em>one honest step at a time</em></h1>
+    <p>partition · recurse · the pivot decides everything</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" title="Switch between dark and light mode">◐ Light mode</button>
+</header>
+
+<div class="picker" role="tablist" aria-label="Choose a partition scheme">
+  <button class="tab" role="tab" data-algo="lomuto" aria-selected="true"
+    title="The textbook scheme: one pointer sweeps, the pivot lands in its final place">
+    <b>Lomuto partition</b><span>the one in your textbook</span></button>
+  <button class="tab" role="tab" data-algo="hoare" aria-selected="false"
+    title="The original scheme: two pointers close in from both ends, about three times fewer swaps">
+    <b>Hoare partition</b><span>the original, and the faster one</span></button>
+</div>
+
+<main>
+  <!-- ============================ LEFT COLUMN ============================ -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Controls <span class="tag" id="modeTag">idle</span></h2>
+      <div class="body">
+        <div class="controls">
+          <button class="ctl primary" id="startBtn" title="Play the animation from the current step">▶ Start</button>
+          <button class="ctl" id="pauseBtn" title="Pause the animation where it is">⏸ Pause</button>
+          <button class="ctl" id="resumeBtn" title="Continue playing from where you paused">▶ Resume</button>
+          <button class="ctl" id="prevBtn" title="Go back exactly one algorithm operation (Left Arrow)">◀ Previous step</button>
+          <button class="ctl" id="nextBtn" title="Perform exactly one algorithm operation (Right Arrow)">Next step ▶</button>
+          <button class="ctl" id="restartBtn" title="Replay the whole animation on the same array">↻ Restart</button>
+          <button class="ctl" id="resetBtn" title="Clear the run and all statistics, keep the array">✕ Reset</button>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="How fast the animation advances">
+            Very slow <input type="range" id="speed" min="1" max="9" value="5"> Very fast
+          </label>
+          <span class="divider"></span>
+          <label class="field" title="How many values to sort">
+            Size <input type="range" id="size" min="5" max="30" value="10">
+            <b id="sizeOut" style="color:var(--ink)">10</b>
+          </label>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="This single choice decides whether quicksort is fast or quadratic">
+            Pivot
+            <select id="pivot">
+              <option value="last">Last element</option>
+              <option value="first">First element</option>
+              <option value="random">Random element</option>
+              <option value="median3">Median of three</option>
+            </select>
+          </label>
+          <label class="field" title="Pick the shape of the data to sort">
+            Array shape
+            <select id="shape">
+              <option value="random">Random</option>
+              <option value="sorted">Already sorted</option>
+              <option value="nearly">Nearly sorted</option>
+              <option value="reverse">Reverse sorted</option>
+              <option value="dupes">Many duplicates</option>
+              <option value="same">All identical</option>
+            </select>
+          </label>
+          <button class="ctl" id="genBtn" title="Build a new array with the chosen size and shape">⚄ Generate random array</button>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="Type your own numbers, separated by commas or spaces">
+            Custom <input type="text" id="custom" placeholder="38, 27, 43, 3, 9, 82, 10" size="22">
+          </label>
+          <button class="ctl" id="customBtn" title="Use the numbers you typed">Enter custom array</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>The array <span class="tag" id="arrTag"></span></h2>
+      <div class="body"><div class="array-row" id="arrayRow"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>What is happening</h2>
+      <div class="body">
+        <div class="explain"><span class="kicker" id="stepKind">ready</span><span id="explain">Pick a pivot rule and press Start.</span></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="step-counter" id="counter">step 0 / 0</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Partition invariant <span class="tag" id="stripTag">not partitioning</span></h2>
+      <div class="strip" id="strip"><div class="strip-empty">The zones appear once a partition starts.</div></div>
+    </section>
+
+    <section class="card">
+      <h2>Recursion tree <span class="tag">the pivot draws this shape</span></h2>
+      <div class="tree-wrap"><div class="tree" id="tree"></div></div>
+    </section>
+
+    <details class="card" id="quizCard">
+      <summary>Learning challenge</summary>
+      <div class="body">
+        <p class="quiz-q" id="quizQ">Press “Ask me something” at any point in the run.</p>
+        <div class="controls">
+          <button class="ctl" id="quizBtn" title="Get a question about the current state of the run">Ask me something</button>
+          <button class="ctl" id="revealBtn" title="Reveal the correct answer">Show answer</button>
+        </div>
+        <div class="quiz-a hidden" id="quizA"></div>
+      </div>
+    </details>
+
+    <section class="card hidden" id="summaryCard">
+      <h2>Run summary <span class="tag">sorted</span></h2>
+      <div class="body">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="summary-arrays" id="summaryArrays"></div>
+        <div class="verdict" id="verdict"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ RIGHT COLUMN =========================== -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Statistics</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Colour legend</h2>
+      <div class="body legend">
+        <div><i class="swatch sw-pivot"></i> Pink — the pivot</div>
+        <div><i class="swatch sw-range"></i> Blue — the sub-array this call owns</div>
+        <div><i class="swatch sw-sorted"></i> Green — in its final position</div>
+        <div><i class="swatch sw-cmp"></i> Yellow — currently comparing</div>
+        <div><i class="swatch sw-mov"></i> Orange — being swapped</div>
+        <div><i class="swatch sw-out"></i> Gray — not part of this call</div>
+        <div><i class="swatch sw-ptr"></i> Red — current pointer</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Variable watch <span class="tag" id="watchTag"></span></h2>
+      <div class="body"><div class="watch" id="watch"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>Call stack <span class="tag">top of stack on top</span></h2>
+      <div class="body"><div class="stack" id="stack"></div></div>
+    </section>
+
+    <details class="card" open>
+      <summary>QuickSort() pseudocode</summary>
+      <div class="body"><pre class="code" id="codeQS"></pre></div>
+    </details>
+
+    <details class="card" open>
+      <summary><span id="codePTitle">Partition() pseudocode</span></summary>
+      <div class="body"><pre class="code" id="codePT"></pre></div>
+    </details>
+
+    <section class="card">
+      <h2>Complexity <span class="tag" id="cxTag"></span></h2>
+      <div class="body facts" id="facts"></div>
+    </section>
+
+    <details class="card" open>
+      <summary>Why it works this way</summary>
+      <div class="body notes" id="notes"></div>
+    </details>
+
+    <details class="card">
+      <summary>The pivot problem</summary>
+      <div class="body notes">
+        <h3>Try this</h3>
+        <p>Set the shape to “Already sorted”, the pivot to “Last element”, and run it. The recursion tree comes out as a single stick: every partition peels off one value and hands back a sub-array of n−1. That is n levels deep and n²/2 comparisons — quicksort at its absolute worst, on the friendliest data imaginable. Now switch the pivot to “Median of three” and run the same array again.</p>
+        <h3>Why the textbook default is a trap</h3>
+        <p>“Last element” is only bad when the data has a pattern — but real data is full of patterns. Sorted, reverse sorted, or nearly sorted inputs are the common case in practice, not the exception, and those are exactly the inputs that make a fixed pivot degenerate.</p>
+        <h3>What a random pivot buys</h3>
+        <p>The worst case does not disappear — it becomes unreachable on purpose. No input can be constructed to defeat a random pivot, because the algorithm's behaviour no longer depends only on the input. Expected time is O(n log n) for every input, and the odds of a genuinely bad run are astronomically small.</p>
+        <h3>Median of three</h3>
+        <p>Look at the first, middle and last values and take the middle-sized one. It costs two comparisons and makes sorted and reverse-sorted input into best cases instead of worst cases. This is what most real implementations do, often alongside a random element.</p>
+        <h3>The all-identical trap</h3>
+        <p>Set the shape to “All identical”. Lomuto's <code>&lt;=</code> test sends every value into the left side, so every partition splits n into n−1 and 0 — quadratic, on an array that needs no sorting at all. Run the same array under Hoare: it splits down the middle instead. Real sorts add a third bucket for values equal to the pivot.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>Quicksort vs merge sort</summary>
+      <div class="body notes">
+        <h3>Where the work happens</h3>
+        <p>Merge sort splits carelessly and works hard to merge. Quicksort works hard to split and then merges for free — once partition is done, the two sides are already positioned correctly relative to each other. It is the same divide-and-conquer skeleton, with the effort moved from after the recursion to before it.</p>
+        <h3>Why quicksort usually wins anyway</h3>
+        <p>It sorts in place with no auxiliary array, and it sweeps memory in straight lines, which caches love. Merge sort's O(n log n) is guaranteed, quicksort's is only typical — and typical wins on a real machine.</p>
+        <h3>Why merge sort still exists</h3>
+        <p>It is stable and it never degrades. When a worst case is unacceptable, or ties must keep their order, the guarantee is worth the memory. Many standard libraries hedge: Java uses quicksort for numbers and merge sort for objects, precisely over stability.</p>
+        <h3>The hybrid everyone actually ships</h3>
+        <p>Introsort: start with quicksort, switch to insertion sort for tiny sub-arrays, and if the recursion gets suspiciously deep, bail out to heapsort. Quicksort's speed, with merge sort's guarantee bolted on.</p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<div class="shortcuts">
+  <span>Keyboard:</span>
+  <span><kbd>Space</kbd> pause / resume</span>
+  <span><kbd>→</kbd> next step</span>
+  <span><kbd>←</kbd> previous step</span>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   QUICKSORT VISUALIZER
+   --------------------------------------------------------------------------
+   Same architecture as the other files in this set: the chosen scheme runs
+   ONCE up front while an instrumented recorder takes a full snapshot after
+   every single logical operation (call, pivot choice, comparison, swap,
+   placement, return). Playback is then just "render snapshot #i", so Next
+   Step, Previous Step, pause, resume and replay are all exact.
+
+   One difference from merge sort: quicksort's recursion tree is not known in
+   advance — it is carved out by the pivots as the run happens. So the tree is
+   collected DURING recording and its DOM is built afterwards, and each step
+   only carries the states of the nodes discovered by that point.
+   ========================================================================== */
+
+const ALGOS = {
+  lomuto: {
+    name: "Lomuto partition",
+    qs: [
+      "QuickSort(A, lo, hi)",
+      "  if lo >= hi",
+      "      return",
+      "  p = Partition(A, lo, hi)",
+      "  QuickSort(A, lo, p - 1)",
+      "  QuickSort(A, p + 1, hi)"
+    ],
+    pt: [
+      "Partition(A, lo, hi)",
+      "  pivot = A[hi]",
+      "  i = lo - 1",
+      "  for j = lo to hi - 1",
+      "    if A[j] <= pivot",
+      "        i = i + 1",
+      "        swap A[i], A[j]",
+      "  swap A[i+1], A[hi]",
+      "  return i + 1"
+    ],
+    facts: [
+      ["Best case", "O(n log n)", ""], ["Average case", "O(n log n)", ""],
+      ["Worst case", "O(n²)", "no"], ["Extra space", "O(log n) stack", ""],
+      ["Stable", "No", "no"], ["In-place", "Yes", "yes"], ["Recursive", "Yes", "yes"],
+      ["Pivot lands final", "Yes", "yes"]
+    ],
+    notes: [
+      ["How it thinks", "Pick one value as the pivot. Sweep through the sub-array once, dragging everything ≤ pivot to the front. Drop the pivot right behind them. Now the pivot is where it belongs forever, everything left of it is smaller, everything right is bigger — so the two sides can be sorted independently and never spoken of again."],
+      ["The invariant", "One sweep, two zones. <code>i</code> marks the end of the ≤ region and <code>j</code> is the scanner. Everything in <code>lo…i</code> is ≤ pivot, everything in <code>i+1…j−1</code> is &gt; pivot, and <code>j…hi−1</code> has not been looked at yet. Watch the invariant strip: those three zones are the entire algorithm."],
+      ["Why there is no merge", "Partition does the sorting work up front. Once the pivot is placed, no value ever crosses it again, so the sub-arrays are already in the right place relative to each other. Compare with merge sort, where the split is free and the combining is the expensive part."],
+      ["Why it is not stable", "The final swap flings the pivot across the array, and equal values on the way get reordered. A stable variant exists, but it needs O(n) scratch space — at which point you have reinvented merge sort."],
+      ["Why duplicates hurt it", "The test is <code>A[j] &lt;= pivot</code>, so values equal to the pivot all pile into the left side. On an array of identical values every partition splits n into n−1 and 0: perfectly quadratic. Hoare's scheme splits the same array down the middle."]
+    ]
+  },
+  hoare: {
+    name: "Hoare partition",
+    qs: [
+      "QuickSort(A, lo, hi)",
+      "  if lo >= hi",
+      "      return",
+      "  j = Partition(A, lo, hi)",
+      "  QuickSort(A, lo, j)",
+      "  QuickSort(A, j + 1, hi)"
+    ],
+    pt: [
+      "Partition(A, lo, hi)",
+      "  pivot = A[lo]",
+      "  i = lo - 1",
+      "  j = hi + 1",
+      "  loop forever",
+      "    do i = i + 1  while A[i] < pivot",
+      "    do j = j - 1  while A[j] > pivot",
+      "    if i >= j",
+      "        return j",
+      "    swap A[i], A[j]"
+    ],
+    facts: [
+      ["Best case", "O(n log n)", ""], ["Average case", "O(n log n)", ""],
+      ["Worst case", "O(n²)", "no"], ["Extra space", "O(log n) stack", ""],
+      ["Stable", "No", "no"], ["In-place", "Yes", "yes"], ["Recursive", "Yes", "yes"],
+      ["Pivot lands final", "No", "no"]
+    ],
+    notes: [
+      ["How it thinks", "Two pointers walk toward each other from the ends. The left one stops at anything not smaller than the pivot; the right one stops at anything not bigger. Both are now standing on values that belong on the other side, so swap them and carry on. When they cross, the array is split."],
+      ["The pivot does NOT land in place", "This is the trap. Hoare returns a split point <code>j</code>, not a pivot position. Everything in <code>lo…j</code> is ≤ everything in <code>j+1…hi</code>, but the pivot itself may be anywhere in the left part. That is why the recursion is <code>QuickSort(lo, j)</code> — including j, not skipping it. Write <code>j−1</code> here, as Lomuto does, and values get lost."],
+      ["Why it is faster", "It swaps far less. Every Hoare swap fixes two values that are each standing where the other belongs; Lomuto swaps on every value ≤ the pivot, including ones already in the right place. Watch the swap counter across a few runs: Lomuto does roughly 1.5–2× as many here, and the gap widens on data with duplicates. This is the original 1961 scheme, and it is still the better one."],
+      ["Why its comparison count looks worse", "This page counts every pointer test, and Hoare tests most elements twice — once as i walks right, once as j walks left — where Lomuto tests each element exactly once. So Hoare's comparison counter runs about double, and it is still the faster scheme. A comparison is one CPU test; a swap is three memory writes. Hoare spends the cheap operation to save the expensive one."],
+      ["Why the do-while must run first", "The pointers must move at least one step before testing, or a pivot sitting under a pointer would stop it instantly and neither pointer would ever advance — an infinite loop. Starting at <code>lo−1</code> and <code>hi+1</code> is what makes the first increment land on the real ends."],
+      ["Why duplicates are fine here", "Both pointers stop on values equal to the pivot, so equal values get swapped past each other and spread across both sides. On an array of identical values Hoare splits down the middle every time: O(n log n), where Lomuto is quadratic."]
+    ]
+  }
+};
+
+const PIVOT_NAMES = { last:"last element", first:"first element", random:"random element", median3:"median of three" };
+
+/* --------------------------------- state -------------------------------- */
+let algo   = "lomuto";
+let pivotRule = "last";
+let array  = [38, 27, 43, 3, 9, 82, 10, 5, 61, 20];
+let steps  = [];
+let treeRoot = null;
+let cursor = -1;
+let timer  = null;
+let runMs  = 0;
+
+const $ = (id) => document.getElementById(id);
+
+/* ======================================================================== */
+/*  1. ARRAY GENERATION                                                      */
+/* ======================================================================== */
+
+function makeArray(n, shape){
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  let a;
+  switch(shape){
+    case "sorted":
+      return Array.from({length:n}, () => rnd(2, 99)).sort((x, y) => x - y);
+    case "reverse":
+      return Array.from({length:n}, () => rnd(2, 99)).sort((x, y) => y - x);
+    case "nearly":
+      a = Array.from({length:n}, (_, i) => (i + 1) * rnd(2, 5)).sort((x, y) => x - y);
+      for(let k = 0; n >= 2 && k < Math.max(1, Math.round(n / 6)); k++){
+        const i = rnd(0, n - 2);              // needs a neighbour to swap with
+        [a[i], a[i + 1]] = [a[i + 1], a[i]];
+      }
+      return a;
+    case "dupes":
+      { const pool = Array.from({length: Math.max(2, Math.round(n / 3))}, () => rnd(2, 40));
+        return Array.from({length:n}, () => pool[rnd(0, pool.length - 1)]); }
+    case "same":
+      { const v = rnd(5, 60); return Array.from({length:n}, () => v); }
+    default:
+      return Array.from({length:n}, () => rnd(2, 99));
+  }
+}
+
+/* ======================================================================== */
+/*  2. THE INSTRUMENTED ALGORITHM                                            */
+/* ======================================================================== */
+
+function record(input, scheme, rule){
+  const n      = input.length;
+  const a      = input.slice();
+  const out    = [];
+  const stack  = [];
+  const sorted = new Array(n).fill(false);   // index is in its FINAL position
+  const nodes  = {};                          // id -> tree node (structure)
+  const stats  = { comparisons:0, swaps:0, partitions:0, calls:0,
+                   depth:0, maxDepth:0, placed:0, size:n };
+  let root = null;
+
+  // transient highlight state — set right before a snap, consumed by it
+  let range = null, cmp = [], mov = [], ptr = [], pivotIdx = null;
+  let zones = null, vars = { n }, tstate = {}, placedNow = -1;
+
+  /** Colour every box according to the fixed legend priority. */
+  function paint(){
+    const s = new Array(n).fill("out");
+    for(let i = 0; i < n; i++) if(sorted[i]) s[i] = "sorted";
+    if(range) for(let i = range[0]; i <= range[1]; i++) if(!sorted[i]) s[i] = "range";
+    if(pivotIdx !== null && pivotIdx >= 0 && pivotIdx < n && !sorted[pivotIdx]) s[pivotIdx] = "pivot";
+    ptr.forEach(i => { if(i >= 0 && i < n && !sorted[i]) s[i] = "ptr"; });
+    cmp.forEach(i => { if(i >= 0 && i < n) s[i] = "cmp"; });
+    mov.forEach(i => { if(i >= 0 && i < n) s[i] = "mov"; });
+    return s;
+  }
+
+  /** Pointer labels drawn above the boxes. */
+  function badges(){
+    const b = {};
+    const add = (i, t) => { if(i >= 0 && i < n) b[i] = b[i] ? b[i] + " " + t : t; };
+    if(vars.i !== undefined) add(vars.i, "i");
+    if(vars.j !== undefined) add(vars.j, "j");
+    if(pivotIdx !== null) add(pivotIdx, "pivot");
+    return b;
+  }
+
+  function snap(kind, desc, code){
+    out.push({
+      kind, desc, code,
+      main:   a.slice(),
+      states: paint(),
+      badges: badges(),
+      moved:  mov.slice(),
+      placed: placedNow,
+      vars:   Object.assign({}, vars),
+      stack:  stack.slice(),
+      tree:   Object.assign({}, tstate),
+      zones:  zones ? zones.map(z => Object.assign({}, z)) : null,
+      stats:  Object.assign({}, stats)
+    });
+    cmp = []; mov = []; placedNow = -1;
+  }
+
+  /** Which index becomes the pivot, before it is moved anywhere. */
+  function choosePivot(lo, hi){
+    if(rule === "first")  return lo;
+    if(rule === "random") return lo + Math.floor(Math.random() * (hi - lo + 1));
+    if(rule === "median3"){
+      const mid = (lo + hi) >> 1;
+      const x = a[lo], y = a[mid], z = a[hi];
+      if((x <= y && y <= z) || (z <= y && y <= x)) return mid;
+      if((y <= x && x <= z) || (z <= x && x <= y)) return lo;
+      return hi;
+    }
+    return hi;
+  }
+
+  function swap(x, y){ const t = a[x]; a[x] = a[y]; a[y] = t; stats.swaps++; }
+
+  /* --------------------------- Lomuto partition ------------------------ */
+  function partitionLomuto(lo, hi, id){
+    // 1. choose the pivot and park it at the end, where Lomuto expects it
+    const pc = choosePivot(lo, hi);
+    pivotIdx = pc; range = [lo, hi]; vars = { n, lo, hi };
+    snap("pivot", "Choose the pivot by the “" + PIVOT_NAMES[rule] + "” rule: A[" + pc + "] = " + a[pc]
+      + ". Everything in this sub-array is about to be sorted into “≤ " + a[pc] + "” and “> " + a[pc] + "”.",
+      { panel:"pt", line:1 });
+
+    if(pc !== hi){
+      mov = [pc, hi];
+      swap(pc, hi);
+      pivotIdx = hi;
+      snap("pivot-move", "Lomuto's code expects the pivot at the far right, so swap it into index " + hi
+        + " first. Nothing else about the sub-array changes.", { panel:"pt", line:1 });
+    }
+    pivotIdx = hi;
+    const pivot = a[hi];
+    nodes[id].pivot = pivot;
+
+    let i = lo - 1;
+    vars = { n, lo, hi, i, pivot };
+    zones = zoneLomuto(lo, hi, i, lo);
+    snap("init", "i = lo − 1 = " + i + ". Everything from lo to i is the “≤ pivot” zone — right now it "
+      + "is empty, which is exactly correct: nothing has been checked yet.", { panel:"pt", line:2 });
+
+    for(let j = lo; j < hi; j++){
+      vars = { n, lo, hi, i, j, pivot };
+      cmp = [j]; ptr = [i >= lo ? i : -1];
+      zones = zoneLomuto(lo, hi, i, j);
+      stats.comparisons++;
+      snap("compare", "Is A[" + j + "] = " + a[j] + " ≤ the pivot " + pivot + "? "
+        + (a[j] <= pivot ? "Yes." : "No — leave it in the “> pivot” zone and move on."),
+        { panel:"pt", line:4 });
+
+      if(a[j] <= pivot){
+        i++;
+        vars = { n, lo, hi, i, j, pivot };
+        if(i === j){
+          mov = [i];
+          swap(i, j);                       // a self-swap: the textbook code runs it anyway
+          zones = zoneLomuto(lo, hi, i, j + 1);
+          snap("grow", a[j] + " belongs on the left, so grow the “≤ pivot” zone to i = " + i
+            + ". Here i and j are the same slot, so the swap moves nothing — the value was already "
+            + "in the right place. It still counts as a swap: the code performs it either way.",
+            { panel:"pt", line:6 });
+        } else {
+          mov = [i, j];
+          swap(i, j);
+          zones = zoneLomuto(lo, hi, i, j + 1);
+          snap("swap", a[i] + " belongs on the left. Grow the zone to i = " + i + " and swap it with "
+            + a[j] + ", the value that was sitting there — that one was greater than the pivot, so it "
+            + "moves out to the right zone.", { panel:"pt", line:6 });
+        }
+      }
+    }
+
+    // 2. drop the pivot into the gap between the two zones
+    ptr = []; mov = [i + 1, hi];
+    swap(i + 1, hi);
+    const p = i + 1;
+    pivotIdx = p;
+    vars = { n, lo, hi, i, pivot };
+    zones = null;
+    snap("place", "The sweep is over. Everything in " + lo + "…" + i + " is ≤ " + pivot
+      + " and everything in " + (i + 1) + "…" + (hi - 1) + " is greater, so the pivot's home is index "
+      + p + ". Swap it there.", { panel:"pt", line:7 });
+
+    sorted[p] = true; stats.placed++; placedNow = p;
+    stats.partitions++;
+    pivotIdx = null; ptr = [];
+    snap("placed", pivot + " is now at index " + p + " and it is finished for good — every value left "
+      + "of it is smaller, every value right of it is bigger. Nothing will ever move it again.",
+      { panel:"pt", line:8 });
+
+    return p;
+  }
+
+  /** The three Lomuto zones, as spans of indices. */
+  function zoneLomuto(lo, hi, i, j){
+    const z = [];
+    if(i >= lo)   z.push({ from:lo, to:i, cls:"z-le", label:"≤ pivot" });
+    if(j - 1 >= i + 1) z.push({ from:i + 1, to:j - 1, cls:"z-gt", label:"> pivot" });
+    if(hi - 1 >= j) z.push({ from:j, to:hi - 1, cls:"z-un", label:"not looked at yet" });
+    z.push({ from:hi, to:hi, cls:"z-pv", label:"pivot" });
+    return z;
+  }
+
+  /* --------------------------- Hoare partition ------------------------- */
+  function partitionHoare(lo, hi, id){
+    // 1. choose the pivot and park it at the left end, where this loop reads it
+    const pc = choosePivot(lo, hi);
+    pivotIdx = pc; range = [lo, hi]; vars = { n, lo, hi };
+    snap("pivot", "Choose the pivot by the “" + PIVOT_NAMES[rule] + "” rule: A[" + pc + "] = " + a[pc]
+      + ". Hoare only needs the pivot's VALUE — the element itself is free to move around.",
+      { panel:"pt", line:1 });
+
+    if(pc !== lo){
+      mov = [pc, lo];
+      swap(pc, lo);
+      pivotIdx = lo;
+      snap("pivot-move", "This version reads the pivot from A[lo], so swap the chosen value into index "
+        + lo + " first.", { panel:"pt", line:1 });
+    }
+    pivotIdx = lo;
+    const pivot = a[lo];
+    nodes[id].pivot = pivot;
+
+    let i = lo - 1, j = hi + 1;
+    vars = { n, lo, hi, pivot };
+    snap("init", "i starts at lo − 1 = " + i + " and j at hi + 1 = " + (hi + 1)
+      + " — one step outside each end, because the loop increments before it tests.",
+      { panel:"pt", line:3 });
+
+    while(true){
+      // left pointer: walk right while values are strictly smaller than the pivot
+      do {
+        i++;
+        vars = { n, lo, hi, i, j, pivot };
+        cmp = [i]; zones = zoneHoare(lo, hi, i, j);
+        stats.comparisons++;
+        snap("scan-i", "Move i to " + i + ". Is A[" + i + "] = " + a[i] + " < the pivot " + pivot + "? "
+          + (a[i] < pivot ? "Yes — it is already on the correct side, so keep walking right."
+                          : "No — stop here. This value does not belong on the left."),
+          { panel:"pt", line:5 });
+      } while(a[i] < pivot);
+
+      // right pointer: walk left while values are strictly greater than the pivot
+      do {
+        j--;
+        vars = { n, lo, hi, i, j, pivot };
+        cmp = [j]; zones = zoneHoare(lo, hi, i, j);
+        stats.comparisons++;
+        snap("scan-j", "Move j to " + j + ". Is A[" + j + "] = " + a[j] + " > the pivot " + pivot + "? "
+          + (a[j] > pivot ? "Yes — already on the correct side, so keep walking left."
+                          : "No — stop here. This value does not belong on the right."),
+          { panel:"pt", line:6 });
+      } while(a[j] > pivot);
+
+      if(i >= j){
+        vars = { n, lo, hi, i, j, pivot };
+        ptr = [i, j]; zones = null;
+        stats.partitions++;
+        snap("cross", "i = " + i + " and j = " + j + " have met or crossed, so the sub-array is split. "
+          + "Return j = " + j + ". Careful: j is a BOUNDARY, not the pivot's final home — the pivot "
+          + "value " + pivot + " is somewhere in the left part, and it is not finished.",
+          { panel:"pt", line:8 });
+        pivotIdx = null; ptr = [];
+        return j;
+      }
+
+      mov = [i, j];
+      const vi = a[i], vj = a[j];
+      swap(i, j);
+      if(pivotIdx === i) pivotIdx = j; else if(pivotIdx === j) pivotIdx = i;
+      zones = zoneHoare(lo, hi, i, j);
+      snap("swap", vi + " is too big for the left and " + vj + " is too small for the right — they are "
+        + "each standing exactly where the other one belongs. One swap fixes both. This is why Hoare "
+        + "swaps about three times less than Lomuto.", { panel:"pt", line:9 });
+    }
+  }
+
+  /** The Hoare zones: what each pointer has already settled. */
+  function zoneHoare(lo, hi, i, j){
+    const z = [];
+    if(i - 1 >= lo) z.push({ from:lo, to:i - 1, cls:"z-le", label:"≤ pivot (settled)" });
+    if(j >= i)      z.push({ from:Math.max(lo, i), to:Math.min(hi, j), cls:"z-un", label:"still moving" });
+    if(j + 1 <= hi) z.push({ from:j + 1, to:hi, cls:"z-gt", label:"≥ pivot (settled)" });
+    return z;
+  }
+
+  /* ------------------------------ quicksort ---------------------------- */
+  function qs(lo, hi, depth, parentId){
+    stats.calls++;
+
+    if(lo > hi){                        // an empty side: no node, no work
+      stack.push("QuickSort(empty)");
+      range = null; vars = { n, lo, hi };
+      snap("empty", "QuickSort is called on an empty sub-array (lo = " + lo + " is past hi = " + hi
+        + "). There is nothing to sort, so it returns immediately. This is a real call — it is what "
+        + "a lopsided partition costs you.", { panel:"qs", line:1 });
+      stack.pop();
+      snap("return", "Return from the empty call.", { panel:"qs", line:2 });
+      return;
+    }
+
+    const id = lo + "-" + hi;
+    nodes[id] = { id, lo, hi, depth, children: [], pivot: null };
+    if(parentId) nodes[parentId].children.push(nodes[id]); else root = nodes[id];
+
+    stats.depth = depth;
+    stats.maxDepth = Math.max(stats.maxDepth, depth);
+    stack.push("QuickSort(" + lo + "…" + hi + ")");
+    tstate[id] = "active";
+    range = [lo, hi]; vars = { n, lo, hi };
+    snap("call", "QuickSort on indices " + lo + "…" + hi + " — the values [" + a.slice(lo, hi + 1).join(" ")
+      + "] — at recursion depth " + depth + ".", { panel:"qs", line:0 });
+
+    if(lo === hi){
+      snap("base", "This sub-array holds one value. A single value is already sorted, so there is "
+        + "nothing to do.", { panel:"qs", line:1 });
+      sorted[lo] = true; stats.placed++; placedNow = lo;
+      tstate[id] = "done";
+      stack.pop();
+      stats.depth = Math.max(0, depth - 1);
+      range = null;
+      snap("return", "Return — base case reached, and index " + lo + " is final.", { panel:"qs", line:2 });
+      return;
+    }
+
+    tstate[id] = "part";
+    if(scheme === "lomuto"){
+      const p = partitionLomuto(lo, hi, id);
+      range = [lo, hi]; vars = { n, lo, hi };
+      snap("recurse", "Partition is done and returned " + p + ". Now sort the two sides independently: "
+        + "left is " + lo + "…" + (p - 1) + ", right is " + (p + 1) + "…" + hi + ". The pivot itself is "
+        + "skipped — it is already home.", { panel:"qs", line:4 });
+
+      qs(lo, p - 1, depth + 1, id);
+      stats.depth = depth; range = [lo, hi]; tstate[id] = "part";
+      snap("recurse", "The left side came back sorted. Now the right side, " + (p + 1) + "…" + hi + ".",
+        { panel:"qs", line:5 });
+      qs(p + 1, hi, depth + 1, id);
+    } else {
+      const j = partitionHoare(lo, hi, id);
+      range = [lo, hi]; vars = { n, lo, hi };
+      snap("recurse", "Partition returned the boundary " + j + ". Sort " + lo + "…" + j + " and "
+        + (j + 1) + "…" + hi + ". Note the left side INCLUDES index " + j + " — Hoare places no value "
+        + "permanently, so nothing may be skipped.", { panel:"qs", line:4 });
+
+      qs(lo, j, depth + 1, id);
+      stats.depth = depth; range = [lo, hi]; tstate[id] = "part";
+      snap("recurse", "The left side came back sorted. Now the right side, " + (j + 1) + "…" + hi + ".",
+        { panel:"qs", line:5 });
+      qs(j + 1, hi, depth + 1, id);
+    }
+
+    for(let k = lo; k <= hi; k++) if(!sorted[k]){ sorted[k] = true; stats.placed++; }
+    tstate[id] = "done";
+    stack.pop();
+    stats.depth = Math.max(0, depth - 1);
+    range = null; pivotIdx = null;
+    snap("return", "Return from QuickSort(" + lo + "…" + hi + "). Both sides are sorted and the pivot "
+      + "sits between them, so this whole block — [" + a.slice(lo, hi + 1).join(" ") + "] — is finished.",
+      { panel:"qs", line:5 });
+  }
+
+  /* --------------------------- run + bookend --------------------------- */
+  vars = { n };
+  snap("ready", "Ready. Quicksort picks a pivot, shoves everything smaller to its left and everything "
+    + "bigger to its right, then does the same to each side. Press Start, or step through with "
+    + "Next step.", { panel:"qs", line:0 });
+
+  const t0 = performance.now();
+  if(n > 0) qs(0, n - 1, 0, null);
+  runMs = performance.now() - t0;
+
+  range = null; pivotIdx = null; zones = null; vars = { n };
+  snap("finished", "Done. The array is sorted: [" + a.join(" ") + "]. The call stack is empty and every "
+    + "value is in its final position.", { panel:"qs", line:0 });
+
+  return { steps: out, root, nodes };
+}
+
+/* ======================================================================== */
+/*  3. RENDERING                                                             */
+/* ======================================================================== */
+
+function buildArrayRow(){
+  const row = $("arrayRow");
+  row.innerHTML = "";
+  array.forEach((v, i) => {
+    const b = document.createElement("div");
+    b.className = "box s-out";
+    b.innerHTML = '<span class="badge"></span><span class="val">' + v +
+                  '</span><span class="idx">' + i + "</span>";
+    row.appendChild(b);
+  });
+}
+
+/** The tree is only known after the run, because the pivots carve it out. */
+function buildTreeDom(){
+  const host = $("tree");
+  host.innerHTML = "";
+  if(!treeRoot){ return; }
+  function make(node){
+    const li = document.createElement("li");
+    const d = document.createElement("div");
+    d.className = "node";
+    d.id = "node-" + node.id;
+    d.dataset.lo = node.lo; d.dataset.hi = node.hi;
+    d.dataset.pivot = node.pivot === null ? "" : node.pivot;
+    d.title = "indices " + node.lo + "…" + node.hi + " · depth " + node.depth
+            + (node.pivot === null ? "" : " · pivot " + node.pivot);
+    li.appendChild(d);
+    if(node.children.length){
+      const ul = document.createElement("ul");
+      node.children.forEach(c => ul.appendChild(make(c)));
+      li.appendChild(ul);
+    }
+    return li;
+  }
+  const ul = document.createElement("ul");
+  ul.appendChild(make(treeRoot));
+  host.appendChild(ul);
+}
+
+function render(i){
+  const s = steps[i];
+  if(!s) return;
+  cursor = i;
+
+  /* boxes */
+  const boxes = $("arrayRow").children;
+  for(let k = 0; k < boxes.length; k++){
+    const b = boxes[k];
+    b.className = "box s-" + s.states[k]
+      + (s.moved.indexOf(k) >= 0 ? " moved" : "")
+      + (s.placed === k ? " placed" : "");
+    b.querySelector(".val").textContent = s.main[k];
+    const bd = b.querySelector(".badge");
+    bd.textContent = s.badges[k] || "";
+    bd.className = "badge" + ((s.badges[k] || "").indexOf("pivot") >= 0 ? " pv" : "");
+  }
+
+  /* recursion tree: state comes from the step, values from the live array */
+  document.querySelectorAll("#tree .node").forEach(el => {
+    const id = el.id.slice(5);
+    const st = s.tree[id] || "idle";
+    el.className = "node" + (st === "active" ? " n-active" : st === "part" ? " n-part"
+                            : st === "done" ? " n-done" : "");
+    const lo = +el.dataset.lo, hi = +el.dataset.hi;
+    el.innerHTML = "[" + s.main.slice(lo, hi + 1).join(" ") + "]" +
+      '<span class="sub">' + lo + "…" + hi +
+      (st !== "idle" && el.dataset.pivot !== "" ? " · pivot " + el.dataset.pivot : "") + "</span>";
+  });
+
+  /* explanation */
+  $("explain").textContent = s.desc;
+  $("stepKind").textContent = ({
+    ready:"ready", call:"recursive call", base:"base case", empty:"empty side",
+    pivot:"choose the pivot", "pivot-move":"park the pivot", init:"set the pointers",
+    compare:"comparison", grow:"grow the zone", swap:"swap", place:"place the pivot",
+    placed:"final position", "scan-i":"left pointer", "scan-j":"right pointer",
+    cross:"pointers crossed", recurse:"recursion", return:"return", finished:"finished"
+  })[s.kind] || s.kind;
+
+  $("bar").style.width = (i / (steps.length - 1) * 100) + "%";
+  $("counter").textContent = "step " + i + " / " + (steps.length - 1);
+
+  /* code panels */
+  paintCode($("codeQS"), ALGOS[algo].qs, s.code.panel === "qs" ? s.code.line : -1);
+  paintCode($("codePT"), ALGOS[algo].pt, s.code.panel === "pt" ? s.code.line : -1);
+
+  /* partition invariant strip */
+  const strip = $("strip");
+  if(!s.zones){
+    $("stripTag").textContent = "not partitioning";
+    strip.innerHTML = '<div class="strip-empty">The zones appear once a partition starts.</div>';
+  } else {
+    $("stripTag").textContent = "pivot = " + s.vars.pivot;
+    strip.innerHTML =
+      '<div class="zones">' + s.zones.map(z =>
+        '<div class="zone ' + z.cls + '" style="flex:' + (z.to - z.from + 1) + ' 1 0" title="indices '
+        + z.from + "…" + z.to + '">' + z.label + "</div>").join("") + "</div>" +
+      '<div class="zone-key">' + s.zones.map(z =>
+        "<span>" + z.label + ": " + (z.from === z.to ? "index " + z.from : z.from + "…" + z.to)
+        + " (" + (z.to - z.from + 1) + ")</span>").join("") + "</div>";
+  }
+
+  /* variable watch */
+  const v = s.vars, chips = [];
+  const chip = (k, val, cls) => '<span class="chip ' + (cls || "") + '">' + k + " = <b>" + val + "</b></span>";
+  chips.push(chip("n", v.n));
+  if(v.pivot !== undefined) chips.push(chip("pivot", v.pivot, "pv"));
+  if(v.lo !== undefined) chips.push(chip("lo", v.lo));
+  if(v.hi !== undefined) chips.push(chip("hi", v.hi));
+  if(v.i !== undefined) chips.push(chip("i", v.i, "hot"));
+  if(v.j !== undefined) chips.push(chip("j", v.j, "hot"));
+  $("watch").innerHTML = chips.join("");
+  $("watchTag").textContent = ALGOS[algo].name.toLowerCase();
+
+  /* call stack */
+  $("stack").innerHTML = s.stack.length
+    ? s.stack.map((f, k) => '<div class="frame' + (k === s.stack.length - 1 ? " top" : "") + '">'
+        + f + "</div>").join("")
+    : '<div class="stack-empty">empty — no call in progress</div>';
+
+  /* stats */
+  $("stats").innerHTML = [
+    ["Comparisons", s.stats.comparisons],
+    ["Swaps", s.stats.swaps],
+    ["Partitions done", s.stats.partitions],
+    ["Recursive calls", s.stats.calls],
+    ["Current depth", s.stats.depth],
+    ["Maximum depth", s.stats.maxDepth]
+  ].map(([k, val]) => '<div class="stat"><b>' + val + "</b><span>" + k + "</span></div>").join("");
+
+  if(s.kind === "finished") showSummary(s); else $("summaryCard").classList.add("hidden");
+  syncButtons();
+}
+
+function paintCode(pre, lines, hl){
+  pre.innerHTML = lines.map((l, k) =>
+    "<div" + (k === hl ? ' class="hl"' : "") + ">" + l.replace(/</g, "&lt;") + "</div>").join("");
+}
+
+function showSummary(s){
+  $("summaryCard").classList.remove("hidden");
+  const n = s.stats.size;
+  const ideal = Math.ceil(Math.log2(n + 1));
+  $("summaryGrid").innerHTML = [
+    ["Total comparisons", s.stats.comparisons],
+    ["Total swaps", s.stats.swaps],
+    ["Partitions", s.stats.partitions],
+    ["Recursive calls", s.stats.calls],
+    ["Maximum depth", s.stats.maxDepth],
+    ["Sort run time", runMs.toFixed(3) + " ms"]
+  ].map(([k, v]) => "<div><b>" + v + "</b><span>" + k + "</span></div>").join("");
+
+  $("summaryArrays").innerHTML =
+    "<div><em>Scheme&nbsp;&nbsp;&nbsp;&nbsp;</em>" + ALGOS[algo].name + " · pivot: " + PIVOT_NAMES[pivotRule] + "</div>" +
+    "<div><em>Original&nbsp;&nbsp;</em>[" + array.join(", ") + "]</div>" +
+    "<div><em>Sorted&nbsp;&nbsp;&nbsp;&nbsp;</em>[" + s.main.join(", ") + "]</div>";
+
+  /* the honest verdict: how close did this pivot rule get to the ideal tree? */
+  const el = $("verdict");
+  const worst = n - 1;
+  const nlogn = Math.round(n * Math.log2(Math.max(2, n)));
+  if(s.stats.maxDepth >= worst && n > 2){
+    el.className = "verdict bad";
+    el.textContent = "This run degenerated. Maximum depth " + s.stats.maxDepth + " on " + n
+      + " values means every partition peeled off one element — the recursion tree is a stick, not a "
+      + "tree, and this was the O(n²) case. A balanced run would have reached depth ≈ " + ideal
+      + " and used ≈ " + nlogn + " comparisons instead of " + s.stats.comparisons + ".";
+  } else if(s.stats.maxDepth <= ideal + 1){
+    el.className = "verdict good";
+    el.textContent = "A well-balanced run: maximum depth " + s.stats.maxDepth + " against an ideal of ≈ "
+      + ideal + " for " + n + " values, and " + s.stats.comparisons + " comparisons against ≈ " + nlogn
+      + " for n log n. This is quicksort doing what it is famous for.";
+  } else {
+    el.className = "verdict";
+    el.textContent = "Maximum depth " + s.stats.maxDepth + " against an ideal of ≈ " + ideal + " for "
+      + n + " values, with " + s.stats.comparisons + " comparisons (n log n would be ≈ " + nlogn
+      + "). Somewhat lopsided, but nowhere near the worst case of depth " + worst + ".";
+  }
+}
+
+function renderAlgoPanels(){
+  const A = ALGOS[algo];
+  $("codePTitle").textContent = A.name + " pseudocode";
+  $("cxTag").textContent = algo;
+  $("facts").innerHTML = A.facts.map(([k, v, cls]) =>
+    "<div><span>" + k + "</span><b" + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</b></div>").join("");
+  $("notes").innerHTML = A.notes.map(([h, p]) => "<h3>" + h + "</h3><p>" + p + "</p>").join("");
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-selected", t.dataset.algo === algo ? "true" : "false"));
+}
+
+/* ======================================================================== */
+/*  4. PLAYBACK                                                              */
+/* ======================================================================== */
+
+const delayFor = () => [0, 1600, 1200, 900, 650, 450, 320, 220, 140, 80][+$("speed").value];
+
+function play(){
+  stop();
+  if(cursor >= steps.length - 1) cursor = 0;
+  $("modeTag").textContent = "playing";
+  timer = setInterval(() => {
+    if(cursor >= steps.length - 1){ stop(); $("modeTag").textContent = "finished"; return; }
+    render(cursor + 1);
+  }, delayFor());
+  syncButtons();
+}
+function stop(){ if(timer){ clearInterval(timer); timer = null; } syncButtons(); }
+function pause(){ if(timer){ stop(); $("modeTag").textContent = "paused"; } }
+function next(){ stop(); if(cursor < steps.length - 1){ render(cursor + 1); $("modeTag").textContent = "stepping"; } }
+function prev(){ stop(); if(cursor > 0){ render(cursor - 1); $("modeTag").textContent = "stepping"; } }
+
+function syncButtons(){
+  const playing = !!timer;
+  $("pauseBtn").disabled  = !playing;
+  $("resumeBtn").disabled = playing || cursor >= steps.length - 1;
+  $("nextBtn").disabled   = cursor >= steps.length - 1;
+  $("prevBtn").disabled   = cursor <= 0;
+  $("startBtn").disabled  = playing;
+}
+
+/* ======================================================================== */
+/*  5. LOADING                                                               */
+/* ======================================================================== */
+
+function load(arr){
+  stop();
+  array = arr.slice();
+  const r = record(array, algo, pivotRule);
+  steps = r.steps;
+  treeRoot = r.root;
+  buildArrayRow();
+  buildTreeDom();
+  renderAlgoPanels();
+  $("arrTag").textContent = "n = " + array.length + " · " + ALGOS[algo].name.toLowerCase()
+    + " · pivot: " + PIVOT_NAMES[pivotRule];
+  $("quizA").classList.add("hidden");
+  $("quizQ").textContent = "Press “Ask me something” at any point in the run.";
+  pendingAnswer = "";
+  render(0);
+  $("modeTag").textContent = "idle";
+}
+
+/* ======================================================================== */
+/*  6. LEARNING CHALLENGES                                                   */
+/*     Answered from the real recorded future, never invented.               */
+/* ======================================================================== */
+
+let pendingAnswer = "";
+
+function findNext(pred){
+  for(let i = cursor + 1; i < steps.length; i++) if(pred(steps[i])) return steps[i];
+  return null;
+}
+
+function askQuestion(){
+  const s = steps[cursor];
+  const pool = [];
+
+  pool.push({ q: "What is the current recursion depth, and how deep has it been?",
+              a: "Depth " + s.stats.depth + " now; maximum so far " + s.stats.maxDepth + "." });
+  pool.push({ q: "How many comparisons have been performed so far?",
+              a: s.stats.comparisons + " comparison" + (s.stats.comparisons === 1 ? "" : "s")
+                 + ", and " + s.stats.swaps + " swap" + (s.stats.swaps === 1 ? "" : "s") + "." });
+
+  const nextPivot = findNext(x => x.kind === "pivot");
+  if(nextPivot) pool.push({ q: "Which value becomes the pivot of the next partition?", a: nextPivot.desc });
+
+  if(algo === "lomuto"){
+    const place = findNext(x => x.kind === "place");
+    if(place) pool.push({ q: "Where will the current pivot end up?", a: place.desc });
+    if(s.vars.i !== undefined && s.vars.lo !== undefined && s.vars.pivot !== undefined)
+      pool.push({ q: "How many values are in the “≤ pivot” zone right now?",
+                  a: Math.max(0, s.vars.i - s.vars.lo + 1) + " — the zone is indices " + s.vars.lo
+                     + "…" + s.vars.i + (s.vars.i < s.vars.lo ? " (empty)" : "") + "." });
+    const cmpStep = findNext(x => x.kind === "compare");
+    if(cmpStep) pool.push({ q: "Will the next comparison cause a swap?",
+      a: (cmpStep.desc.indexOf("Yes.") >= 0
+          ? "Yes — the value is ≤ the pivot, so i grows and the values swap (possibly with itself)."
+          : "No — the value is greater than the pivot, so it stays in the “> pivot” zone.") });
+  } else {
+    const cross = findNext(x => x.kind === "cross");
+    if(cross) pool.push({ q: "Where will the two pointers cross, and what gets returned?", a: cross.desc });
+    const sw = findNext(x => x.kind === "swap");
+    if(sw) pool.push({ q: "Which two values get swapped next?", a: sw.desc });
+  }
+
+  const nextCall = findNext(x => x.kind === "call");
+  if(nextCall) pool.push({ q: "Which sub-array does QuickSort work on next?", a: nextCall.desc });
+
+  const end = steps[steps.length - 1];
+  pool.push({ q: "Will this run be balanced or degenerate — and how deep will it go?",
+              a: "Maximum depth ends at " + end.stats.maxDepth + " for " + end.stats.size
+                 + " values (ideal ≈ " + Math.ceil(Math.log2(end.stats.size + 1))
+                 + ", worst case " + (end.stats.size - 1) + ")." });
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $("quizQ").textContent = pick.q;
+  pendingAnswer = pick.a;
+  $("quizA").classList.add("hidden");
+  $("quizCard").open = true;
+}
+
+/* ======================================================================== */
+/*  7. WIRING                                                                */
+/* ======================================================================== */
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => { algo = t.dataset.algo; load(array); };   // same data, other scheme
+});
+
+$("startBtn").onclick  = () => { if(cursor >= steps.length - 1) render(0); play(); };
+$("pauseBtn").onclick  = pause;
+$("resumeBtn").onclick = play;
+$("nextBtn").onclick    = next;
+$("prevBtn").onclick    = prev;
+$("restartBtn").onclick = () => { stop(); render(0); play(); };
+$("resetBtn").onclick   = () => { stop(); render(0); $("modeTag").textContent = "idle"; };
+
+$("genBtn").onclick = () => load(makeArray(+$("size").value, $("shape").value));
+$("shape").onchange = () => load(makeArray(+$("size").value, $("shape").value));
+$("pivot").onchange = () => { pivotRule = $("pivot").value; load(array); };  // same data, new rule
+$("size").oninput   = () => { $("sizeOut").textContent = $("size").value; };
+$("size").onchange  = () => load(makeArray(+$("size").value, $("shape").value));
+
+$("customBtn").onclick = () => {
+  const raw = $("custom").value.split(/[\s,]+/).filter(Boolean).map(Number);
+  if(!raw.length || raw.some(isNaN)){
+    $("explain").textContent = "That input has something that is not a number. Use digits separated by commas or spaces, for example: 38, 27, 43, 3.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  if(raw.length < 2 || raw.length > 30){
+    $("explain").textContent = "Use between 2 and 30 values so the tree stays readable.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  $("size").value = raw.length; $("sizeOut").textContent = raw.length;
+  load(raw);
+};
+
+$("speed").onchange = () => { if(timer) play(); };
+
+$("quizBtn").onclick   = askQuestion;
+$("revealBtn").onclick = () => {
+  if(!pendingAnswer) askQuestion();
+  $("quizA").textContent = pendingAnswer;
+  $("quizA").classList.remove("hidden");
+};
+
+$("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  $("themeBtn").textContent = dark ? "◑ Dark mode" : "◐ Light mode";
+};
+
+document.addEventListener("keydown", (e) => {
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if(e.code === "Space"){ e.preventDefault(); timer ? pause() : play(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); next(); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); prev(); }
+});
+
+load(array);
+</script>
+</body>
+</html>

@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary search — halving the haystack</title>
+<style>
+/* =========================================================================
+   THEME TOKENS — same visual language as the merge sort and quadratic-three
+   visualizers, so all three files read as one set. The six colours below are
+   fixed roles used by the legend and are never reused for decoration.
+   ========================================================================= */
+:root{
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --c-window:#3b82f6;   /* blue   - still a candidate (inside the window) */
+  --c-found:#22c55e;    /* green  - found: the answer                     */
+  --c-mid:#eab308;      /* yellow - the middle element, being compared    */
+  --c-elim:#f97316;     /* orange - eliminated by this probe              */
+  --c-out:#8a93a6;      /* gray   - already ruled out                     */
+  --c-ptr:#ef4444;      /* red    - low / high pointer                    */
+}
+html[data-theme="dark"]{
+  --bg:#0d1017; --bg-grid:rgba(255,255,255,.035);
+  --panel:#151a24; --panel-2:#1b2230;
+  --ink:#e8ecf3; --ink-soft:#98a2b6; --line:#2c3547;
+  --accent:#a78bfa; --accent-soft:rgba(167,139,250,.16);
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+}
+html[data-theme="light"]{
+  --bg:#f2f3f7; --bg-grid:rgba(20,30,60,.04);
+  --panel:#ffffff; --panel-2:#f7f8fb;
+  --ink:#141a24; --ink-soft:#5d6879; --line:#dfe3ec;
+  --accent:#6d3bf5; --accent-soft:rgba(109,59,245,.10);
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.08);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+    var(--bg);
+  color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------------------------------------------------------------- header */
+header.top{
+  display:flex; align-items:flex-end; gap:18px; flex-wrap:wrap;
+  padding:22px 24px 16px; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, var(--panel), transparent);
+}
+.brand h1{font-family:var(--font-display); font-weight:400; font-size:30px;
+  letter-spacing:-.015em; margin:0}
+.brand h1 em{font-style:italic; color:var(--accent)}
+.brand p{margin:2px 0 0; color:var(--ink-soft); font-size:13px;
+  font-family:var(--font-mono); letter-spacing:.02em}
+.top .spacer{flex:1}
+.icon-btn{font-family:var(--font-mono); font-size:12px; background:var(--panel-2);
+  color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer}
+.icon-btn:hover{border-color:var(--accent)}
+
+/* ----------------------------------------------------------- variant tabs */
+.picker{display:flex; padding:0 24px; border-bottom:1px solid var(--line);
+  background:var(--panel); overflow-x:auto}
+.tab{appearance:none; background:none; border:0; cursor:pointer;
+  padding:14px 20px 12px; border-bottom:3px solid transparent;
+  color:var(--ink-soft); text-align:left; white-space:nowrap; font-family:var(--font-body)}
+.tab b{display:block; font-size:15px; font-weight:700; letter-spacing:-.01em}
+.tab span{display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+.tab[aria-selected="true"] span{color:var(--accent)}
+
+/* ------------------------------------------------------------- structure */
+main{display:grid; grid-template-columns:1fr 340px; gap:16px; padding:16px 24px 60px; align-items:start}
+@media (max-width:1040px){ main{grid-template-columns:1fr; padding:14px} }
+.col{display:flex; flex-direction:column; gap:16px; min-width:0}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden}
+.card > h2{margin:0; padding:11px 14px; font-family:var(--font-mono); font-size:11px;
+  font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+  border-bottom:1px solid var(--line); background:var(--panel-2);
+  display:flex; align-items:center; gap:8px}
+.card > h2 .tag{margin-left:auto; color:var(--accent); letter-spacing:.04em; text-transform:none}
+.card .body{padding:14px}
+
+details.card > summary{list-style:none; cursor:pointer; padding:11px 14px;
+  font-family:var(--font-mono); font-size:11px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft); background:var(--panel-2);
+  border-bottom:1px solid transparent; display:flex; align-items:center; gap:8px}
+details.card[open] > summary{border-bottom-color:var(--line)}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::before{content:"▸"; color:var(--accent); transition:transform .18s}
+details.card[open] > summary::before{transform:rotate(90deg)}
+
+/* --------------------------------------------------------------- controls */
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button.ctl{font-family:var(--font-body); font-size:13px; font-weight:600;
+  background:var(--panel-2); color:var(--ink); border:1px solid var(--line);
+  border-radius:9px; padding:9px 13px; cursor:pointer;
+  transition:transform .08s, border-color .15s, background .15s}
+button.ctl:hover:not(:disabled){border-color:var(--accent); background:var(--accent-soft)}
+button.ctl:active:not(:disabled){transform:translateY(1px)}
+button.ctl:disabled{opacity:.38; cursor:not-allowed}
+button.ctl.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+html[data-theme="dark"] button.ctl.primary{color:#12101c}
+button.ctl.primary:hover:not(:disabled){filter:brightness(1.08); background:var(--accent)}
+.field{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft);
+  font-family:var(--font-mono)}
+.field input[type=range]{accent-color:var(--accent); width:130px}
+.field select, .field input[type=text], .field input[type=number]{
+  font-family:var(--font-mono); font-size:12px; background:var(--panel-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:7px; padding:6px 8px}
+.divider{width:1px; align-self:stretch; background:var(--line); margin:0 4px}
+.rowgap{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:12px}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* -------------------------------------------------------------- the hunt
+   The target is the whole point of the page, so it gets its own line. */
+.target-line{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:12px 14px; border-bottom:1px solid var(--line); background:var(--panel-2);
+}
+.target-line .lbl{font-family:var(--font-mono); font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-soft)}
+.target-chip{
+  font-family:var(--font-mono); font-size:22px; font-weight:700;
+  padding:4px 14px; border-radius:10px;
+  border:2px solid var(--accent); color:var(--accent); background:var(--accent-soft);
+}
+
+/* ------------------------------------------------------------- array row */
+.array-row{display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+  padding:26px 0 24px; min-height:96px; align-items:center}
+.box{
+  min-width:48px; height:54px; padding:0 7px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:17px; font-weight:600;
+  border-radius:10px; border:2px solid transparent; position:relative;
+  transition:background .3s, color .3s, border-color .3s, transform .3s, opacity .3s;
+}
+.box .idx{position:absolute; bottom:-16px; left:0; right:0; text-align:center;
+  font-size:10px; color:var(--ink-soft); font-weight:400}
+.box .badge{position:absolute; top:-18px; left:0; right:0; text-align:center;
+  font-size:10px; font-family:var(--font-mono); font-weight:700; letter-spacing:.06em;
+  color:var(--c-ptr); white-space:nowrap}
+.s-out    {background:transparent; color:var(--ink-soft); border-color:var(--line); opacity:.4}
+.s-window {background:color-mix(in srgb, var(--c-window) 18%, transparent); color:var(--c-window); border-color:var(--c-window)}
+.s-elim   {background:color-mix(in srgb, var(--c-elim) 22%, transparent); color:var(--c-elim); border-color:var(--c-elim)}
+.s-mid    {background:color-mix(in srgb, var(--c-mid) 26%, transparent); color:var(--c-mid); border-color:var(--c-mid); transform:translateY(-7px)}
+.s-ptr    {background:color-mix(in srgb, var(--c-ptr) 20%, transparent); color:var(--c-ptr); border-color:var(--c-ptr)}
+.s-found  {background:color-mix(in srgb, var(--c-found) 28%, transparent); color:var(--c-found); border-color:var(--c-found); transform:translateY(-7px)}
+.box.hit{animation:pop .45s ease-out}
+@keyframes pop{40%{transform:translateY(-14px) scale(1.14)}}
+
+/* ---------------------------------------------------- explanation + code */
+.explain{font-size:15px; line-height:1.6; min-height:70px}
+.explain .kicker{font-family:var(--font-mono); font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); display:block; margin-bottom:4px}
+.progress{height:4px; background:var(--panel-2); border-radius:99px; overflow:hidden;
+  margin-top:12px; border:1px solid var(--line)}
+.progress i{display:block; height:100%; background:var(--accent); width:0; transition:width .2s}
+.step-counter{font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); margin-top:6px}
+
+pre.code{margin:0; font-family:var(--font-mono); font-size:12.5px; line-height:1.75}
+pre.code div{padding:1px 8px; border-radius:5px; border-left:2px solid transparent; white-space:pre}
+pre.code div.hl{background:var(--accent-soft); border-left-color:var(--accent); color:var(--ink); font-weight:600}
+
+/* -------------------------------------------------------- variable watch */
+.watch{display:flex; flex-wrap:wrap; gap:8px}
+.chip{font-family:var(--font-mono); font-size:12.5px; padding:6px 10px; border-radius:8px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft)}
+.chip b{color:var(--ink); font-weight:600}
+.chip.hot{border-color:var(--accent); background:var(--accent-soft)}
+.chip.tgt{border-color:var(--c-mid); color:var(--c-mid)}
+.chip.tgt b{color:var(--c-mid)}
+
+/* ------------------------------------------------------------ call stack */
+.stack{display:flex; flex-direction:column-reverse; gap:5px; min-height:44px}
+.frame{font-family:var(--font-mono); font-size:12px; padding:6px 9px; border-radius:7px;
+  background:var(--panel-2); border:1px solid var(--line); color:var(--ink-soft);
+  animation:push .22s ease-out}
+.frame.top{border-color:var(--c-window); color:var(--c-window);
+  background:color-mix(in srgb, var(--c-window) 14%, transparent)}
+@keyframes push{from{transform:translateX(-10px); opacity:0}}
+.stack-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* -------------------------------------------------------- halving ladder
+   The signature panel: one rung per probe, drawn to scale against the full
+   array, so the window visibly halves. This is the whole argument for
+   binary search in a single picture. */
+.ladder{display:flex; flex-direction:column; gap:8px; padding:14px}
+.rung{display:flex; align-items:center; gap:10px}
+.rung .lbl{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft);
+  min-width:64px; flex:none}
+.track{
+  position:relative; flex:1; height:18px; border-radius:5px;
+  background:var(--panel-2); border:1px solid var(--line); overflow:hidden;
+}
+.track .win{
+  position:absolute; top:0; bottom:0; border-radius:4px;
+  background:color-mix(in srgb, var(--c-window) 45%, transparent);
+  transition:left .3s, width .3s;
+}
+.track .probe{position:absolute; top:0; bottom:0; width:2px; background:var(--c-mid)}
+.rung .cnt{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-soft);
+  min-width:104px; text-align:right; flex:none}
+.rung.now .lbl, .rung.now .cnt{color:var(--accent)}
+.ladder-empty{color:var(--ink-soft); font-family:var(--font-mono); font-size:12px}
+
+/* ------------------------------------------------------------ stats grid */
+.stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line)}
+.stat{background:var(--panel); padding:10px 12px}
+.stat b{display:block; font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--ink)}
+.stat span{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft)}
+
+/* --------------------------------------------------------------- legend */
+.legend{display:flex; flex-direction:column; gap:8px}
+.legend div{display:flex; align-items:center; gap:9px; font-size:12.5px}
+.swatch{display:inline-block; flex:none; width:16px; height:16px; border-radius:5px; border:2px solid}
+.sw-window{border-color:var(--c-window); background:color-mix(in srgb,var(--c-window) 25%,transparent)}
+.sw-found{border-color:var(--c-found); background:color-mix(in srgb,var(--c-found) 25%,transparent)}
+.sw-mid{border-color:var(--c-mid); background:color-mix(in srgb,var(--c-mid) 25%,transparent)}
+.sw-elim{border-color:var(--c-elim); background:color-mix(in srgb,var(--c-elim) 25%,transparent)}
+.sw-out{border-color:var(--line); background:transparent; opacity:.6}
+.sw-ptr{border-color:var(--c-ptr); background:color-mix(in srgb,var(--c-ptr) 25%,transparent)}
+
+/* ----------------------------------------------------------- complexity */
+.facts{display:flex; flex-direction:column; gap:0}
+.facts div{display:flex; justify-content:space-between; gap:10px; padding:7px 0;
+  border-bottom:1px dashed var(--line); font-size:13px}
+.facts div:last-child{border-bottom:0}
+.facts b{font-family:var(--font-mono); font-weight:600}
+.facts .yes{color:var(--c-found)}
+.facts .no{color:var(--c-ptr)}
+
+/* ---------------------------------------------------------------- notes */
+.notes h3{font-size:13px; margin:14px 0 3px; font-family:var(--font-body); font-weight:700}
+.notes h3:first-child{margin-top:0}
+.notes p{margin:0; font-size:13px; color:var(--ink-soft)}
+.notes code{font-family:var(--font-mono); font-size:12px}
+
+/* ----------------------------------------------------------------- quiz */
+.quiz-q{font-size:14px; font-weight:600; margin:0 0 10px}
+.quiz-a{font-family:var(--font-mono); font-size:13px; padding:9px 11px; border-radius:8px;
+  background:var(--accent-soft); border:1px solid var(--accent); color:var(--ink); margin-top:10px}
+.hidden{display:none !important}
+
+/* -------------------------------------------------------------- summary */
+.summary-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.summary-grid div{background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:9px 11px}
+.summary-grid b{display:block; font-family:var(--font-mono); font-size:17px}
+.summary-grid span{font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft)}
+.summary-arrays{margin-top:12px; font-family:var(--font-mono); font-size:12.5px; word-break:break-word}
+.summary-arrays em{color:var(--ink-soft); font-style:normal}
+
+kbd{font-family:var(--font-mono); font-size:11px; background:var(--panel-2);
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 5px}
+.shortcuts{display:flex; gap:14px; flex-wrap:wrap; color:var(--ink-soft); font-size:12px;
+  padding:0 24px 30px}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>Binary search, <em>one honest step at a time</em></h1>
+    <p>halve the haystack · every probe throws away half of what is left</p>
+  </div>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="themeBtn" title="Switch between dark and light mode">◐ Light mode</button>
+</header>
+
+<div class="picker" role="tablist" aria-label="Choose a version">
+  <button class="tab" role="tab" data-algo="iterative" aria-selected="true"
+    title="The standard loop version: low, high, mid">
+    <b>Iterative</b><span>a while loop and two pointers</span></button>
+  <button class="tab" role="tab" data-algo="recursive" aria-selected="false"
+    title="The same search written as a recursive function">
+    <b>Recursive</b><span>the same idea, with a call stack</span></button>
+  <button class="tab" role="tab" data-algo="lower" aria-selected="false"
+    title="Find the FIRST index where the target could go — handles duplicates">
+    <b>First occurrence</b><span>lower bound, for duplicates</span></button>
+</div>
+
+<main>
+  <!-- ============================ LEFT COLUMN ============================ -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Controls <span class="tag" id="modeTag">idle</span></h2>
+
+      <div class="target-line">
+        <span class="lbl">Looking for</span>
+        <span class="target-chip" id="targetChip">—</span>
+        <span class="divider"></span>
+        <button class="ctl" id="tPresent" title="Pick a target that is somewhere in the array">Target that exists</button>
+        <button class="ctl" id="tMissing" title="Pick a target that is not in the array, to see the search fail">Target that is missing</button>
+        <label class="field" title="Search for a value you choose">
+          Search for <input type="number" id="tCustom" size="5" style="width:76px">
+        </label>
+        <button class="ctl" id="tGo" title="Use the value you typed">Search</button>
+      </div>
+
+      <div class="body">
+        <div class="controls">
+          <button class="ctl primary" id="startBtn" title="Play the animation from the current step">▶ Start</button>
+          <button class="ctl" id="pauseBtn" title="Pause the animation where it is">⏸ Pause</button>
+          <button class="ctl" id="resumeBtn" title="Continue playing from where you paused">▶ Resume</button>
+          <button class="ctl" id="prevBtn" title="Go back exactly one operation (Left Arrow)">◀ Previous step</button>
+          <button class="ctl" id="nextBtn" title="Perform exactly one operation (Right Arrow)">Next step ▶</button>
+          <button class="ctl" id="restartBtn" title="Replay the whole search">↻ Restart</button>
+          <button class="ctl" id="resetBtn" title="Clear the run and all statistics, keep the array">✕ Reset</button>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="How fast the animation advances">
+            Very slow <input type="range" id="speed" min="1" max="9" value="4"> Very fast
+          </label>
+          <span class="divider"></span>
+          <label class="field" title="How many values are in the array">
+            Size <input type="range" id="size" min="5" max="30" value="15">
+            <b id="sizeOut" style="color:var(--ink)">15</b>
+          </label>
+        </div>
+        <div class="rowgap">
+          <label class="field" title="Binary search only works on sorted data, so every shape here is sorted">
+            Array shape
+            <select id="shape">
+              <option value="spread">Sorted, gaps between values</option>
+              <option value="dense">Sorted, consecutive numbers</option>
+              <option value="dupes">Sorted, with duplicates</option>
+            </select>
+          </label>
+          <button class="ctl" id="genBtn" title="Build a new sorted array">⚄ Generate random array</button>
+          <span class="divider"></span>
+          <label class="field" title="Type your own numbers — they will be sorted for you, because binary search requires it">
+            Custom <input type="text" id="custom" placeholder="3, 9, 10, 27, 38, 43, 82" size="22">
+          </label>
+          <button class="ctl" id="customBtn" title="Use the numbers you typed (they get sorted first)">Enter custom array</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>The array <span class="tag" id="arrTag"></span></h2>
+      <div class="body"><div class="array-row" id="arrayRow"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>What is happening</h2>
+      <div class="body">
+        <div class="explain"><span class="kicker" id="stepKind">ready</span><span id="explain">Pick a target and press Start.</span></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="step-counter" id="counter">step 0 / 0</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Halving ladder <span class="tag">drawn to scale</span></h2>
+      <div class="ladder" id="ladder"><div class="ladder-empty">One rung appears per probe.</div></div>
+    </section>
+
+    <details class="card" id="quizCard">
+      <summary>Learning challenge</summary>
+      <div class="body">
+        <p class="quiz-q" id="quizQ">Press “Ask me something” at any point in the run.</p>
+        <div class="controls">
+          <button class="ctl" id="quizBtn" title="Get a question about the current state of the search">Ask me something</button>
+          <button class="ctl" id="revealBtn" title="Reveal the correct answer">Show answer</button>
+        </div>
+        <div class="quiz-a hidden" id="quizA"></div>
+      </div>
+    </details>
+
+    <section class="card hidden" id="summaryCard">
+      <h2>Run summary <span class="tag" id="summaryTag"></span></h2>
+      <div class="body">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div class="summary-arrays" id="summaryArrays"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================ RIGHT COLUMN =========================== -->
+  <div class="col">
+
+    <section class="card">
+      <h2>Statistics</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Colour legend</h2>
+      <div class="body legend">
+        <div><i class="swatch sw-window"></i> Blue — still a candidate</div>
+        <div><i class="swatch sw-mid"></i> Yellow — the middle, being compared</div>
+        <div><i class="swatch sw-elim"></i> Orange — eliminated by this probe</div>
+        <div><i class="swatch sw-out"></i> Gray — already ruled out</div>
+        <div><i class="swatch sw-ptr"></i> Red — low / high pointer</div>
+        <div><i class="swatch sw-found"></i> Green — found</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Variable watch <span class="tag" id="watchTag"></span></h2>
+      <div class="body"><div class="watch" id="watch"></div></div>
+    </section>
+
+    <section class="card hidden" id="stackCard">
+      <h2>Call stack <span class="tag">top of stack on top</span></h2>
+      <div class="body"><div class="stack" id="stack"></div></div>
+    </section>
+
+    <details class="card" open>
+      <summary><span id="codeTitle">Pseudocode</span></summary>
+      <div class="body"><pre class="code" id="code"></pre></div>
+    </details>
+
+    <section class="card">
+      <h2>Complexity <span class="tag" id="cxTag"></span></h2>
+      <div class="body facts" id="facts"></div>
+    </section>
+
+    <details class="card" open>
+      <summary>Why it works this way</summary>
+      <div class="body notes" id="notes"></div>
+    </details>
+
+    <details class="card">
+      <summary>The classic bugs</summary>
+      <div class="body notes">
+        <h3>The overflow one</h3>
+        <p>Writing <code>mid = (low + high) / 2</code> looks fine and is wrong in a fixed-width integer language: with a large array, <code>low + high</code> can exceed the maximum int and go negative. Use <code>mid = low + (high − low) / 2</code>, which cannot overflow and computes the same value. This bug sat undetected in the JDK for nine years.</p>
+        <h3>The off-by-one one</h3>
+        <p><code>while (low &lt;= high)</code> with <code>high = n − 1</code>. Use <code>&lt;</code> instead and a one-element window is never examined, so the search misses targets sitting at the edges. The two boundary choices must match: inclusive <code>high = n − 1</code> goes with <code>&lt;=</code>.</p>
+        <h3>The infinite one</h3>
+        <p>Every branch must shrink the window. Writing <code>low = mid</code> instead of <code>low = mid + 1</code> means a two-element window where mid lands on low never changes, and the loop spins forever. Excluding mid is safe precisely because the probe already ruled it out.</p>
+        <h3>The unsorted one</h3>
+        <p>Binary search on unsorted data does not fail loudly — it returns "not found" for values that are sitting right there. The whole method rests on one assumption, and nothing in the code checks it.</p>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>Versus linear search</summary>
+      <div class="body notes">
+        <h3>The counter tells the story</h3>
+        <p>Watch “linear scan would have checked” climb one at a time while binary search does its work in a handful of probes. On 30 values it is 5 probes against up to 30 checks; on a million values it is 20 against a million.</p>
+        <h3>But sorting is not free</h3>
+        <p>Sorting costs O(n log n), so a single search on unsorted data is faster with a plain linear scan. Binary search pays off when the same array is searched many times — sort once, then every later lookup is nearly instant.</p>
+        <h3>Why it needs random access</h3>
+        <p>Jumping straight to the middle has to be cheap. On an array, <code>A[mid]</code> is one step. On a linked list, reaching the middle means walking there, so the halving saves nothing and the search degrades to linear.</p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<div class="shortcuts">
+  <span>Keyboard:</span>
+  <span><kbd>Space</kbd> pause / resume</span>
+  <span><kbd>→</kbd> next step</span>
+  <span><kbd>←</kbd> previous step</span>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   BINARY SEARCH VISUALIZER
+   --------------------------------------------------------------------------
+   Same architecture as the merge sort and bubble/selection/insertion files:
+   the chosen version runs ONCE up front while an instrumented recorder takes
+   a full snapshot after every logical operation (loop test, midpoint, probe,
+   elimination, pointer move, return). Playback is then just "render snapshot
+   #i", so Next Step, Previous Step, pause, resume and replay are all exact.
+   ========================================================================== */
+
+/* ======================================================================== */
+/*  1. VERSION DEFINITIONS                                                   */
+/* ======================================================================== */
+
+const ALGOS = {
+  iterative: {
+    name: "Iterative binary search",
+    code: [
+      "BinarySearch(A, target)",
+      "  low = 0",
+      "  high = n - 1",
+      "  while low <= high",
+      "    mid = low + (high - low) / 2",
+      "    if A[mid] == target",
+      "        return mid",
+      "    else if A[mid] < target",
+      "        low = mid + 1",
+      "    else",
+      "        high = mid - 1",
+      "  return NOT FOUND"
+    ],
+    facts: [
+      ["Best case", "O(1)", ""], ["Average case", "O(log n)", ""], ["Worst case", "O(log n)", ""],
+      ["Extra space", "O(1)", ""], ["Needs sorted input", "Yes", "no"],
+      ["Needs random access", "Yes", "no"], ["Recursive", "No", ""]
+    ],
+    notes: [
+      ["The one idea", "The array is sorted, so looking at the middle value answers a much bigger question than “is this it?”. If the middle is too small, every value to its left is too small as well — half the array is gone in one comparison."],
+      ["Why the window is two numbers", "<code>low</code> and <code>high</code> are the only state needed: everything outside them has been ruled out, and the answer, if it exists, is inside them. That claim staying true after every step is the invariant that makes the search correct."],
+      ["Why <code>mid + 1</code> and <code>mid − 1</code>", "The probe compared A[mid] to the target and it was not equal, so mid itself is finished. Excluding it also guarantees the window shrinks every single pass, which is what stops the loop from spinning forever."],
+      ["Why O(log n)", "Each probe roughly halves the candidates: 30 → 15 → 7 → 3 → 1. The number of halvings needed to get from n down to 1 is log₂ n. Doubling the array adds exactly one probe."],
+      ["Why the loop ends at <code>low &gt; high</code>", "That means the window is empty — there is nowhere left the target could hide. Not finding something is a real answer, and it takes the same log n work as finding it."]
+    ]
+  },
+  recursive: {
+    name: "Recursive binary search",
+    code: [
+      "BinarySearch(A, low, high, target)",
+      "  if low > high",
+      "      return NOT FOUND",
+      "  mid = low + (high - low) / 2",
+      "  if A[mid] == target",
+      "      return mid",
+      "  if A[mid] < target",
+      "      return BinarySearch(A, mid+1, high, target)",
+      "  else",
+      "      return BinarySearch(A, low, mid-1, target)"
+    ],
+    facts: [
+      ["Best case", "O(1)", ""], ["Average case", "O(log n)", ""], ["Worst case", "O(log n)", ""],
+      ["Extra space", "O(log n)", ""], ["Needs sorted input", "Yes", "no"],
+      ["Needs random access", "Yes", "no"], ["Recursive", "Yes", "yes"]
+    ],
+    notes: [
+      ["Same algorithm, different clothes", "The probes, the comparisons and the answer are identical to the iterative version. Only the bookkeeping moves: instead of updating <code>low</code> and <code>high</code> in place, each call passes a smaller window to the next call."],
+      ["Where the window lives now", "In the call stack. Each frame holds its own low and high — watch the stack panel grow as the search descends and unwind as the answer is handed back."],
+      ["Why it costs O(log n) space", "The iterative version keeps two variables forever. This one keeps a stack frame per level, and there are log n levels. That is the price of the tidier code."],
+      ["Tail recursion", "The recursive call is the very last thing that happens, so a compiler can reuse the frame instead of stacking a new one — turning the recursion back into the loop. Whether that happens depends entirely on your language."],
+      ["Which to write", "For binary search specifically, the loop. It is short, it uses no stack, and there is no recursive structure in the data that the recursion is mirroring — unlike merge sort, where the recursion genuinely matches the problem."]
+    ]
+  },
+  lower: {
+    name: "First occurrence (lower bound)",
+    code: [
+      "LowerBound(A, target)",
+      "  low = 0",
+      "  high = n            // one past the end",
+      "  while low < high",
+      "    mid = low + (high - low) / 2",
+      "    if A[mid] < target",
+      "        low = mid + 1",
+      "    else",
+      "        high = mid",
+      "  return low          // first index >= target"
+    ],
+    facts: [
+      ["Best case", "O(log n)", ""], ["Average case", "O(log n)", ""], ["Worst case", "O(log n)", ""],
+      ["Extra space", "O(1)", ""], ["Needs sorted input", "Yes", "no"],
+      ["Early exit on a hit", "No", "no"], ["Recursive", "No", ""]
+    ],
+    notes: [
+      ["The problem it fixes", "Plain binary search on <code>[2, 5, 5, 5, 9]</code> finds <em>a</em> 5 — whichever one mid happens to land on. If you need the <em>first</em> 5, or a count of them, that is not good enough."],
+      ["What it returns", "The first index whose value is ≥ the target. If the target is present, that is its first occurrence; if not, it is the slot the target would be inserted into to keep the array sorted. One function, two useful answers."],
+      ["Why the window is half-open", "<code>high</code> starts at n, one past the last element, so the “insert at the very end” answer is representable. The loop runs while <code>low &lt; high</code> and never reads A[high] — which is just as well, since that slot may not exist."],
+      ["Why there is no early return", "Finding an equal value proves nothing about whether an earlier one exists, so the search cannot stop — it keeps <code>high = mid</code>, deliberately keeping mid in the window, and narrows until exactly one candidate is left. That costs a full log n probes every time, even on a hit."],
+      ["Why it still terminates", "<code>high = mid</code> keeps mid, which looks dangerous. It is safe because mid is rounded down, so mid < high always holds while low < high — the window strictly shrinks every pass."]
+    ]
+  }
+};
+
+/* --------------------------------- state -------------------------------- */
+let algo   = "iterative";
+let array  = [3, 9, 10, 12, 27, 33, 38, 43, 51, 60, 68, 74, 82, 90, 97];
+let target = 68;
+let steps  = [];
+let cursor = -1;
+let timer  = null;
+let runMs  = 0;
+
+const $ = (id) => document.getElementById(id);
+
+/* ======================================================================== */
+/*  2. ARRAY GENERATION — every shape is sorted, because binary search       */
+/*     is simply wrong on anything else.                                     */
+/* ======================================================================== */
+
+function makeArray(n, shape){
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  let a = [];
+  if(shape === "dense"){
+    let v = rnd(1, 20);
+    for(let i = 0; i < n; i++){ a.push(v); v += 1; }
+  } else if(shape === "dupes"){
+    const pool = Array.from({length: Math.max(2, Math.round(n / 3))}, () => rnd(2, 60));
+    a = Array.from({length:n}, () => pool[rnd(0, pool.length - 1)]).sort((x, y) => x - y);
+  } else {
+    let v = rnd(2, 9);
+    for(let i = 0; i < n; i++){ a.push(v); v += rnd(2, 9); }
+  }
+  return a;
+}
+
+/** A value that is in the array. */
+function pickPresent(){ return array[Math.floor(Math.random() * array.length)]; }
+
+/** A value that is definitely not in the array. */
+function pickMissing(){
+  for(let t = 0; t < 400; t++){
+    const v = array[0] - 3 + Math.floor(Math.random() * (array[array.length - 1] - array[0] + 7));
+    if(array.indexOf(v) < 0) return v;
+  }
+  return array[array.length - 1] + 1;   // always outside a sorted array
+}
+
+/* ======================================================================== */
+/*  3. THE INSTRUMENTED SEARCHES                                             */
+/*     Textbook code — with a snap() after every logical operation.          */
+/* ======================================================================== */
+
+function record(a, t, which){
+  const n     = a.length;
+  const out   = [];
+  const rungs = [];                    // one per probe, for the halving ladder
+  const stack = [];                    // recursive version only
+  const stats = { probes:0, size:n, eliminated:0, remaining:n,
+                  // what a plain left-to-right scan would cost on this exact
+                  // search: it stops at the target, or runs off the end
+                  linear: (a.indexOf(t) >= 0 ? a.indexOf(t) + 1 : n) };
+
+  // transient highlight state — set right before a snap, consumed by it
+  let win = null;      // [lo, hi] inclusive, still candidates
+  let elim = [];       // indices thrown away by this very step
+  let mid = null;      // the probe
+  let found = null;    // the answer
+  let hit = false;     // trigger the pop animation
+  let vars = { n, target: t };
+  let result = { index: -1, kind: "" };
+
+  /** Colour every box according to the fixed legend priority. */
+  function paint(){
+    const s = new Array(n).fill("out");
+    if(win) for(let i = win[0]; i <= win[1]; i++) s[i] = "window";
+    elim.forEach(i => { if(i >= 0 && i < n) s[i] = "elim"; });
+    // red marks exactly what low and high hold — never an invented edge
+    [vars.low, vars.high].forEach(i => { if(i !== undefined && i >= 0 && i < n) s[i] = "ptr"; });
+    if(mid !== null && mid >= 0 && mid < n) s[mid] = "mid";
+    if(found !== null && found >= 0 && found < n) s[found] = "found";
+    return s;
+  }
+
+  /** Pointer labels drawn above the boxes. */
+  function badges(){
+    const b = {};
+    const add = (i, x) => { if(i >= 0 && i < n) b[i] = b[i] ? b[i] + " " + x : x; };
+    if(vars.low  !== undefined) add(vars.low, "low");
+    if(vars.high !== undefined) add(vars.high, "high");
+    if(vars.mid  !== undefined) add(vars.mid, "mid");
+    return b;
+  }
+
+  function snap(kind, desc, line){
+    out.push({
+      kind, desc, line, hit,
+      states:  paint(),
+      badges:  badges(),
+      vars:    Object.assign({}, vars),
+      stack:   stack.slice(),
+      rungs:   rungs.map(r => Object.assign({}, r)),
+      stats:   Object.assign({}, stats),
+      result:  Object.assign({}, result)
+    });
+    elim = []; hit = false;
+  }
+
+  /** Update the "how much is left" counters from the current window. */
+  function setRemaining(lo, hi){
+    stats.remaining = Math.max(0, hi - lo + 1);
+    stats.eliminated = n - stats.remaining;
+  }
+
+  const maxProbes = (m) => (m <= 0 ? 0 : Math.ceil(Math.log2(m + 1)));
+
+  /* ----------------------------- iterative ----------------------------- */
+  function iterative(){
+    win = [0, n - 1];
+    setRemaining(0, n - 1);
+    snap("ready", "The array is sorted — that is the one thing binary search depends on. "
+      + "Every value is still a candidate, and we are looking for " + t + ".", 0);
+
+    let low = 0, high = n - 1;
+    vars = { n, target:t, low, high };
+    win = [low, high];
+    snap("init", "Set low = 0 and high = " + (n - 1) + ". The window between them is where the "
+      + "target must be, if it is anywhere.", 1);
+
+    while(true){
+      vars = { n, target:t, low, high };
+      win = low <= high ? [low, high] : null;
+      if(low > high){
+        snap("test", "Check the loop condition: low = " + low + " is greater than high = " + high
+          + ", so the window is empty. There is nowhere left for " + t + " to hide.", 3);
+        break;
+      }
+      setRemaining(low, high);
+      snap("test", "Check the loop condition: low = " + low + " ≤ high = " + high + ", so "
+        + stats.remaining + " candidate" + (stats.remaining === 1 ? "" : "s")
+        + " remain" + (stats.remaining === 1 ? "s" : "") + ". Keep going.", 3);
+
+      const m = low + ((high - low) >> 1);
+      mid = m; vars.mid = m;
+      win = [low, high];
+      snap("mid", "mid = low + (high − low) / 2 = " + low + " + " + ((high - low) >> 1) + " = " + m
+        + ", so the probe lands on A[" + m + "] = " + a[m] + ".", 4);
+
+      stats.probes++;
+      rungs.push({ probe: stats.probes, lo: low, hi: high, mid: m, size: high - low + 1 });
+      mid = m; win = [low, high];
+      snap("probe", "Probe " + stats.probes + ": compare A[" + m + "] = " + a[m] + " with the target " + t + ".", 5);
+
+      if(a[m] === t){
+        found = m; hit = true; win = [low, high];
+        result = { index:m, kind:"found" };
+        snap("found", "A[" + m + "] = " + a[m] + " is exactly the target. Return index " + m + ". "
+          + "It took " + stats.probes + " probe" + (stats.probes === 1 ? "" : "s") + ".", 6);
+        return;
+      }
+
+      if(a[m] < t){
+        elim = [];
+        for(let i = low; i <= m; i++) elim.push(i);
+        mid = m; win = [low, high];
+        snap("cut", a[m] + " is smaller than " + t + ". The array is sorted, so everything from index "
+          + low + " up to and including " + m + " is smaller too — " + elim.length + " value"
+          + (elim.length === 1 ? "" : "s") + " gone in one comparison.", 7);
+        low = m + 1; mid = null; vars = { n, target:t, low, high };
+        win = low <= high ? [low, high] : null;
+        setRemaining(low, high);
+        snap("move", "Move low to mid + 1 = " + low + ". The window is now "
+          + (low <= high ? low + "…" + high : "empty") + ".", 8);
+      } else {
+        elim = [];
+        for(let i = m; i <= high; i++) elim.push(i);
+        mid = m; win = [low, high];
+        snap("cut", a[m] + " is bigger than " + t + ". Everything from index " + m + " to " + high
+          + " is bigger too — " + elim.length + " value" + (elim.length === 1 ? "" : "s")
+          + " gone in one comparison.", 9);
+        high = m - 1; mid = null; vars = { n, target:t, low, high };
+        win = low <= high ? [low, high] : null;
+        setRemaining(low, high);
+        snap("move", "Move high to mid − 1 = " + high + ". The window is now "
+          + (low <= high ? low + "…" + high : "empty") + ".", 10);
+      }
+    }
+
+    win = null; mid = null;
+    result = { index:-1, kind:"missing", insertAt: low };
+    setRemaining(low, high);
+    snap("missing", t + " is not in this array. The loop ends with low = " + low + " and high = " + high
+      + ", which is where it would have to be inserted to keep the array sorted. That answer also "
+      + "took only " + stats.probes + " probe" + (stats.probes === 1 ? "" : "s") + ".", 11);
+  }
+
+  /* ----------------------------- recursive ----------------------------- */
+  function recursive(){
+    win = [0, n - 1];
+    setRemaining(0, n - 1);
+    snap("ready", "Same search, written as a function that calls itself on a smaller window. "
+      + "Looking for " + t + ".", 0);
+
+    function go(low, high, depth){
+      stack.push("BinarySearch(" + low + "…" + (high < low ? low - 1 : high) + ")");
+      vars = { n, target:t, low, high, depth };
+      win = low <= high ? [low, high] : null;
+      setRemaining(low, high);
+      snap("call", "Call BinarySearch on the window " + (low <= high ? low + "…" + high : "(empty)")
+        + " at depth " + depth + ".", 0);
+
+      if(low > high){
+        snap("test", "low = " + low + " is greater than high = " + high + ", so this window is empty. "
+          + "Return NOT FOUND up the stack.", 1);
+        stack.pop();
+        snap("return", "Return NOT FOUND.", 2);
+        return -1;
+      }
+
+      const m = low + ((high - low) >> 1);
+      mid = m; vars.mid = m; win = [low, high];
+      snap("mid", "mid = " + m + ", so the probe lands on A[" + m + "] = " + a[m] + ".", 3);
+
+      stats.probes++;
+      rungs.push({ probe: stats.probes, lo: low, hi: high, mid: m, size: high - low + 1 });
+      mid = m; win = [low, high];
+      snap("probe", "Probe " + stats.probes + ": compare A[" + m + "] = " + a[m] + " with the target " + t + ".", 4);
+
+      if(a[m] === t){
+        found = m; hit = true; win = [low, high];
+        result = { index:m, kind:"found" };
+        snap("found", "A[" + m + "] = " + a[m] + " is the target. Return index " + m + " — and it will "
+          + "now be handed straight back down the stack, untouched.", 5);
+        stack.pop();
+        found = m; win = [low, high];
+        snap("return", "Return " + m + " to the caller.", 5);
+        return m;
+      }
+
+      let r;
+      if(a[m] < t){
+        elim = [];
+        for(let i = low; i <= m; i++) elim.push(i);
+        mid = m; win = [low, high];
+        snap("cut", a[m] + " is smaller than " + t + ", so the answer can only be to the right. "
+          + "Recurse on " + (m + 1) + "…" + high + ".", 6);
+        found = null;
+        r = go(m + 1, high, depth + 1);
+      } else {
+        elim = [];
+        for(let i = m; i <= high; i++) elim.push(i);
+        mid = m; win = [low, high];
+        snap("cut", a[m] + " is bigger than " + t + ", so the answer can only be to the left. "
+          + "Recurse on " + low + "…" + (m - 1) + ".", 8);
+        found = null;
+        r = go(low, m - 1, depth + 1);
+      }
+
+      stack.pop();
+      vars = { n, target:t, low, high, depth };
+      mid = null;                                  // this level's probe is done with
+      if(r >= 0){ found = r; win = null; }
+      snap("return", "Return " + (r >= 0 ? r : "NOT FOUND") + " from the window " + low + "…" + high
+        + " — this level does no more work, it just passes the answer on.", r >= 0 ? 7 : 9);
+      return r;
+    }
+
+    const r = go(0, n - 1, 0);
+    if(r < 0){
+      win = null; mid = null; found = null;
+      result = { index:-1, kind:"missing" };
+      snap("missing", t + " is not in this array. Every window was exhausted after " + stats.probes
+        + " probe" + (stats.probes === 1 ? "" : "s") + ", and the stack is empty again.", 2);
+    }
+  }
+
+  /* ---------------------------- lower bound ---------------------------- */
+  function lower(){
+    win = [0, n - 1];
+    setRemaining(0, n - 1);
+    snap("ready", "This version does not stop at the first match it happens to see. It narrows until "
+      + "exactly one candidate is left: the FIRST index holding a value ≥ " + t + ".", 0);
+
+    let low = 0, high = n;                       // half-open window [low, high)
+    vars = { n, target:t, low, high };
+    win = [low, high - 1];
+    snap("init", "low = 0 and high = " + n + " — one past the last element, so that “belongs at the "
+      + "very end” is an answer this can return. The live window is everything from low up to high − 1.", 1);
+
+    while(true){
+      vars = { n, target:t, low, high };
+      win = low < high ? [low, high - 1] : null;
+      setRemaining(low, high - 1);
+      if(low >= high){
+        snap("test", "low = " + low + " and high = " + high + " have met. The window is down to nothing, "
+          + "and low is the answer.", 3);
+        break;
+      }
+      snap("test", "low = " + low + " < high = " + high + ", so " + stats.remaining + " candidate"
+        + (stats.remaining === 1 ? "" : "s") + " remain" + (stats.remaining === 1 ? "s" : "") + ". Keep narrowing.", 3);
+
+      const m = low + ((high - low) >> 1);
+      mid = m; vars.mid = m; win = [low, high - 1];
+      snap("mid", "mid = " + m + ", so the probe lands on A[" + m + "] = " + a[m] + ".", 4);
+
+      stats.probes++;
+      rungs.push({ probe: stats.probes, lo: low, hi: high - 1, mid: m, size: high - low });
+      mid = m; win = [low, high - 1];
+      snap("probe", "Probe " + stats.probes + ": is A[" + m + "] = " + a[m] + " less than " + t + "? "
+        + (a[m] < t ? "Yes." : "No — it is " + (a[m] === t ? "equal, which still is not proof that it is the FIRST one." : "greater.")), 5);
+
+      if(a[m] < t){
+        elim = [];
+        for(let i = low; i <= m; i++) elim.push(i);
+        mid = m; win = [low, high - 1];
+        snap("cut", a[m] + " is too small, so the answer is strictly to the right of index " + m + ". "
+          + "Discard indices " + low + "…" + m + ".", 6);
+        low = m + 1; mid = null; vars = { n, target:t, low, high };
+        win = low < high ? [low, high - 1] : null;
+        setRemaining(low, high - 1);
+        snap("move", "low = mid + 1 = " + low + ".", 6);
+      } else {
+        elim = [];
+        for(let i = m + 1; i < high; i++) elim.push(i);
+        mid = m; win = [low, high - 1];
+        snap("cut", "A[" + m + "] = " + a[m] + " is ≥ " + t + ", so it could be the answer — but so could "
+          + "something further left. Keep mid in the window and throw away everything after it.", 8);
+        high = m; mid = null; vars = { n, target:t, low, high };
+        win = low < high ? [low, high - 1] : null;
+        setRemaining(low, high - 1);
+        snap("move", "high = mid = " + high + ". Note that mid stays a candidate — this is the one "
+          + "branch that does not exclude the probe.", 8);
+      }
+    }
+
+    const at = low;
+    const present = at < n && a[at] === t;
+    win = null; mid = null;
+    if(present){
+      found = at; hit = true;
+      result = { index:at, kind:"first" };
+      const count = a.filter(v => v === t).length;
+      snap("found", "Return low = " + at + ". A[" + at + "] = " + t + ", and it is the FIRST occurrence"
+        + (count > 1 ? " of " + count + " copies" : "") + ". Plain binary search could have handed you "
+        + "any of them; this always gives the first.", 9);
+    } else {
+      result = { index:-1, kind:"insert", insertAt: at };
+      snap("missing", "Return low = " + at + ". There is no " + t + " in the array — index " + at
+        + " is where it would be inserted to keep everything sorted. The same function answers both "
+        + "questions.", 9);
+    }
+  }
+
+  /* --------------------------- run + bookend --------------------------- */
+  const t0 = performance.now();
+  if(n > 0){
+    if(which === "iterative") iterative();
+    else if(which === "recursive") recursive();
+    else lower();
+  }
+  runMs = performance.now() - t0;
+  stats.maxProbes = maxProbes(n);
+  out.forEach(s => { s.stats.maxProbes = maxProbes(n); });
+
+  return out;
+}
+
+/* ======================================================================== */
+/*  4. RENDERING                                                             */
+/* ======================================================================== */
+
+function buildArrayRow(){
+  const row = $("arrayRow");
+  row.innerHTML = "";
+  array.forEach((v, i) => {
+    const b = document.createElement("div");
+    b.className = "box s-window";
+    b.innerHTML = '<span class="badge"></span><span class="val">' + v +
+                  '</span><span class="idx">' + i + "</span>";
+    row.appendChild(b);
+  });
+}
+
+function render(i){
+  const s = steps[i];
+  if(!s) return;
+  cursor = i;
+
+  const boxes = $("arrayRow").children;
+  for(let k = 0; k < boxes.length; k++){
+    const b = boxes[k];
+    b.className = "box s-" + s.states[k] + (s.hit && s.states[k] === "found" ? " hit" : "");
+    b.querySelector(".badge").textContent = s.badges[k] || "";
+  }
+
+  $("explain").textContent = s.desc;
+  $("stepKind").textContent = ({
+    ready:"the setup", init:"set the window", test:"loop condition", call:"recursive call",
+    mid:"pick the middle", probe:"the probe", cut:"eliminate half", move:"move the pointer",
+    found:"found it", missing:"not present", return:"return"
+  })[s.kind] || s.kind;
+
+  $("bar").style.width = (i / (steps.length - 1) * 100) + "%";
+  $("counter").textContent = "step " + i + " / " + (steps.length - 1);
+
+  paintCode(ALGOS[algo].code, s.line);
+
+  /* variable watch */
+  const v = s.vars, chips = [];
+  const chip = (k, val, cls) => '<span class="chip ' + (cls || "") + '">' + k + " = <b>" + val + "</b></span>";
+  chips.push(chip("n", v.n));
+  chips.push(chip("target", v.target, "tgt"));
+  if(v.low   !== undefined) chips.push(chip("low", v.low, "hot"));
+  if(v.mid   !== undefined) chips.push(chip("mid", v.mid, "hot"));
+  if(v.high  !== undefined) chips.push(chip("high", v.high, "hot"));
+  if(v.depth !== undefined) chips.push(chip("depth", v.depth));
+  $("watch").innerHTML = chips.join("");
+  $("watchTag").textContent = ALGOS[algo].name.toLowerCase();
+
+  /* call stack (recursive version only) */
+  if(algo === "recursive"){
+    $("stackCard").classList.remove("hidden");
+    $("stack").innerHTML = s.stack.length
+      ? s.stack.map((f, k) => '<div class="frame' + (k === s.stack.length - 1 ? " top" : "") + '">'
+          + f + "</div>").join("")
+      : '<div class="stack-empty">empty — no call in progress</div>';
+  } else {
+    $("stackCard").classList.add("hidden");
+  }
+
+  /* halving ladder — each rung drawn to scale against the whole array */
+  const lad = $("ladder");
+  if(!s.rungs.length){
+    lad.innerHTML = '<div class="ladder-empty">One rung appears per probe.</div>';
+  } else {
+    const n = s.stats.size;
+    lad.innerHTML = s.rungs.map((r, k) => {
+      const left = (r.lo / n * 100).toFixed(3);
+      const wid  = ((r.hi - r.lo + 1) / n * 100).toFixed(3);
+      const pm   = ((r.mid + 0.5) / n * 100).toFixed(3);
+      return '<div class="rung' + (k === s.rungs.length - 1 ? " now" : "") + '">' +
+        '<span class="lbl">probe ' + r.probe + '</span>' +
+        '<span class="track"><i class="win" style="left:' + left + "%;width:" + wid + '%"></i>' +
+        '<i class="probe" style="left:' + pm + '%"></i></span>' +
+        '<span class="cnt">' + r.size + " left · mid " + r.mid + "</span></div>";
+    }).join("");
+    lad.scrollTop = lad.scrollHeight;
+  }
+
+  /* stats */
+  $("stats").innerHTML = [
+    ["Probes made", s.stats.probes],
+    ["Candidates left", s.stats.remaining],
+    ["Eliminated", s.stats.eliminated],
+    ["Max probes for this n", s.stats.maxProbes],
+    ["Array size", s.stats.size],
+    ["Linear scan would need", s.stats.linear]
+  ].map(([k, val]) => '<div class="stat"><b>' + val + "</b><span>" + k + "</span></div>").join("");
+
+  if(s.kind === "found" || s.kind === "missing") showSummary(s);
+  else $("summaryCard").classList.add("hidden");
+  syncButtons();
+}
+
+function paintCode(lines, hl){
+  $("code").innerHTML = lines.map((l, k) =>
+    "<div" + (k === hl ? ' class="hl"' : "") + ">" + l.replace(/</g, "&lt;") + "</div>").join("");
+}
+
+function showSummary(s){
+  $("summaryCard").classList.remove("hidden");
+  const linear = s.stats.linear;
+  $("summaryTag").textContent = s.result.index >= 0 ? "found" : "not present";
+  $("summaryGrid").innerHTML = [
+    ["Probes used", s.stats.probes],
+    ["Max probes for this n", s.stats.maxProbes],
+    ["Linear scan would need", linear],
+    ["Array size", s.stats.size],
+    ["Result index", s.result.index >= 0 ? s.result.index : "—"],
+    ["Search run time", runMs.toFixed(3) + " ms"]
+  ].map(([k, v]) => "<div><b>" + v + "</b><span>" + k + "</span></div>").join("");
+
+  const verdict =
+    s.result.kind === "found" ? "Found " + target + " at index " + s.result.index + "." :
+    s.result.kind === "first" ? "First occurrence of " + target + " is at index " + s.result.index + "." :
+    s.result.kind === "insert" ? target + " is not present. It would be inserted at index " + s.result.insertAt + "." :
+    target + " is not present." + (s.result.insertAt !== undefined ? " It would be inserted at index " + s.result.insertAt + "." : "");
+
+  $("summaryArrays").innerHTML =
+    "<div><em>Version&nbsp;&nbsp;&nbsp;</em>" + ALGOS[algo].name + "</div>" +
+    "<div><em>Target&nbsp;&nbsp;&nbsp;&nbsp;</em>" + target + "</div>" +
+    "<div><em>Result&nbsp;&nbsp;&nbsp;&nbsp;</em>" + verdict + "</div>" +
+    "<div><em>Array&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</em>[" + array.join(", ") + "]</div>";
+}
+
+function renderAlgoPanels(){
+  const A = ALGOS[algo];
+  $("codeTitle").textContent = A.name + " pseudocode";
+  $("cxTag").textContent = algo === "lower" ? "lower bound" : algo;
+  $("facts").innerHTML = A.facts.map(([k, v, cls]) =>
+    "<div><span>" + k + "</span><b" + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</b></div>").join("");
+  $("notes").innerHTML = A.notes.map(([h, p]) => "<h3>" + h + "</h3><p>" + p + "</p>").join("");
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-selected", t.dataset.algo === algo ? "true" : "false"));
+}
+
+/* ======================================================================== */
+/*  5. PLAYBACK                                                              */
+/* ======================================================================== */
+
+const delayFor = () => [0, 1800, 1400, 1050, 800, 600, 420, 300, 190, 110][+$("speed").value];
+
+function play(){
+  stop();
+  if(cursor >= steps.length - 1) cursor = 0;
+  $("modeTag").textContent = "playing";
+  timer = setInterval(() => {
+    if(cursor >= steps.length - 1){ stop(); $("modeTag").textContent = "finished"; return; }
+    render(cursor + 1);
+  }, delayFor());
+  syncButtons();
+}
+function stop(){ if(timer){ clearInterval(timer); timer = null; } syncButtons(); }
+function pause(){ if(timer){ stop(); $("modeTag").textContent = "paused"; } }
+function next(){ stop(); if(cursor < steps.length - 1){ render(cursor + 1); $("modeTag").textContent = "stepping"; } }
+function prev(){ stop(); if(cursor > 0){ render(cursor - 1); $("modeTag").textContent = "stepping"; } }
+
+function syncButtons(){
+  const playing = !!timer;
+  $("pauseBtn").disabled  = !playing;
+  $("resumeBtn").disabled = playing || cursor >= steps.length - 1;
+  $("nextBtn").disabled   = cursor >= steps.length - 1;
+  $("prevBtn").disabled   = cursor <= 0;
+  $("startBtn").disabled  = playing;
+}
+
+/* ======================================================================== */
+/*  6. LOADING                                                               */
+/* ======================================================================== */
+
+function load(arr, tgt){
+  stop();
+  array = arr.slice().sort((x, y) => x - y);   // binary search REQUIRES sorted input
+  target = tgt;
+  steps  = record(array, target, algo);
+  buildArrayRow();
+  renderAlgoPanels();
+  $("targetChip").textContent = target;
+  $("tCustom").value = target;
+  $("arrTag").textContent = "n = " + array.length + " · sorted · looking for " + target;
+  $("quizA").classList.add("hidden");
+  $("quizQ").textContent = "Press “Ask me something” at any point in the run.";
+  pendingAnswer = "";
+  render(0);
+  $("modeTag").textContent = "idle";
+}
+
+/* ======================================================================== */
+/*  7. LEARNING CHALLENGES                                                   */
+/*     Answered from the real recorded future, never invented.               */
+/* ======================================================================== */
+
+let pendingAnswer = "";
+
+function findNext(pred){
+  for(let i = cursor + 1; i < steps.length; i++) if(pred(steps[i])) return steps[i];
+  return null;
+}
+
+function askQuestion(){
+  const s = steps[cursor];
+  const pool = [];
+
+  pool.push({ q: "How many candidates are still in the window?",
+              a: s.stats.remaining + " of " + s.stats.size + " — " + s.stats.eliminated + " already ruled out." });
+  pool.push({ q: "At most how many probes could this search still need in total?",
+              a: "At most " + s.stats.maxProbes + " for an array of " + s.stats.size
+                 + " values. So far: " + s.stats.probes + "." });
+
+  if(s.vars.low !== undefined && s.vars.high !== undefined && s.vars.mid === undefined){
+    const lo = s.vars.low, hi = algo === "lower" ? s.vars.high - 1 : s.vars.high;
+    if(lo <= hi) pool.push({ q: "Which index will the next probe look at?",
+      a: "mid = " + lo + " + (" + (hi - lo) + ") / 2 = " + (lo + ((hi - lo) >> 1))
+         + ", holding the value " + array[lo + ((hi - lo) >> 1)] + "." });
+  }
+
+  const nextCut = findNext(x => x.kind === "cut");
+  if(nextCut) pool.push({ q: "After the next probe, which half survives — left or right?", a: nextCut.desc });
+
+  const nextProbe = findNext(x => x.kind === "probe");
+  if(nextProbe) pool.push({ q: "What value does the next probe compare against the target?", a: nextProbe.desc });
+
+  const end = steps[steps.length - 1];
+  pool.push({ q: "Is " + target + " in this array at all — and how many probes will it take to know?",
+              a: (end.result.index >= 0 ? "Yes, at index " + end.result.index + ". "
+                                        : "No, it is not there. ")
+                 + "The whole search takes " + end.stats.probes + " probe"
+                 + (end.stats.probes === 1 ? "" : "s") + "." });
+
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  $("quizQ").textContent = pick.q;
+  pendingAnswer = pick.a;
+  $("quizA").classList.add("hidden");
+  $("quizCard").open = true;
+}
+
+/* ======================================================================== */
+/*  8. WIRING                                                                */
+/* ======================================================================== */
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => { algo = t.dataset.algo; load(array, target); };  // same data, new version
+});
+
+$("startBtn").onclick  = () => { if(cursor >= steps.length - 1) render(0); play(); };
+$("pauseBtn").onclick  = pause;
+$("resumeBtn").onclick = play;
+$("nextBtn").onclick    = next;
+$("prevBtn").onclick    = prev;
+$("restartBtn").onclick = () => { stop(); render(0); play(); };
+$("resetBtn").onclick   = () => { stop(); render(0); $("modeTag").textContent = "idle"; };
+
+$("genBtn").onclick = () => { const a = makeArray(+$("size").value, $("shape").value);
+                              array = a; load(a, a[Math.floor(Math.random() * a.length)]); };
+$("shape").onchange = () => $("genBtn").onclick();
+$("size").oninput   = () => { $("sizeOut").textContent = $("size").value; };
+$("size").onchange  = () => $("genBtn").onclick();
+
+$("tPresent").onclick = () => load(array, pickPresent());
+$("tMissing").onclick = () => load(array, pickMissing());
+$("tGo").onclick = () => {
+  const v = Number($("tCustom").value);
+  if($("tCustom").value === "" || isNaN(v)){
+    $("explain").textContent = "Type a number to search for — any number, present or not.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  load(array, v);
+};
+
+$("customBtn").onclick = () => {
+  const raw = $("custom").value.split(/[\s,]+/).filter(Boolean).map(Number);
+  if(!raw.length || raw.some(isNaN)){
+    $("explain").textContent = "That input has something that is not a number. Use digits separated by commas or spaces, for example: 3, 9, 10, 27.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  if(raw.length < 2 || raw.length > 30){
+    $("explain").textContent = "Use between 2 and 30 values so the array stays readable.";
+    $("stepKind").textContent = "check the input";
+    return;
+  }
+  $("size").value = raw.length; $("sizeOut").textContent = raw.length;
+  const sortedArr = raw.slice().sort((x, y) => x - y);
+  load(sortedArr, sortedArr[Math.floor(sortedArr.length / 2)]);
+  if(raw.join(",") !== sortedArr.join(",")){
+    $("explain").textContent = "Your numbers were not in order, so they have been sorted first — "
+      + "binary search gives wrong answers on unsorted data, silently.";
+    $("stepKind").textContent = "sorted for you";
+  }
+};
+
+$("speed").onchange = () => { if(timer) play(); };
+
+$("quizBtn").onclick   = askQuestion;
+$("revealBtn").onclick = () => {
+  if(!pendingAnswer) askQuestion();
+  $("quizA").textContent = pendingAnswer;
+  $("quizA").classList.remove("hidden");
+};
+
+$("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  $("themeBtn").textContent = dark ? "◑ Dark mode" : "◐ Light mode";
+};
+
+document.addEventListener("keydown", (e) => {
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if(e.code === "Space"){ e.preventDefault(); timer ? pause() : play(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); next(); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); prev(); }
+});
+
+load(array, target);
+</script>
+</body>
+</html>
