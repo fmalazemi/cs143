@@ -16,8 +16,10 @@
 👉 [Moodle](https://moodle.ku.edu.kw)
 
 👉 [Bonus Project (two points)](Lecture_notes/project.md)
-            --> Test Matrix Class [testMatrix.cpp](testMatrix.cpp) 
-            --> Test Polynomail Class [testPolynomial.cpp](testPolynomial.cpp)
+
+Test Matrix Class [testMatrix.cpp](testMatrix.cpp) 
+
+Test Polynomail Class [testPolynomial.cpp](testPolynomial.cpp)
 
 ---
 
