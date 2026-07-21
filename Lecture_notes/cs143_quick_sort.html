@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CS143 — Quick Sort</title>
+<style>
+  :root {
+    --bg: #eef1f6; --surface: #ffffff; --surface-2: #f5f7fb;
+    --text: #16202e; --text-soft: #4a5a70; --muted: #7a8aa0; --border: #d8dfea;
+    --primary: #15406b; --primary-soft: #e7eef7; --accent: #0d7d7d;
+    --amber: #b45309; --amber-soft: #fdf2e3; --green: #1f7a4d; --green-soft: #e8f5ee; --red: #c0392b;
+    --code-bg: #f3f5fa; --code-text: #1d2733;
+    --kw: #15406b; --str: #1f7a4d; --com: #8a93a3; --num: #b45309; --pre: #7a3b8a;
+    --shadow: 0 10px 40px rgba(20,40,70,0.10);
+    --font-sans: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Menlo", "DejaVu Sans Mono", monospace;
+  }
+  [data-theme="dark"] {
+    --bg: #0d141e; --surface: #162130; --surface-2: #1c2838;
+    --text: #e9eef6; --text-soft: #b3c0d2; --muted: #8493a8; --border: #2a3850;
+    --primary: #6db3f2; --primary-soft: #1b2a3e; --accent: #4fd1c5;
+    --amber: #f0a64a; --amber-soft: #3a2a14; --green: #5fd99a; --green-soft: #14301f; --red: #ef6b5e;
+    --code-bg: #0c131d; --code-text: #dbe5f0;
+    --kw: #6db3f2; --str: #7fd6a3; --com: #6b7787; --num: #f0a64a; --pre: #c79be0;
+    --shadow: 0 10px 40px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 24px; line-height: 1.5; overflow: hidden; transition: background .3s, color .3s; }
+
+  .topbar { position: fixed; top: 0; left: 0; right: 0; height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; }
+  .topbar .brand { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--primary); }
+  .topbar .tools { display: flex; gap: 10px; }
+  .tbtn { font-family: var(--font-sans); font-size: 13px; font-weight: 600; letter-spacing: .05em; padding: 7px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); transition: all .2s; }
+  .tbtn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .deck { position: absolute; inset: 50px 0 0 0; }
+  .slide { display: none; position: absolute; inset: 0; padding: 40px 70px 80px 70px; flex-direction: column; overflow: hidden; animation: fade .35s ease; }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .kicker { font-size: 14px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: 50px; line-height: 1.1; margin: 0 0 14px; color: var(--text); font-weight: 800; }
+  h2 { font-size: 35px; line-height: 1.15; margin: 0 0 16px; color: var(--primary); font-weight: 800; }
+  h3 { font-size: 23px; margin: 0 0 8px; color: var(--text); font-weight: 700; }
+  p { margin: 0 0 12px; color: var(--text-soft); }
+  .lead { font-size: 25px; color: var(--text-soft); max-width: 62ch; line-height: 1.5; }
+  ul { margin: 6px 0 12px; padding-left: 0; list-style: none; }
+  li { padding: 6px 0 6px 34px; position: relative; color: var(--text-soft); }
+  li::before { content: "▸"; position: absolute; left: 6px; top: 6px; color: var(--accent); font-weight: 700; }
+  ul.check li::before { content: "✓"; color: var(--green); }
+  ul.cross li::before { content: "✗"; color: var(--red); }
+  ul.num { counter-reset: c; }
+  ul.num li { counter-increment: c; }
+  ul.num li::before { content: counter(c) "."; color: var(--primary); font-weight: 800; left: 2px; }
+  b, strong { color: var(--text); }
+  .hl { color: var(--accent); font-weight: 700; }
+
+  pre { background: var(--code-bg); color: var(--code-text); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin: 0 0 12px; font-family: var(--font-mono); font-size: 19px; line-height: 1.5; overflow: auto; }
+  code.inline { font-family: var(--font-mono); background: var(--primary-soft); color: var(--primary); padding: 2px 8px; border-radius: 5px; font-size: .9em; }
+  .tok-kw { color: var(--kw); font-weight: 700; }
+  .tok-str { color: var(--str); }
+  .tok-com { color: var(--com); font-style: italic; }
+  .tok-num { color: var(--num); }
+  .tok-pre { color: var(--pre); font-weight: 600; }
+
+  .output { background: var(--surface-2); border: 1px dashed var(--muted); border-radius: 8px; padding: 12px 16px; margin: 0; font-family: var(--font-mono); font-size: 19px; color: var(--text); white-space: pre; }
+  .out-label { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); margin: 4px 0 6px; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; min-height: 0; align-content: start; }
+  .scroll { overflow: auto; min-height: 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .card--featured { border-color: var(--accent); }
+  .card--danger { border-color: var(--red); }
+  .card--warn { border-color: var(--amber); }
+  .card h3 { color: var(--primary); }
+  .pill { display: inline-block; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 20px; background: var(--primary-soft); color: var(--primary); margin-bottom: 10px; }
+  .note { font-size: 18px; color: var(--muted); font-style: italic; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 19px; }
+  table.cmp th, table.cmp td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  table.cmp th { color: var(--muted); text-transform: uppercase; font-size: 13px; letter-spacing: .1em; }
+  table.cmp td:first-child { color: var(--text); font-weight: 600; }
+  .mono-cell { font-family: var(--font-mono); }
+
+  /* ============ FIGURE (SVG) ============ */
+  .fig { width: 100%; max-height: 52vh; display: block; }
+  .fig .cell { fill: var(--surface); stroke: var(--border); stroke-width: 1.6; }
+  .fig .cellP { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 2.6; }
+  .fig .cellS { fill: var(--green-soft); stroke: var(--green); stroke-width: 2; }
+  .fig .cellL { fill: var(--surface-2); stroke: var(--muted); stroke-width: 1.8; }
+  .fig .cellU { fill: var(--surface); stroke: var(--border); stroke-width: 1.4; stroke-dasharray: 4 4; }
+  .fig .node { fill: var(--surface); stroke: var(--primary); stroke-width: 2; }
+  .fig .nodeP { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 2.4; }
+  .fig .nodeG { fill: var(--green-soft); stroke: var(--green); stroke-width: 2.2; }
+  .fig .bar { fill: var(--green-soft); stroke: var(--green); stroke-width: 1.8; }
+  .fig .barP { fill: var(--amber-soft); stroke: var(--amber); stroke-width: 2.4; }
+  .fig .barL { fill: var(--surface-2); stroke: var(--muted); stroke-width: 1.8; }
+  .fig .n { fill: var(--text); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .np { fill: var(--amber); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .ng { fill: var(--green); font-family: var(--font-mono); font-size: 18px; font-weight: 700; text-anchor: middle; }
+  .fig .ix { fill: var(--muted); font-family: var(--font-mono); font-size: 13px; text-anchor: middle; }
+  .fig .t { fill: var(--text); font-family: var(--font-mono); font-size: 16px; text-anchor: middle; }
+  .fig .lbl { fill: var(--text); font-family: var(--font-mono); font-size: 17px; font-weight: 700; text-anchor: end; }
+  .fig .cap { fill: var(--text-soft); font-family: var(--font-sans); font-size: 15px; text-anchor: middle; }
+  .fig .rl { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-anchor: middle; }
+  .fig .accT { fill: var(--accent); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .accM { fill: var(--accent); font-family: var(--font-mono); font-size: 17px; font-weight: 700; text-anchor: middle; }
+  .fig .ambT { fill: var(--amber); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .grnT { fill: var(--green); font-family: var(--font-sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+  .fig .mut { fill: var(--muted); font-family: var(--font-sans); font-size: 13px; text-anchor: middle; }
+  .fig .arw { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  .fig .arwM { stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .fig .brace { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+
+  .title-slide { align-items: flex-start; justify-content: center; }
+  .title-slide .course-tag { font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .title-slide h1 { font-size: 56px; line-height: 1.05; }
+  .title-slide .sub { font-size: 27px; color: var(--text-soft); margin-top: 6px; }
+  .title-slide .meta { margin-top: 32px; padding-top: 22px; border-top: 2px solid var(--border); font-size: 23px; color: var(--text); }
+  .title-slide .meta b { color: var(--primary); }
+  .section-slide { align-items: flex-start; justify-content: center; }
+  .section-slide .part-num { font-size: 22px; font-weight: 800; letter-spacing: .3em; color: var(--accent); text-transform: uppercase; }
+  .section-slide h1 { font-size: 48px; margin-top: 10px; }
+
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; }
+  .nav .navbtns { display: flex; gap: 10px; }
+  .navbtn { font-family: var(--font-sans); font-size: 15px; font-weight: 700; padding: 8px 18px; border-radius: 8px; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: #fff; transition: all .2s; }
+  .navbtn:hover { filter: brightness(1.1); }
+  .navbtn:disabled { opacity: .35; cursor: default; filter: none; }
+  .counter { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: .05em; }
+  .progress { position: fixed; bottom: 52px; left: 0; height: 3px; background: var(--accent); z-index: 101; transition: width .3s; }
+
+  @media (max-width: 1100px) {
+    body { font-size: 20px; }
+    .slide { padding: 28px 34px 76px; }
+    h1 { font-size: 38px; } h2 { font-size: 27px; }
+    .title-slide h1, .section-slide h1 { font-size: 42px; }
+    .two { grid-template-columns: 1fr; gap: 14px; }
+    pre { font-size: 15px; }
+  }
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    body { overflow: visible; background: #fff; }
+    .topbar, .nav, .progress { display: none !important; }
+    .deck { position: static; inset: auto; }
+    .slide { display: flex !important; position: relative; inset: auto; width: 1280px; height: 720px; page-break-after: always; break-after: page; animation: none; border-bottom: 1px solid #ccc; }
+    pre, .output, .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">CS143 · Quick Sort</div>
+  <div class="tools">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <button class="tbtn" onclick="window.print()">⤓ Export PDF</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide title-slide active">
+    <div class="course-tag">CS143 · Introduction to C++</div>
+    <h1>Quick Sort</h1>
+    <div class="sub">First place one value correctly. Then repeat.</div>
+    <div class="meta">
+      <p><b>Instructor:</b> Dr. Fawaz Alazemi</p>
+      <p><b>Builds on:</b> arrays, loops, recursion, and merge sort</p>
+    </div>
+  </section>
+
+  <!-- 2. OBJECTIVES -->
+  <section class="slide">
+    <div class="kicker">Today's Goals</div>
+    <h2>Learning Objectives</h2>
+    <p class="lead">By the end of this lecture, you will be able to:</p>
+    <ul class="num">
+      <li>State the <span class="hl">partition problem</span>: find the correct place for <code class="inline">arr[0]</code>.</li>
+      <li>Write <code class="inline">partition</code> using two indices <code class="inline">i</code> and <code class="inline">j</code>.</li>
+      <li>Explain why the pivot then <b>never moves again</b>.</li>
+      <li>Build <code class="inline">quickSort</code> by repeating <code class="inline">partition</code> on each side.</li>
+      <li>Trace quick sort on a small array.</li>
+      <li>Explain the <b>worst case</b>, and why it happens on sorted input.</li>
+    </ul>
+  </section>
+
+  <!-- 3. PART A DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part A</div>
+    <h1>The Partition Problem</h1>
+    <p class="lead">Forget sorting. Just put <b>one</b> value where it belongs.</p>
+  </section>
+
+  <!-- 4. THE PROBLEM -->
+  <section class="slide">
+    <div class="kicker">Part A · The Problem</div>
+    <h2>Where Does <code class="inline" style="font-size:.75em;">arr[0]</code> Belong?</h2>
+    <p class="lead">Take the first value of the array. Call it the <b>pivot</b>. In the final sorted array, it will sit at some index <code class="inline">p</code>. <b>Find that index — and move the pivot there.</b></p>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Given</h3>
+        <div class="output">arr = 5  3  8  1  9  2  7
+pivot = arr[0] = 5</div>
+      </div>
+      <div class="card card--featured">
+        <h3>Wanted</h3>
+        <div class="output">2  3  1  [5]  9  8  7
+              ↑
+        index 3 — correct!</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;">Three values (<code class="inline">3, 1, 2</code>) are smaller than <code class="inline">5</code>, so <code class="inline">5</code> must end up at index <b>3</b>. Everything smaller goes to its left; everything larger goes to its right.</p>
+  </section>
+
+  <!-- 5. FIGURE 1: THE GOAL -->
+  <section class="slide">
+    <div class="kicker">Part A · The Goal</div>
+    <h2>Smaller · Pivot · Larger</h2>
+    <svg class="fig" viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" aria-label="After partition the array has values smaller than the pivot, then the pivot, then larger values">
+      <defs>
+        <marker id="ma" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--amber)"/></marker>
+      </defs>
+      <rect class="bar" x="80" y="70" width="260" height="56" rx="6"/>
+      <text class="t" x="210" y="104">all smaller than pivot</text>
+      <rect class="barP" x="340" y="70" width="90" height="56" rx="6"/>
+      <text class="np" x="385" y="104">pivot</text>
+      <rect class="barL" x="430" y="70" width="250" height="56" rx="6"/>
+      <text class="t" x="555" y="104">all larger than pivot</text>
+
+      <text class="ix" x="385" y="146">index p</text>
+      <path class="brace" d="M80,136 L80,146 L340,146 L340,136"/>
+      <path class="brace" d="M430,136 L430,146 L680,146 L680,136"/>
+      <text class="grnT" x="210" y="168">not sorted yet</text>
+      <text class="mut" x="555" y="168">not sorted yet</text>
+
+      <path class="arw" style="stroke:var(--amber)" d="M385,58 L385,32" marker-end="url(#ma)"/>
+      <text class="ambT" x="385" y="24">the pivot is now in its FINAL place</text>
+      <text class="cap" x="380" y="206">the two sides are only separated — neither one is sorted</text>
+      <text class="cap" x="380" y="234" style="font-weight:700;">but the pivot will never move again</text>
+    </svg>
+  </section>
+
+  <!-- 6. THE KEY OBSERVATION -->
+  <section class="slide">
+    <div class="kicker">Part A · The Key Point</div>
+    <h2>One Value Is Finished Forever</h2>
+    <div class="two" style="flex:none;">
+      <div class="card card--warn">
+        <h3 style="color:var(--amber);">What partition gives you</h3>
+        <ul class="check">
+          <li>The pivot is at its correct, final index.</li>
+          <li>Everything left of it is smaller.</li>
+          <li>Everything right of it is larger.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What it does <i>not</i> give you</h3>
+        <ul class="cross">
+          <li>A sorted left side.</li>
+          <li>A sorted right side.</li>
+        </ul>
+        <div class="output" style="margin-top:8px;">2 3 1  [5]  9 8 7
+ ^^^^^        ^^^^^
+ messy        messy</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;"><b>This is the whole trick.</b> Partition solves the problem for <b>one</b> value with certainty — and it never has to be reconsidered.</p>
+  </section>
+
+  <!-- 7. THE METHOD -->
+  <section class="slide">
+    <div class="kicker">Part A · The Method</div>
+    <h2>Sweep With <code class="inline" style="font-size:.75em;">j</code>, Grow With <code class="inline" style="font-size:.75em;">i</code></h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <h3>Two indices</h3>
+        <ul>
+          <li><code class="inline">j</code> — walks through every value, one by one.</li>
+          <li><code class="inline">i</code> — marks the <b>end of the "smaller" region</b>.</li>
+        </ul>
+      </div>
+      <div class="card card--featured">
+        <h3>The rule</h3>
+        <p style="margin:0 0 6px;">When <code class="inline">arr[j] &lt; pivot</code>:</p>
+        <ul class="num">
+          <li>Grow the smaller region: <code class="inline">i++</code></li>
+          <li>Swap <code class="inline">arr[i]</code> with <code class="inline">arr[j]</code></li>
+        </ul>
+        <p style="margin:8px 0 0;">Otherwise, do nothing — just let <code class="inline">j</code> move on.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px;"><b>At the very end</b>, swap the pivot at <code class="inline">arr[left]</code> with <code class="inline">arr[i]</code>. The pivot drops into place, and <code class="inline">i</code> is the answer.</p>
+  </section>
+
+  <!-- 8. FIGURE 2: THE WALK -->
+  <section class="slide">
+    <div class="kicker">Part A · A Snapshot</div>
+    <h2>The Four Regions</h2>
+    <p class="lead">Halfway through <code class="inline">5 3 8 1 9 2 7</code>, the array has become <code class="inline">5 3 1 8 9 2 7</code>, with <code class="inline">i = 2</code> and <code class="inline">j = 5</code>.</p>
+    <svg class="fig" viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg" aria-label="The array split into pivot, smaller region, larger region, and unexamined region">
+      <text class="ix" x="120" y="34">0</text><text class="ix" x="190" y="34">1</text><text class="ix" x="260" y="34">2</text>
+      <text class="ix" x="330" y="34">3</text><text class="ix" x="400" y="34">4</text><text class="ix" x="470" y="34">5</text><text class="ix" x="540" y="34">6</text>
+
+      <rect class="cellP" x="85" y="44" width="70" height="46"/><text class="np" x="120" y="74">5</text>
+      <rect class="cellS" x="155" y="44" width="70" height="46"/><text class="ng" x="190" y="74">3</text>
+      <rect class="cellS" x="225" y="44" width="70" height="46"/><text class="ng" x="260" y="74">1</text>
+      <rect class="cellL" x="295" y="44" width="70" height="46"/><text class="n" x="330" y="74">8</text>
+      <rect class="cellL" x="365" y="44" width="70" height="46"/><text class="n" x="400" y="74">9</text>
+      <rect class="cellU" x="435" y="44" width="70" height="46"/><text class="n" x="470" y="74">2</text>
+      <rect class="cellU" x="505" y="44" width="70" height="46"/><text class="n" x="540" y="74">7</text>
+
+      <text class="accM" x="260" y="112">↑ i</text>
+      <text class="accM" x="470" y="112">↑ j</text>
+
+      <!-- braces -->
+      <path class="brace" d="M85,124 L85,134 L155,134 L155,124"/>
+      <text class="ambT" x="120" y="154">pivot</text>
+      <path class="brace" d="M155,124 L155,134 L295,134 L295,124"/>
+      <text class="grnT" x="225" y="154">smaller</text>
+      <path class="brace" d="M295,124 L295,134 L435,134 L435,124"/>
+      <text class="mut" x="365" y="154">larger</text>
+      <path class="brace" d="M435,124 L435,134 L575,134 L575,124"/>
+      <text class="cap" x="505" y="154">not looked at yet</text>
+
+      <text class="cap" x="620" y="74" style="text-anchor:start;">next: 2 &lt; 5</text>
+      <text class="cap" x="620" y="96" style="text-anchor:start;">so i++, swap</text>
+
+      <text class="cap" x="330" y="196">j sweeps right · i marks where the smaller region ends</text>
+      <text class="cap" x="330" y="222" style="font-weight:700;">at the end, swap the pivot into position i</text>
+    </svg>
+  </section>
+
+  <!-- 9. THE CODE -->
+  <section class="slide">
+    <div class="kicker">Part A · The Code</div>
+    <h2>The <code class="inline" style="font-size:.75em;">partition</code> Function</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>// puts arr[left] in its correct place,
+// and returns that place
+int partition(int arr[], int left, int right) {
+    int pivot = arr[left];    // the value we place
+    int i = left;             // end of "smaller" region
+
+    for (int j = left + 1; j &lt;= right; j++) {
+        if (arr[j] &lt; pivot) {
+            i++;                       // grow the region
+            int temp = arr[i];         // swap arr[i], arr[j]
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    }
+
+    // finally, drop the pivot into place
+    int temp = arr[left];
+    arr[left] = arr[i];
+    arr[i] = temp;
+
+    return i;                 // the pivot's correct index
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">j</code> starts at <code class="inline">left + 1</code> — never compare the pivot with itself.</li>
+          <li><code class="inline">i</code> starts <b>at</b> <code class="inline">left</code>, so the first smaller value lands at <code class="inline">left + 1</code>.</li>
+          <li>The final swap is <b>outside</b> the loop.</li>
+        </ul>
+        <p style="margin-top:12px;"><b>Cost:</b> the loop touches each value once, so partition takes about <code class="inline">n</code> steps.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. WORKED 1 -->
+  <section class="slide">
+    <div class="pill">Worked Example 1</div>
+    <h2>Partitioning by Hand and by Machine</h2>
+    <div class="two">
+      <div class="scroll">
+        <div class="out-label">Trace: pivot = 5</div>
+        <div class="output" style="font-size:16px;">start:  5 3 8 1 9 2 7   i=0
+
+j=1  3 &lt; 5  → i=1, swap(1,1)
+     5 3 8 1 9 2 7
+j=2  8 ≥ 5  → nothing
+j=3  1 &lt; 5  → i=2, swap(2,3)
+     5 3 1 8 9 2 7
+j=4  9 ≥ 5  → nothing
+j=5  2 &lt; 5  → i=3, swap(3,5)
+     5 3 1 2 9 8 7
+j=6  7 ≥ 5  → nothing
+
+place pivot: swap(0,3)
+     2 3 1 5 9 8 7</div>
+      </div>
+      <div>
+        <div class="out-label">Result</div>
+        <div class="output">returns 3
+
+left  of 5:  2 3 1   (all &lt; 5)
+right of 5:  9 8 7   (all &gt; 5)</div>
+        <p style="margin-top:14px;"><b>Confirmed:</b> the pivot <code class="inline">5</code> sits at index <code class="inline">3</code>, exactly where it belongs in the sorted array.</p>
+        <p class="note">Notice that <code class="inline">2 3 1</code> and <code class="inline">9 8 7</code> are still unsorted.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. PART B DIVIDER -->
+  <section class="slide section-slide">
+    <div class="part-num">Part B</div>
+    <h1>From Partition to Quick Sort</h1>
+    <p class="lead">One value is correct. Now repeat on what is left.</p>
+  </section>
+
+  <!-- 12. THE INSIGHT -->
+  <section class="slide">
+    <div class="kicker">Part B · The Insight</div>
+    <h2>Repeat on Each Side</h2>
+    <p class="lead">After partition, the pivot is finished. The two sides are still messy — but each is just a <b>smaller version of the same problem</b>.</p>
+    <div class="card card--featured" style="margin-bottom:12px;">
+      <div class="output" style="border:none; background:none; padding:0;">2  3  1   [5]   9  8  7
+└───┬───┘        └───┬───┘
+partition it     partition it
+     ↓                ↓
+1  [2]  3   [5]   [7]  8  9    ...and so on</div>
+    </div>
+    <p><b>Each partition fixes one more value forever.</b> When every piece has shrunk to a single value, there is nothing left to fix — the array is sorted.</p>
+    <p class="note">That is recursion again: partition, then quick sort the left, then quick sort the right.</p>
+  </section>
+
+  <!-- 13. THE CODE -->
+  <section class="slide">
+    <div class="kicker">Part B · The Code</div>
+    <h2>The <code class="inline" style="font-size:.75em;">quickSort</code> Function</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>void quickSort(int arr[], int left, int right) {
+    // base case: 0 or 1 value needs no work
+    if (left &gt;= right) return;
+
+    // place one value correctly
+    int p = partition(arr, left, right);
+
+    quickSort(arr, left, p - 1);    // sort the smaller side
+    quickSort(arr, p + 1, right);   // sort the larger side
+}</code></pre>
+      </div>
+      <div>
+        <ul>
+          <li><code class="inline">p</code> is the pivot's final index.</li>
+          <li>We recurse on <code class="inline">left..p-1</code> and <code class="inline">p+1..right</code>.</li>
+          <li><b>Index <code class="inline">p</code> is skipped</b> — that value is already correct.</li>
+        </ul>
+        <div class="card card--featured" style="margin-top:14px;">
+          <h3>Compare with merge sort</h3>
+          <p style="margin:0;">Merge sort does its work <b>after</b> the recursive calls. Quick sort does its work <b>before</b> them.</p>
+        </div>
+        <p class="note" style="margin-top:10px;">Call it with <code class="inline">quickSort(arr, 0, n - 1);</code></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. FIGURE 3: TREE -->
+  <section class="slide">
+    <div class="kicker">Part B · The Picture</div>
+    <h2>Every Partition Locks One Value</h2>
+    <svg class="fig" viewBox="0 0 760 340" xmlns="http://www.w3.org/2000/svg" aria-label="Quick sort recursion tree on 5 3 8 1 9 2 7">
+      <defs>
+        <marker id="mq" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker>
+      </defs>
+
+      <!-- level 0 -->
+      <rect class="node" x="270" y="16" width="220" height="34" rx="5"/><text class="n" x="380" y="39">5 3 8 1 9 2 7</text>
+      <text class="ambT" x="600" y="38">pivot 5 → index 3</text>
+
+      <!-- after partition -->
+      <rect class="node" x="230" y="66" width="110" height="34" rx="5"/><text class="n" x="285" y="89">2 3 1</text>
+      <rect class="nodeP" x="345" y="66" width="46" height="34" rx="5"/><text class="np" x="368" y="89">5</text>
+      <rect class="node" x="396" y="66" width="110" height="34" rx="5"/><text class="n" x="451" y="89">9 8 7</text>
+
+      <!-- left branch -->
+      <path class="arwM" d="M285,102 L285,128" marker-end="url(#mq)"/>
+      <rect class="nodeG" x="200" y="134" width="46" height="34" rx="5"/><text class="ng" x="223" y="157">1</text>
+      <rect class="nodeP" x="251" y="134" width="46" height="34" rx="5"/><text class="np" x="274" y="157">2</text>
+      <rect class="nodeG" x="302" y="134" width="46" height="34" rx="5"/><text class="ng" x="325" y="157">3</text>
+      <text class="ambT" x="120" y="157">pivot 2</text>
+
+      <!-- right branch -->
+      <path class="arwM" d="M451,102 L451,128" marker-end="url(#mq)"/>
+      <rect class="node" x="380" y="134" width="90" height="34" rx="5"/><text class="n" x="425" y="157">7 8</text>
+      <rect class="nodeP" x="475" y="134" width="46" height="34" rx="5"/><text class="np" x="498" y="157">9</text>
+      <text class="ambT" x="600" y="157">pivot 9 → last</text>
+
+      <path class="arwM" d="M425,170 L425,196" marker-end="url(#mq)"/>
+      <rect class="nodeP" x="380" y="202" width="46" height="34" rx="5"/><text class="np" x="403" y="225">7</text>
+      <rect class="nodeG" x="431" y="202" width="46" height="34" rx="5"/><text class="ng" x="454" y="225">8</text>
+      <text class="ambT" x="600" y="225">pivot 7</text>
+
+      <!-- final -->
+      <rect class="nodeG" x="270" y="262" width="220" height="34" rx="5"/><text class="ng" x="380" y="285">1 2 3 5 7 8 9</text>
+      <path class="arwM" d="M380,240 L380,258" marker-end="url(#mq)"/>
+
+      <text class="cap" x="380" y="322">amber = a pivot, now permanently in place</text>
+    </svg>
+  </section>
+
+  <!-- 15. WORKED 2 -->
+  <section class="slide">
+    <div class="pill">Worked Example 2</div>
+    <h2>The Complete Program</h2>
+    <div class="two">
+      <div class="scroll">
+<pre><code>#include &lt;iostream&gt;
+using namespace std;
+
+int partition(int arr[], int left, int right) {
+    int pivot = arr[left];
+    int i = left;
+    for (int j = left + 1; j &lt;= right; j++) {
+        if (arr[j] &lt; pivot) {
+            i++;
+            int t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        }
+    }
+    int t = arr[left]; arr[left] = arr[i]; arr[i] = t;
+    return i;
+}
+
+void quickSort(int arr[], int left, int right) {
+    if (left &gt;= right) return;
+    int p = partition(arr, left, right);
+    quickSort(arr, left, p - 1);
+    quickSort(arr, p + 1, right);
+}
+
+int main() {
+    int arr[7] = {5, 3, 8, 1, 9, 2, 7};
+    quickSort(arr, 0, 6);
+    for (int i = 0; i &lt; 7; i++) cout &lt;&lt; arr[i] &lt;&lt; " ";
+    return 0;
+}</code></pre>
+      </div>
+      <div>
+        <div class="out-label">Expected Output</div>
+        <div class="output">1 2 3 5 7 8 9 </div>
+        <p style="margin-top:14px;"><b>What it does:</b> each call to <code class="inline">partition</code> fixes one value; the recursion handles what remains on either side.</p>
+        <p><b>No extra array is needed</b> — quick sort rearranges the values in place.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16. WORKED 3 TRACE -->
+  <section class="slide">
+    <div class="pill">Worked Example 3</div>
+    <h2>Tracing the Calls</h2>
+    <div class="two">
+      <div class="scroll">
+        <div class="out-label">Partitions in order</div>
+        <div class="output" style="font-size:15.5px;">quickSort [5 3 8 1 9 2 7]  pivot=5
+  → [2 3 1] 5 [9 8 7]   5 fixed at 3
+
+  quickSort [2 3 1]  pivot=2
+    → [1] 2 [3]         2 fixed at 1
+
+  quickSort [9 8 7]  pivot=9
+    → [7 8] 9 []        9 fixed at 6
+
+    quickSort [7 8]  pivot=7
+      → [] 7 [8]        7 fixed at 4
+
+final: 1 2 3 5 7 8 9</div>
+      </div>
+      <div>
+        <h3>What to notice</h3>
+        <ul>
+          <li>Each line locks exactly <b>one</b> value into place.</li>
+          <li>Pieces of size 1 return immediately — the base case.</li>
+          <li>A partition can be <b>uneven</b>: <code class="inline">[9 8 7]</code> gave <code class="inline">[7 8]</code> and an empty side.</li>
+        </ul>
+        <p style="margin-top:10px;" class="note">Four partitions fixed 4 values; the other 3 were finished as single-value pieces.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17. THE WORST CASE -->
+  <section class="slide">
+    <div class="kicker">Part B · The Catch</div>
+    <h2>The Worst Case: An Already Sorted Array</h2>
+    <p class="lead">If <code class="inline">arr[0]</code> is always the <b>smallest</b> value, then nothing goes to its left. Each partition removes only one value.</p>
+    <div class="two" style="flex:none;">
+      <div class="card card--danger">
+        <h3 style="color:var(--red);">Sorted input</h3>
+        <div class="output">1 2 3 4 5 6 7 8
+pivot 1 → left empty
+pivot 2 → left empty
+   ... n times</div>
+        <p style="margin-top:8px;">The tree becomes one long chain of depth <code class="inline">n</code>.</p>
+      </div>
+      <div class="card card--featured">
+        <h3 style="color:var(--green);">Balanced input</h3>
+        <div class="output">4 2 6 1 3 5 8
+each pivot lands
+near the middle</div>
+        <p style="margin-top:8px;">The tree has depth <code class="inline">log₂(n)</code>.</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="output" style="border:none; background:none; padding:0;">n = 8, already sorted :  28 comparisons   ( = n(n-1)/2, the worst possible )
+n = 7, balanced       :  11 comparisons</div>
+    </div>
+    <p class="note" style="margin-top:8px;">A common fix: choose the pivot from the middle, or at random.</p>
+  </section>
+
+  <!-- 18. COMPARISON -->
+  <section class="slide">
+    <div class="kicker">Putting It Together</div>
+    <h2>Quick Sort and Merge Sort</h2>
+    <table class="cmp">
+      <tr><th></th><th>Quick sort</th><th>Merge sort</th></tr>
+      <tr><td>Average case</td><td class="mono-cell">n × log₂(n)</td><td class="mono-cell">n × log₂(n)</td></tr>
+      <tr><td>Worst case</td><td class="mono-cell" style="color:var(--red); font-weight:700;">n × n</td><td class="mono-cell" style="color:var(--green); font-weight:700;">n × log₂(n)</td></tr>
+      <tr><td>Extra memory</td><td class="mono-cell" style="color:var(--green); font-weight:700;">none (in place)</td><td class="mono-cell" style="color:var(--amber);">a second array</td></tr>
+      <tr><td>Work happens</td><td>before the calls</td><td>after the calls</td></tr>
+      <tr><td>Splitting</td><td>by <b>value</b> (the pivot)</td><td>by <b>position</b> (the middle)</td></tr>
+    </table>
+    <p style="margin-top:14px;"><b>The trade:</b> quick sort uses no extra memory and is usually faster in practice, but a bad pivot ruins it. Merge sort is slower on average but never has a bad day.</p>
+  </section>
+
+  <!-- 19. COMMON MISTAKES -->
+  <section class="slide">
+    <div class="kicker">Be Careful</div>
+    <h2>Common Mistakes</h2>
+    <div class="two" style="flex:none;">
+      <div class="card">
+        <ul class="cross">
+          <li><b>Starting <code class="inline">j</code> at <code class="inline">left</code></b><br>the pivot would be compared with itself</li>
+          <li><b>Forgetting the final swap</b><br>the pivot never reaches its place</li>
+          <li><b>Including the pivot in a recursive call</b><br>use <code class="inline">p-1</code> and <code class="inline">p+1</code>, never <code class="inline">p</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <ul class="cross">
+          <li><b>No base case</b><br><code class="inline">if (left &gt;= right) return;</code> must come first</li>
+          <li><b>Expecting sorted halves</b><br>partition only separates; it does not sort</li>
+          <li><b>Returning the wrong index</b><br>return <code class="inline">i</code> after the swap, not <code class="inline">j</code></li>
+        </ul>
+      </div>
+    </div>
+    <p style="margin-top:10px;"><b>The infinite-recursion test:</b> including index <code class="inline">p</code> in a recursive call means the piece never shrinks.</p>
+  </section>
+
+  <!-- 20. EXERCISES 1 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 1–3</h2>
+    <ul class="num">
+      <li>Partition <code class="inline">{4, 7, 2, 9, 3}</code> with pivot <code class="inline">arr[0] = 4</code>. Show the array after each swap, and give the returned index.</li>
+      <li>After <code class="inline">partition</code> returns <code class="inline">p</code>, why do we <b>not</b> include index <code class="inline">p</code> in either recursive call?</li>
+      <li>Is the left side sorted after a partition? Explain in one sentence.</li>
+    </ul>
+  </section>
+
+  <!-- 21. EXERCISES 2 -->
+  <section class="slide">
+    <div class="kicker">Your Turn</div>
+    <h2>Exercises 4–6</h2>
+    <ul class="num" style="counter-reset: c 3;">
+      <li>Write the base case of <code class="inline">quickSort</code> and explain why it is correct.</li>
+      <li>Why is an <b>already sorted</b> array the worst case when the pivot is <code class="inline">arr[0]</code>?</li>
+      <li>Quick sort needs no second array, but merge sort does. Why?</li>
+    </ul>
+  </section>
+
+  <!-- 22. ANSWERS 1 -->
+  <section class="slide">
+    <div class="kicker">Solutions (1–3)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>1 · Partition {4, 7, 2, 9, 3}</h3>
+        <div class="output" style="font-size:16px;">pivot = 4,  i = 0
+
+j=1  7 ≥ 4  → nothing
+j=2  2 &lt; 4  → i=1, swap(1,2)
+     4 2 7 9 3
+j=3  9 ≥ 4  → nothing
+j=4  3 &lt; 4  → i=2, swap(2,4)
+     4 2 3 9 7
+
+swap(0,2):  3 2 4 9 7
+returns 2</div>
+      </div>
+      <div class="scroll">
+        <h3>2 · Why skip <code class="inline">p</code>?</h3>
+        <p>Because the value at <code class="inline">p</code> is already in its final, correct position. Including it would also stop the pieces from shrinking, causing infinite recursion.</p>
+        <h3 style="margin-top:12px;">3 · Is the left side sorted?</h3>
+        <p><b>No.</b> Partition only guarantees that every value on the left is <b>smaller</b> than the pivot — their order among themselves is untouched.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23. ANSWERS 2 -->
+  <section class="slide">
+    <div class="kicker">Solutions (4–6)</div>
+    <h2>Exercise Answers</h2>
+    <div class="two">
+      <div class="scroll">
+        <h3>4 · The base case</h3>
+<pre><code>if (left &gt;= right) return;</code></pre>
+        <p>A piece holding one value — or none — is already sorted, so there is nothing to do.</p>
+        <h3 style="margin-top:12px;">6 · Why no second array?</h3>
+        <p>Partition rearranges values by <b>swapping inside the array</b>. Merge must read two sorted halves while writing the result, so it needs copies to avoid overwriting.</p>
+      </div>
+      <div class="scroll">
+        <h3>5 · Why sorted input is worst</h3>
+        <p><code class="inline">arr[0]</code> is then the <b>smallest</b> value, so nothing is smaller than it and the left side is always <b>empty</b>.</p>
+        <div class="output" style="font-size:16px; margin-top:6px;">each partition removes
+just ONE value
+
+depth = n, not log(n)
+
+n=8 sorted → 28 comparisons
+n=7 balanced → 11</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24. SUMMARY -->
+  <section class="slide">
+    <div class="kicker">Wrap Up</div>
+    <h2>Summary</h2>
+    <ul class="check">
+      <li>The <b>partition problem</b>: find the correct final index of the pivot <code class="inline">arr[0]</code>, and move it there.</li>
+      <li><code class="inline">j</code> sweeps the array; <code class="inline">i</code> marks the end of the smaller region; swap when <code class="inline">arr[j] &lt; pivot</code>.</li>
+      <li>A final swap drops the pivot at <code class="inline">i</code> — and it <b>never moves again</b>.</li>
+      <li>Partition separates but does <b>not</b> sort the two sides.</li>
+      <li><b>Quick sort</b> = partition, then quick sort the left side and the right side, skipping the pivot.</li>
+      <li>Average <code class="inline">n × log₂(n)</code>, in place. Worst case <code class="inline">n × n</code> on already sorted input.</li>
+    </ul>
+    <p style="margin-top:16px; font-size:25px;"><b>Place one value with certainty — then let recursion do it again and again.</b></p>
+  </section>
+
+</div>
+
+<div class="nav">
+  <div class="counter"><span id="cur">1</span> / <span id="total">1</span></div>
+  <div class="navbtns">
+    <button class="navbtn" id="prevBtn" onclick="go(-1)">← Prev</button>
+    <button class="navbtn" id="nextBtn" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  document.getElementById('total').textContent = slides.length;
+
+  function show(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('prevBtn').disabled = (idx === 0);
+    document.getElementById('nextBtn').disabled = (idx === slides.length - 1);
+    document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  function go(d) { show(idx + d); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { go(1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+  });
+
+  function toggleTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '🌙 Dark'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '☀ Light'; }
+  }
+
+  const KW = /^(int|long|short|signed|unsigned|double|float|char|bool|void|string|return|using|namespace|std|include|const|if|else|while|for|break|continue|main|true|false|new|delete|nullptr|class|struct|public|private|protected|this|virtual|auto|operator|template|typename|stack|pair)$/;
+  function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(src) {
+    let out = '', i = 0; const n = src.length;
+    while (i < n) {
+      const c = src[i];
+      if (c === '/' && src[i+1] === '/') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-com">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '#') {
+        let j = i; while (j < n && src[j] !== '\n') j++;
+        out += '<span class="tok-pre">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === '"') {
+        let j = i+1; while (j < n && src[j] !== '"') { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (c === "'") {
+        let j = i+1; while (j < n && src[j] !== "'") { if (src[j]==='\\') j++; j++; }
+        j++; out += '<span class="tok-str">' + esc(src.slice(i,j)) + '</span>'; i = j; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) {
+        let j = i; while (j < n && /[A-Za-z0-9_]/.test(src[j])) j++;
+        const w = src.slice(i,j);
+        out += KW.test(w) ? '<span class="tok-kw">'+esc(w)+'</span>' : esc(w);
+        i = j; continue;
+      }
+      if (/[0-9]/.test(c)) {
+        let j = i; while (j < n && /[0-9.]/.test(src[j])) j++;
+        out += '<span class="tok-num">'+esc(src.slice(i,j))+'</span>'; i = j; continue;
+      }
+      out += esc(c); i++;
+    }
+    return out;
+  }
+  document.querySelectorAll('pre code').forEach(el => { el.innerHTML = highlight(el.textContent); });
+  show(0);
+</script>
+</body>
+</html>
